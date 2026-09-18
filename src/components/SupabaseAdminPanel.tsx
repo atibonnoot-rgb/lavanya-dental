@@ -854,6 +854,33 @@ const DoctorsTab: React.FC = () => {
   );
 };
 
+const DEFAULT_GALLERY_IMAGES: GalleryImg[] = [
+  {
+    id: 'img-1',
+    title: 'Modern Clinic Suite',
+    category: 'Facility',
+    image_url: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=600&q=80',
+    type: 'general',
+    description: 'High-tech intraoral scanning suite'
+  },
+  {
+    id: 'img-2',
+    title: 'Sterilization & Hygiene Station',
+    category: 'Facility',
+    image_url: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=600&q=80',
+    type: 'general',
+    description: 'Hospital grade autoclave sterilization'
+  },
+  {
+    id: 'img-3',
+    title: 'Consultation & Treatment Bay',
+    category: 'Facility',
+    image_url: 'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&w=600&q=80',
+    type: 'general',
+    description: 'Ergonomic patient comfort chair'
+  }
+];
+
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: GALLERY (SIMPLIFIED & BULLETPROOF)
 // ─────────────────────────────────────────────────────────────────────────────

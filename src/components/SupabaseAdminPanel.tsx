@@ -856,21 +856,46 @@ const DoctorsTab: React.FC = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: GALLERY
 // ─────────────────────────────────────────────────────────────────────────────
+const DEFAULT_GALLERY_IMAGES: GalleryImg[] = [
+  {
+    id: 'img-1',
+    title: 'Modern Clinic Suite',
+    category: 'Facility',
+    image_url: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=600&q=80',
+    type: 'general',
+    description: 'High-tech intraoral scanning suite'
+  },
+  {
+    id: 'img-2',
+    title: 'Sterilization & Hygiene Station',
+    category: 'Facility',
+    image_url: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=600&q=80',
+    type: 'general',
+    description: 'Hospital grade autoclave sterilization'
+  },
+  {
+    id: 'img-3',
+    title: 'Consultation & Treatment Bay',
+    category: 'Facility',
+    image_url: 'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&w=600&q=80',
+    type: 'general',
+    description: 'Ergonomic patient comfort chair'
+  }
+];
+
 const GalleryTab: React.FC = () => {
-  const [images, setImages] = useState<GalleryImg[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [images, setImages] = useState<GalleryImg[]>(() => {
+    const saved = localStorage.getItem('auradental_gallery_images_v1');
+    return saved ? JSON.parse(saved) : DEFAULT_GALLERY_IMAGES;
+  });
+  const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchImages = async () => {
-    setLoading(true);
-    const { data } = await supabase.from('gallery_images').select('*').order('created_at', { ascending: false });
-    if (data) setImages(data as GalleryImg[]);
-    setLoading(false);
-  };
-
-  useEffect(() => { fetchImages(); }, []);
+  useEffect(() => {
+    localStorage.setItem('auradental_gallery_images_v1', JSON.stringify(images));
+  }, [images]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -878,22 +903,23 @@ const GalleryTab: React.FC = () => {
     setUploading(true);
 
     for (const file of files) {
-      const path = `gallery/${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage.from('clinic-media').upload(path, file, { upsert: true });
-      if (!uploadError) {
-        const { data: { publicUrl } } = supabase.storage.from('clinic-media').getPublicUrl(path);
-        await supabase.from('gallery_images').insert({
-          title: file.name.split('.')[0],
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const url = ev.target?.result as string;
+        const newImg: GalleryImg = {
+          id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+          title: file.name.split('.')[0] || 'Clinic Photo',
           category: 'General',
-          image_url: publicUrl,
+          image_url: url,
           type: 'general',
-          description: '',
-        });
-      }
+          description: file.name
+        };
+        setImages(prev => [newImg, ...prev]);
+      };
+      reader.readAsDataURL(file);
     }
 
-    await fetchImages();
-    setToast({ message: `${files.length} image(s) uploaded!`, type: 'success' });
+    setToast({ message: `${files.length} picture(s) uploaded successfully!`, type: 'success' });
     setUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -985,13 +1011,9 @@ const GalleryTab: React.FC = () => {
     setToast({ message: 'Before & After case removed!', type: 'info' });
   };
 
-  const deleteImage = async (id: string, imageUrl: string) => {
-    if (!confirm('Remove this picture?')) return;
-    const path = imageUrl.split('/clinic-media/')[1];
-    if (path) await supabase.storage.from('clinic-media').remove([path]);
-    await supabase.from('gallery_images').delete().eq('id', id);
+  const deleteImage = (id: string) => {
     setImages(prev => prev.filter(img => img.id !== id));
-    setToast({ message: 'Picture removed', type: 'success' });
+    setToast({ message: 'Picture removed', type: 'info' });
   };
 
   return (
@@ -1154,7 +1176,7 @@ const GalleryTab: React.FC = () => {
                   <img src={img.image_url} alt={img.title} className="w-full h-full object-cover" />
                 </div>
                 <button
-                  onClick={() => deleteImage(img.id, img.image_url)}
+                  onClick={() => deleteImage(img.id)}
                   className="w-full bg-rose-600/20 hover:bg-rose-600 text-rose-400 hover:text-white text-[11px] font-bold py-1.5 rounded-lg flex items-center justify-center gap-1 border border-rose-500/30 transition-all"
                 >
                   <Trash2 className="w-3 h-3" />

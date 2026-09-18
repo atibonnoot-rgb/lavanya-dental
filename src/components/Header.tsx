@@ -45,7 +45,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
-      {/* Top strip — Open Today Status */}
+      {/* Top strip — Open Today only on mobile, HIPAA badge on desktop */}
       <div className="bg-slate-900 text-slate-300 text-xs py-1.5 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
           <span className="flex items-center gap-1.5 text-teal-400 font-medium">
@@ -57,18 +57,26 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
               ? `Open Today: ${clinicSettings.hours.monday.start} – ${clinicSettings.hours.monday.end}`
               : 'Closed Today'}
           </span>
-          <span className="text-slate-400 text-xs font-medium">
-            Lavanya Dental Care Pavilion
+          <span className="hidden sm:inline-flex items-center gap-1 text-slate-400">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            HIPAA &amp; GDPR Certified • TLS 1.3 / AES-256
           </span>
+          <button
+            onClick={() => setShowEmergencyModal(true)}
+            className="hidden sm:inline-flex items-center gap-1 text-rose-300 hover:text-rose-200 font-medium transition-colors"
+          >
+            <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+            <span>Emergency: (800) 555-DENT</span>
+          </button>
         </div>
       </div>
 
       {/* Main navigation row */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-18">
-          {/* Logo & Brand — Straightened & Cleaned */}
-          <div className="flex items-center gap-3 cursor-pointer shrink-0" onClick={() => onNavigateTab('home')}>
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white shadow-sm shadow-teal-500/20 overflow-hidden shrink-0">
+          {/* Logo & Brand */}
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => onNavigateTab('home')}>
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white shadow-sm shadow-teal-500/20 overflow-hidden shrink-0">
               {clinicSettings.logoUrl ? (
                 <img src={clinicSettings.logoUrl} alt="logo" className="w-full h-full object-cover" />
               ) : (
@@ -77,11 +85,14 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
                 </svg>
               )}
             </div>
-            <div className="flex flex-col justify-center">
-              <span className="text-base sm:text-xl font-bold tracking-tight text-slate-900 font-display leading-tight">
-                {clinicSettings.clinicName}
-              </span>
-              <p className="text-xs text-slate-500 leading-tight">{clinicSettings.tagline}</p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-base sm:text-xl font-bold tracking-tight text-slate-900 font-display">{clinicSettings.clinicName}</span>
+                <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-semibold bg-teal-50 text-teal-700 rounded-md border border-teal-200 shrink-0">
+                  CLINIC &amp; SURGERY
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 hidden sm:block">{clinicSettings.tagline}</p>
             </div>
           </div>
 
@@ -102,19 +113,10 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
             ))}
           </nav>
 
-          {/* Hamburger + Role selector & CTA */}
+          {/* Role selector & CTA */}
           <div className="flex items-center gap-1.5 sm:gap-3">
-            {/* Mobile / Tablet menu hamburger — positioned to the LEFT of the persona switcher */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 text-slate-600 hover:text-slate-900 rounded-xl hover:bg-slate-100 border border-slate-200/80 transition-colors"
-              aria-label="Toggle Navigation Menu"
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-
-            {/* Persona Switcher */}
-            <div className="bg-slate-100 p-1 rounded-xl flex items-center border border-slate-200">
+            {/* Persona Switcher — hidden on mobile, visible on sm+ */}
+            <div className="hidden sm:flex bg-slate-100 p-1 rounded-xl items-center border border-slate-200">
               <button
                 onClick={() => setCurrentRole('patient')}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
@@ -173,7 +175,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
               </select>
             )}
 
-            {/* Book Visit */}
+            {/* Book Visit — icon only on mobile, full button on sm+ */}
             <button
               onClick={() => {
                 if (currentRole !== 'patient') setCurrentRole('patient');
@@ -183,6 +185,14 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
             >
               <Calendar className="w-4 h-4 shrink-0" />
               <span className="hidden sm:inline whitespace-nowrap">Book Visit</span>
+            </button>
+
+            {/* Mobile menu hamburger */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-1.5 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
@@ -203,6 +213,30 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
               {link.label}
             </button>
           ))}
+          <div className="pt-2 border-t border-slate-100 flex flex-col gap-2">
+            {/* Role switcher in mobile menu */}
+            <p className="text-[10px] uppercase tracking-widest text-slate-400 font-semibold px-3 pt-1">Switch View</p>
+            <div className="flex gap-2 px-3">
+              <button
+                onClick={() => { setCurrentRole('patient'); setMobileMenuOpen(false); }}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold border transition-all ${currentRole === 'patient' ? 'bg-teal-50 text-teal-800 border-teal-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}
+              >
+                <User className="w-3.5 h-3.5" /> Patient
+              </button>
+              <button
+                onClick={() => { setCurrentRole('doctor'); setMobileMenuOpen(false); }}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold border transition-all ${currentRole === 'doctor' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}
+              >
+                <Stethoscope className="w-3.5 h-3.5" /> Doctor
+              </button>
+              <button
+                onClick={() => { setCurrentRole('admin'); setMobileMenuOpen(false); }}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold border transition-all ${currentRole === 'admin' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}
+              >
+                <Building2 className="w-3.5 h-3.5" /> Admin
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </header>

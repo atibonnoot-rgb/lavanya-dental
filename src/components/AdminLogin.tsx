@@ -135,20 +135,6 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
               )}
             </button>
           </form>
-
-          <div className="mt-4 pt-4 border-t border-slate-800 text-center space-y-2">
-            <button
-              type="button"
-              onClick={() => onAuthenticated()}
-              className="w-full bg-slate-800 hover:bg-slate-700 text-teal-400 hover:text-teal-300 font-bold py-2.5 rounded-xl text-xs border border-slate-700 transition-all flex items-center justify-center gap-1.5"
-            >
-              <span>⚡ Instant Quick Access to Admin Panel</span>
-            </button>
-
-            <p className="text-[11px] text-slate-500">
-              💡 Master PIN: <code className="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded">1234</code> or tap button above
-            </p>
-          </div>
         </div>
       </div>
     </div>

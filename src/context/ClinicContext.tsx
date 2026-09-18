@@ -22,7 +22,7 @@ import { supabase } from '../lib/supabase';
 const DEFAULT_CLINIC_SETTINGS: ClinicSettings = {
   clinicName: 'Lavanya Dental',
   tagline: 'Where Precision Meets Perfection',
-  logoUrl: '/clinic-hero.png',
+  logoUrl: '',
   phone: '+91 98765 43210',
   email: 'appointments@lavanyadental.com',
   address: 'Lavanya Dental Care Pavilion, Main Road',

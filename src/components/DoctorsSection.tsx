@@ -40,14 +40,14 @@ export const DoctorsSection: React.FC = () => {
         </div>
 
         {/* Doctors Grid */}
-        {availableDoctors.length === 0 ? (
+        {doctors.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-3xl border border-slate-200 p-8 max-w-md mx-auto shadow-sm">
-            <p className="text-slate-700 text-sm font-semibold">No doctors currently available for booking today.</p>
-            <p className="text-xs text-slate-500 mt-1">Please call our clinic hotline or check back later.</p>
+            <p className="text-slate-700 text-sm font-semibold">No doctors registered yet.</p>
+            <p className="text-xs text-slate-500 mt-1">Please add doctor profiles in the admin panel.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {availableDoctors.map(doc => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {doctors.map(doc => (
               <div
                 key={doc.id}
                 className="bg-white rounded-3xl overflow-hidden border border-slate-200/90 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
@@ -92,10 +92,17 @@ export const DoctorsSection: React.FC = () => {
                         <Clock className="w-3.5 h-3.5 text-teal-600 shrink-0" />
                         <span>Hours: {doc.workingHours.start} – {doc.workingHours.end}</span>
                       </p>
-                      <p className="flex items-center gap-1.5 text-emerald-700 font-medium">
-                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                        <span>Accepting Patients Today</span>
-                      </p>
+                      {doc.isAvailableToday ? (
+                        <p className="flex items-center gap-1.5 text-emerald-700 font-medium">
+                          <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                          <span>Accepting Patients Today</span>
+                        </p>
+                      ) : (
+                        <p className="flex items-center gap-1.5 text-slate-400 font-medium">
+                          <Clock className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+                          <span>Next Available Tomorrow</span>
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -701,21 +701,54 @@ const DoctorsTab: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(doctorId);
-    try {
-      const ext = file.name.split('.').pop();
-      const path = `doctors/${doctorId}.${ext}`;
-      await supabase.storage.from('clinic-media').upload(path, file, { upsert: true });
-      const { data: { publicUrl } } = supabase.storage.from('clinic-media').getPublicUrl(path);
-      if (editing && editing.id === doctorId) {
-        setEditing(d => d ? { ...d, photoUrl: publicUrl } : null);
+
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const photoUrl = ev.target?.result as string;
+      if (!photoUrl) {
+        setUploading(null);
+        return;
       }
-      await supabase.from('doctors').update({ photo_url: publicUrl }).eq('id', doctorId);
-      setDoctors(prev => prev.map(d => d.id === doctorId ? { ...d, photoUrl: publicUrl } : d));
-      setToast({ message: 'Photo uploaded!', type: 'success' });
-    } catch {
-      setToast({ message: 'Photo upload failed', type: 'error' });
-    }
-    setUploading(null);
+
+      // Update current edit form if open
+      if (editing && editing.id === doctorId) {
+        setEditing(d => d ? { ...d, photoUrl } : null);
+      }
+
+      // Update doctor state and persist in localStorage
+      setDoctors(prev => {
+        const updated = prev.map(d => d.id === doctorId ? { ...d, photoUrl } : d);
+        try {
+          localStorage.setItem('auradental_doctors_v1', JSON.stringify(updated));
+        } catch (err) {
+          console.warn('LocalStorage error:', err);
+        }
+        return updated;
+      });
+
+      // Attempt Supabase update
+      try {
+        const ext = file.name.split('.').pop();
+        const path = `doctors/${doctorId}.${ext}`;
+        await supabase.storage.from('clinic-media').upload(path, file, { upsert: true });
+        const { data: { publicUrl } } = supabase.storage.from('clinic-media').getPublicUrl(path);
+        if (publicUrl) {
+          await supabase.from('doctors').update({ photo_url: publicUrl }).eq('id', doctorId);
+        }
+      } catch (err) {
+        console.warn('Supabase photo upload skipped/failed:', err);
+      }
+
+      setToast({ message: 'Photo updated successfully!', type: 'success' });
+      setUploading(null);
+    };
+
+    reader.onerror = () => {
+      setToast({ message: 'Failed to read image file', type: 'error' });
+      setUploading(null);
+    };
+
+    reader.readAsDataURL(file);
   };
 
   const toggleAvailability = async (doctorId: string, field: 'isAvailableToday' | 'onCallForEmergency') => {

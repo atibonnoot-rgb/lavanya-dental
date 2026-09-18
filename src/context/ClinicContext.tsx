@@ -213,18 +213,51 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     loadPublicData();
   }, []);
 
-  // ─── Sync localStorage ─────────────────────────────────────────────────────
+  // ─── Sync localStorage & Cross-Tab/Window Broadcast ─────────────────────────
   useEffect(() => {
     localStorage.setItem(LOCAL_STORAGE_KEY_APPOINTMENTS, JSON.stringify(appointments));
   }, [appointments]);
 
   useEffect(() => {
     localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(doctors));
+    // Broadcast doctor updates to all tabs/windows
+    try {
+      const channel = new BroadcastChannel('auradental_clinic_sync');
+      channel.postMessage({ type: 'DOCTORS_UPDATED', data: doctors });
+      channel.close();
+    } catch {}
   }, [doctors]);
 
   useEffect(() => {
     localStorage.setItem(LOCAL_STORAGE_KEY_AUDIT, JSON.stringify(auditLogs));
   }, [auditLogs]);
+
+  // Listen for storage changes from other windows/tabs
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === LOCAL_STORAGE_KEY_DOCTORS && e.newValue) {
+        try {
+          setDoctors(JSON.parse(e.newValue));
+        } catch {}
+      }
+    };
+
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel('auradental_clinic_sync');
+      bc.onmessage = (msg) => {
+        if (msg.data?.type === 'DOCTORS_UPDATED' && Array.isArray(msg.data.data)) {
+          setDoctors(msg.data.data);
+        }
+      };
+    } catch {}
+
+    window.addEventListener('storage', handleStorage);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      if (bc) bc.close();
+    };
+  }, []);
 
   // ─── Helpers ───────────────────────────────────────────────────────────────
   const addAuditLog = (actor: string, role: 'Patient' | 'Doctor' | 'Admin' | 'System', action: string, details: string) => {

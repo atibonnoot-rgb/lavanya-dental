@@ -760,10 +760,65 @@ const DoctorsTab: React.FC = () => {
     setDoctors(prev => prev.map(d => d.id === doctorId ? { ...d, [field]: newVal } : d));
   };
 
+  const deleteDoctor = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete ${name}?`)) return;
+    try {
+      await supabase.from('doctors').delete().eq('id', id);
+    } catch (e) {
+      console.warn('Supabase delete doctor warning:', e);
+    }
+
+    setDoctors(prev => {
+      const updated = prev.filter(d => d.id !== id);
+      try {
+        localStorage.setItem('auradental_doctors_v1', JSON.stringify(updated));
+      } catch (err) {
+        console.warn('LocalStorage error:', err);
+      }
+      return updated;
+    });
+
+    if (editing?.id === id) setEditing(null);
+    setToast({ message: 'Doctor entry removed!', type: 'success' });
+  };
+
+  const createEmptyDoctor = (): Doctor => ({
+    id: `doc-${Date.now()}`,
+    name: 'Dr. New Specialist',
+    title: 'B.D.S Dental Specialist',
+    specialty: 'General & Cosmetic Dentistry',
+    degrees: 'B.D.S',
+    experienceYears: 5,
+    rating: 4.9,
+    reviewsCount: 12,
+    photoUrl: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=600',
+    bio: 'Dedicated dental specialist providing personalized patient care.',
+    phone: '+91 98765 00000',
+    email: 'doctor@lavanyadental.com',
+    workingDays: [1, 2, 3, 4, 5],
+    workingHours: { start: '09:00', end: '17:00' },
+    slotDurationMinutes: 45,
+    isAvailableToday: true,
+    onCallForEmergency: false,
+  });
+
   return (
     <div className="p-4 space-y-4">
       {toast && <Toast message={toast.message} type={toast.type} onDone={() => setToast(null)} />}
-      <h2 className="text-white font-bold text-lg">Doctors & Staff</h2>
+      
+      <div className="flex items-center justify-between">
+        <h2 className="text-white font-bold text-lg">Doctors & Staff</h2>
+        <button
+          onClick={() => {
+            const newDoc = createEmptyDoctor();
+            setEditing(newDoc);
+          }}
+          className="flex items-center gap-1.5 bg-teal-600 hover:bg-teal-500 text-white px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-md"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          <span>Add New Doctor</span>
+        </button>
+      </div>
 
       <div className="space-y-4">
         {doctors.map(doc => (
@@ -771,7 +826,16 @@ const DoctorsTab: React.FC = () => {
             {editing?.id === doc.id ? (
               // Edit form
               <div className="bg-slate-800/80 rounded-2xl p-4 border border-teal-500/30 space-y-3">
-                <h3 className="text-teal-400 font-bold text-sm">Editing: {doc.name.split(',')[0]}</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-teal-400 font-bold text-sm">Editing: {editing.name.split(',')[0]}</h3>
+                  <button
+                    onClick={() => deleteDoctor(editing.id, editing.name)}
+                    className="flex items-center gap-1 bg-rose-600/20 hover:bg-rose-600 text-rose-400 hover:text-white px-2.5 py-1 rounded-lg text-xs font-semibold border border-rose-500/30 transition-all"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete</span>
+                  </button>
+                </div>
 
                 {/* Photo upload */}
                 <div className="flex items-center gap-3">
@@ -875,9 +939,14 @@ const DoctorsTab: React.FC = () => {
                     <p className="text-teal-400 text-xs">{doc.specialty}</p>
                     <p className="text-slate-400 text-xs">{doc.workingHours.start} – {doc.workingHours.end}</p>
                   </div>
-                  <button onClick={() => setEditing(doc)} className="p-2 rounded-xl bg-slate-700 hover:bg-teal-700/50 text-slate-400 hover:text-teal-300 transition-all self-start">
-                    <Edit3 className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="flex items-center gap-1 self-start">
+                    <button onClick={() => setEditing(doc)} className="p-2 rounded-xl bg-slate-700 hover:bg-teal-700/50 text-slate-400 hover:text-teal-300 transition-all">
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => deleteDoctor(doc.id, doc.name)} className="p-2 rounded-xl bg-slate-700 hover:bg-rose-700/50 text-slate-400 hover:text-rose-300 transition-all">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex gap-2">

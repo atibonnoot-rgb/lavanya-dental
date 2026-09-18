@@ -1,0 +1,6 @@
+{
+  "name": "AuraDental Clinic & Appointment Platform",
+  "description": "Comprehensive dental clinic web platform with real-time direct appointment booking, clinician mobile alerts & schedule management, patient portal, and HIPAA compliance.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

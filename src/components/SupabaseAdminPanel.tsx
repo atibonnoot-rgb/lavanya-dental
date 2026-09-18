@@ -969,9 +969,9 @@ const GalleryTab: React.FC = () => {
 
   const [heroImage, setHeroImage] = useState<string>(() => {
     try {
-      return localStorage.getItem('auradental_hero_image') || 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=900&q=80';
+      return localStorage.getItem('auradental_hero_image') || '/clinic-hero.png';
     } catch {
-      return 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=900&q=80';
+      return '/clinic-hero.png';
     }
   });
 
@@ -1018,7 +1018,7 @@ const GalleryTab: React.FC = () => {
   };
 
   const removeHeroImage = () => {
-    const defaultUrl = 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=900&q=80';
+    const defaultUrl = '/clinic-hero.png';
     setHeroImage(defaultUrl);
     try {
       localStorage.removeItem('auradental_hero_image');

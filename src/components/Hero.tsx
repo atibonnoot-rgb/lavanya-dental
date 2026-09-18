@@ -160,8 +160,8 @@ export const Hero: React.FC<{ onExploreServices: () => void }> = ({ onExploreSer
           <div className="lg:col-span-5 relative">
             <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-slate-900 aspect-4/5 sm:aspect-square lg:aspect-4/5 group">
               <img
-                src={localStorage.getItem('auradental_hero_image') || clinicSettings.logoUrl || "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=900&q=80"}
-                alt="Modern AuraDental Clinic interior with high-tech dental suite"
+                src={localStorage.getItem('auradental_hero_image') || clinicSettings.logoUrl || '/clinic-hero.png'}
+                alt="Lavanya Dental Clinic interior with treating dentist and modern suite"
                 className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 opacity-95"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent"></div>

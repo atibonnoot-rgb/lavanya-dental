@@ -115,50 +115,6 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
 
           {/* Role selector & CTA */}
           <div className="flex items-center gap-1.5 sm:gap-3">
-            {/* Persona Switcher — hidden on mobile & tablet, visible on lg+ */}
-            <div className="hidden lg:flex bg-slate-100 p-1 rounded-xl items-center border border-slate-200">
-              <button
-                onClick={() => setCurrentRole('patient')}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  currentRole === 'patient'
-                    ? 'bg-white text-teal-800 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-                title="Patient Booking"
-              >
-                <User className="w-3.5 h-3.5" />
-                <span>Patient</span>
-              </button>
-
-              <button
-                onClick={() => setCurrentRole('doctor')}
-                className={`relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  currentRole === 'doctor'
-                    ? 'bg-white text-emerald-800 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-                title="Doctor Portal"
-              >
-                <Stethoscope className="w-3.5 h-3.5" />
-                <span>Clinician</span>
-                {unreadCountForSelectedDoctor > 0 && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 absolute top-1 right-1"></span>
-                )}
-              </button>
-
-              <button
-                onClick={() => setCurrentRole('admin')}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  currentRole === 'admin'
-                    ? 'bg-white text-indigo-800 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-                title="Admin Panel"
-              >
-                <Building2 className="w-3.5 h-3.5" />
-                <span>Admin</span>
-              </button>
-            </div>
 
             {/* Doctor Picker (shown if doctor role is active) */}
             {currentRole === 'doctor' && (

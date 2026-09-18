@@ -281,22 +281,23 @@ const ClinicInfoTab: React.FC = () => {
     setSaving(false);
   };
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    try {
-      const ext = file.name.split('.').pop();
-      const path = `logo/clinic-logo.${ext}`;
-      const { error: uploadError } = await supabase.storage.from('clinic-media').upload(path, file, { upsert: true });
-      if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from('clinic-media').getPublicUrl(path);
-      setForm(f => ({ ...f, logoUrl: publicUrl }));
-      setToast({ message: 'Logo uploaded!', type: 'success' });
-    } catch {
-      setToast({ message: 'Upload failed. Check Storage bucket setup.', type: 'error' });
-    }
-    setUploading(false);
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const url = ev.target?.result as string;
+      setForm(f => ({ ...f, logoUrl: url }));
+      setToast({ message: 'Logo uploaded successfully!', type: 'success' });
+      setUploading(false);
+    };
+    reader.onerror = () => {
+      setToast({ message: 'Failed to read image file', type: 'error' });
+      setUploading(false);
+    };
+    reader.readAsDataURL(file);
   };
 
   const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;

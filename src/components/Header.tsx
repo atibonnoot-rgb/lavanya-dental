@@ -115,8 +115,8 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
 
           {/* Role selector & CTA */}
           <div className="flex items-center gap-1.5 sm:gap-3">
-            {/* Persona Switcher — hidden on mobile, visible on sm+ */}
-            <div className="hidden sm:flex bg-slate-100 p-1 rounded-xl items-center border border-slate-200">
+            {/* Persona Switcher — hidden on mobile screens */}
+            <div className="hidden md:flex bg-slate-100 p-1 rounded-xl items-center border border-slate-200">
               <button
                 onClick={() => setCurrentRole('patient')}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${

@@ -73,9 +73,9 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
 
       {/* Main navigation row */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-18">
+        <div className="flex items-center justify-between h-16 sm:h-18 gap-2">
           {/* Logo & Brand */}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => onNavigateTab('home')}>
+          <div className="flex items-center gap-2.5 cursor-pointer shrink-0 min-w-0" onClick={() => onNavigateTab('home')}>
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white shadow-sm shadow-teal-500/20 overflow-hidden shrink-0">
               {clinicSettings.logoUrl ? (
                 <img src={clinicSettings.logoUrl} alt="logo" className="w-full h-full object-cover" />
@@ -87,12 +87,14 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="text-base sm:text-xl font-bold tracking-tight text-slate-900 font-display">{clinicSettings.clinicName}</span>
+                <span className="text-sm sm:text-xl font-bold tracking-tight text-slate-900 font-display truncate">
+                  {clinicSettings.clinicName}
+                </span>
                 <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-semibold bg-teal-50 text-teal-700 rounded-md border border-teal-200 shrink-0">
                   CLINIC &amp; SURGERY
                 </span>
               </div>
-              <p className="text-xs text-slate-500 hidden sm:block">{clinicSettings.tagline}</p>
+              <p className="text-[11px] sm:text-xs text-slate-500 hidden md:block truncate">{clinicSettings.tagline}</p>
             </div>
           </div>
 
@@ -114,9 +116,18 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
           </nav>
 
           {/* Role selector & CTA */}
-          <div className="flex items-center gap-1.5 sm:gap-3">
-            {/* Persona Switcher — hidden on mobile screens */}
-            <div className="hidden md:flex bg-slate-100 p-1 rounded-xl items-center border border-slate-200">
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Mobile menu hamburger — visible on mobile/tablet */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-2 text-slate-700 hover:text-slate-900 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors"
+              aria-label="Toggle navigation menu"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+
+            {/* Persona Switcher — strictly desktop only (lg+) */}
+            <div className="hidden lg:flex bg-slate-100 p-1 rounded-xl items-center border border-slate-200">
               <button
                 onClick={() => setCurrentRole('patient')}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
@@ -175,24 +186,16 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
               </select>
             )}
 
-            {/* Book Visit — icon only on mobile, full button on sm+ */}
+            {/* Book Visit */}
             <button
               onClick={() => {
                 if (currentRole !== 'patient') setCurrentRole('patient');
                 setShowBookingModal(true);
               }}
-              className="flex items-center gap-1.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-2.5 sm:px-4 py-2 rounded-xl text-sm font-semibold shadow-sm shadow-teal-600/20 transition-all active:scale-[0.97] shrink-0"
+              className="flex items-center gap-1.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold shadow-sm shadow-teal-600/20 transition-all active:scale-[0.97] shrink-0"
             >
               <Calendar className="w-4 h-4 shrink-0" />
               <span className="hidden sm:inline whitespace-nowrap">Book Visit</span>
-            </button>
-
-            {/* Mobile menu hamburger */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-1.5 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100"
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>

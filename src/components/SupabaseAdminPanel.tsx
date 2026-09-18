@@ -855,119 +855,12 @@ const DoctorsTab: React.FC = () => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TAB: GALLERY
+// TAB: GALLERY (SIMPLIFIED & BULLETPROOF)
 // ─────────────────────────────────────────────────────────────────────────────
-// Helper: Compress uploaded images using canvas to prevent localStorage quota errors
-const compressImageFile = (file: File, maxWidth = 1000, quality = 0.8): Promise<string> => {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = document.createElement('img');
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', quality));
-        } else {
-          resolve(e.target?.result as string);
-        }
-      };
-      img.onerror = () => resolve(e.target?.result as string);
-      img.src = e.target?.result as string;
-    };
-    reader.onerror = () => resolve('');
-    reader.readAsDataURL(file);
-  });
-};
-
-const DEFAULT_GALLERY_IMAGES: GalleryImg[] = [
-  {
-    id: 'img-1',
-    title: 'Modern Clinic Suite',
-    category: 'Facility',
-    image_url: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=600&q=80',
-    type: 'general',
-    description: 'High-tech intraoral scanning suite'
-  },
-  {
-    id: 'img-2',
-    title: 'Sterilization & Hygiene Station',
-    category: 'Facility',
-    image_url: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=600&q=80',
-    type: 'general',
-    description: 'Hospital grade autoclave sterilization'
-  },
-  {
-    id: 'img-3',
-    title: 'Consultation & Treatment Bay',
-    category: 'Facility',
-    image_url: 'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&w=600&q=80',
-    type: 'general',
-    description: 'Ergonomic patient comfort chair'
-  }
-];
-
 const GalleryTab: React.FC = () => {
-  const [images, setImages] = useState<GalleryImg[]>(() => {
-    try {
-      const saved = localStorage.getItem('auradental_gallery_images_v1');
-      return saved ? JSON.parse(saved) : DEFAULT_GALLERY_IMAGES;
-    } catch {
-      return DEFAULT_GALLERY_IMAGES;
-    }
-  });
-  const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('auradental_gallery_images_v1', JSON.stringify(images));
-    } catch (err) {
-      console.warn('Storage error', err);
-    }
-  }, [images]);
-
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-    setUploading(true);
-
-    const newImgs: GalleryImg[] = [];
-    for (const file of files) {
-      const url = await compressImageFile(file);
-      if (url) {
-        newImgs.push({
-          id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-          title: file.name.split('.')[0] || 'Clinic Photo',
-          category: 'General',
-          image_url: url,
-          type: 'general',
-          description: file.name
-        });
-      }
-    }
-
-    if (newImgs.length > 0) {
-      setImages(prev => [...newImgs, ...prev]);
-      setToast({ message: `${newImgs.length} picture(s) uploaded successfully!`, type: 'success' });
-    }
-    setUploading(false);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
+  // 1. Homepage Cover Picture
   const [heroImage, setHeroImage] = useState<string>(() => {
     try {
       return localStorage.getItem('auradental_hero_image') || '/clinic-hero.png';
@@ -976,123 +869,167 @@ const GalleryTab: React.FC = () => {
     }
   });
 
+  // 2. Before & After Cases
   const [beforeAfterList, setBeforeAfterList] = useState<any[]>(() => {
     try {
       const saved = localStorage.getItem('auradental_before_after_v1');
-      return saved ? JSON.parse(saved) : [
-        {
-          id: 'case-1',
-          title: 'Full Arch Clear Aligner Alignment',
-          category: 'Orthodontics',
-          beforeImage: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=600&q=80',
-          afterImage: 'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&w=600&q=80',
-        },
-        {
-          id: 'case-2',
-          title: 'Porcelain Veneers (8 Units)',
-          category: 'Cosmetic Dentistry',
-          beforeImage: 'https://images.unsplash.com/photo-1598256989800-fe5f95da9787?auto=format&fit=crop&w=600&q=80',
-          afterImage: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=600&q=80',
-        }
-      ];
-    } catch {
-      return [];
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn('Failed to load before & after:', e);
     }
+    return [
+      {
+        id: 'case-1',
+        title: 'Full Arch Clear Aligner Alignment',
+        category: 'Orthodontics',
+        beforeImage: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=600&q=80',
+        afterImage: 'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&w=600&q=80',
+      },
+      {
+        id: 'case-2',
+        title: 'Porcelain Veneers (8 Units)',
+        category: 'Cosmetic Dentistry',
+        beforeImage: 'https://images.unsplash.com/photo-1598256989800-fe5f95da9787?auto=format&fit=crop&w=600&q=80',
+        afterImage: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=600&q=80',
+      }
+    ];
   });
 
-  const heroFileInputRef = useRef<HTMLInputElement>(null);
+  // 3. Clinic General Gallery
+  const [galleryImages, setGalleryImages] = useState<GalleryImg[]>(() => {
+    try {
+      const saved = localStorage.getItem('auradental_gallery_images_v1');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn('Failed to load gallery images:', e);
+    }
+    return DEFAULT_GALLERY_IMAGES;
+  });
 
-  const handleHeroImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const heroInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper to safely convert uploaded file to URL or DataURL
+  const fileToDataUrl = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result as string || '');
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Upload Hero Image
+  const handleHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const url = await compressImageFile(file, 1200, 0.85);
-      if (url) {
-        setHeroImage(url);
-        try {
-          localStorage.setItem('auradental_hero_image', url);
-        } catch (err) {
-          console.warn('Storage error', err);
-        }
-        setToast({ message: 'Front cover picture updated successfully!', type: 'success' });
-      }
+    if (!file) return;
+    const dataUrl = await fileToDataUrl(file);
+    if (!dataUrl) return;
+
+    setHeroImage(dataUrl);
+    try {
+      localStorage.setItem('auradental_hero_image', dataUrl);
+      setToast({ message: 'Homepage cover picture updated!', type: 'success' });
+    } catch (err) {
+      setToast({ message: 'Image loaded! (Storage limit full)', type: 'info' });
     }
   };
 
-  const removeHeroImage = () => {
-    const defaultUrl = '/clinic-hero.png';
-    setHeroImage(defaultUrl);
+  const resetHeroImage = () => {
+    setHeroImage('/clinic-hero.png');
     try {
       localStorage.removeItem('auradental_hero_image');
-    } catch (err) {
-      console.warn('Storage error', err);
-    }
-    setToast({ message: 'Front cover picture removed / reset to default.', type: 'info' });
+    } catch {}
+    setToast({ message: 'Cover picture reset to default.', type: 'info' });
   };
 
-  const handleBeforeImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, caseId: string) => {
+  // Upload Before Image for a Case
+  const handleBeforeUpload = async (caseId: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const url = await compressImageFile(file, 800, 0.8);
-      if (url) {
-        const updated = beforeAfterList.map(c => c.id === caseId ? { ...c, beforeImage: url } : c);
-        setBeforeAfterList(updated);
-        try {
-          localStorage.setItem('auradental_before_after_v1', JSON.stringify(updated));
-        } catch (err) {
-          console.warn('Storage error', err);
-        }
-        setToast({ message: 'Before picture updated!', type: 'success' });
-      }
-    }
-  };
+    if (!file) return;
+    const dataUrl = await fileToDataUrl(file);
+    if (!dataUrl) return;
 
-  const handleAfterImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, caseId: string) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = await compressImageFile(file, 800, 0.8);
-      if (url) {
-        const updated = beforeAfterList.map(c => c.id === caseId ? { ...c, afterImage: url } : c);
-        setBeforeAfterList(updated);
-        try {
-          localStorage.setItem('auradental_before_after_v1', JSON.stringify(updated));
-        } catch (err) {
-          console.warn('Storage error', err);
-        }
-        setToast({ message: 'After picture updated!', type: 'success' });
-      }
-    }
-  };
-
-  const removeBeforeAfterCase = (caseId: string) => {
-    const updated = beforeAfterList.filter(c => c.id !== caseId);
+    const updated = beforeAfterList.map(item => item.id === caseId ? { ...item, beforeImage: dataUrl } : item);
     setBeforeAfterList(updated);
-    localStorage.setItem('auradental_before_after_v1', JSON.stringify(updated));
-    setToast({ message: 'Before & After case removed!', type: 'info' });
+    try {
+      localStorage.setItem('auradental_before_after_v1', JSON.stringify(updated));
+    } catch {}
+    setToast({ message: 'Before picture updated!', type: 'success' });
   };
 
-  const deleteImage = (id: string) => {
-    setImages(prev => prev.filter(img => img.id !== id));
-    setToast({ message: 'Picture removed', type: 'info' });
+  // Upload After Image for a Case
+  const handleAfterUpload = async (caseId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const dataUrl = await fileToDataUrl(file);
+    if (!dataUrl) return;
+
+    const updated = beforeAfterList.map(item => item.id === caseId ? { ...item, afterImage: dataUrl } : item);
+    setBeforeAfterList(updated);
+    try {
+      localStorage.setItem('auradental_before_after_v1', JSON.stringify(updated));
+    } catch {}
+    setToast({ message: 'After picture updated!', type: 'success' });
+  };
+
+  // Add General Gallery Image
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const newItems: GalleryImg[] = [];
+    for (const file of files) {
+      const dataUrl = await fileToDataUrl(file);
+      if (dataUrl) {
+        newItems.push({
+          id: `img-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          title: file.name.split('.')[0] || 'Clinic Photo',
+          category: 'Facility',
+          image_url: dataUrl,
+          type: 'general',
+          description: file.name
+        });
+      }
+    }
+
+    if (newItems.length > 0) {
+      const updated = [...newItems, ...galleryImages];
+      setGalleryImages(updated);
+      try {
+        localStorage.setItem('auradental_gallery_images_v1', JSON.stringify(updated));
+      } catch {}
+      setToast({ message: 'Gallery photos added!', type: 'success' });
+    }
+  };
+
+  const removeGalleryImage = (id: string) => {
+    const updated = galleryImages.filter(img => img.id !== id);
+    setGalleryImages(updated);
+    try {
+      localStorage.setItem('auradental_gallery_images_v1', JSON.stringify(updated));
+    } catch {}
+    setToast({ message: 'Photo removed', type: 'info' });
   };
 
   return (
     <div className="p-4 space-y-6">
       {toast && <Toast message={toast.message} type={toast.type} onDone={() => setToast(null)} />}
 
-      {/* ── SECTION 1: HOMEPAGE FRONT COVER PICTURE ── */}
+      {/* ── 1. HOMEPAGE COVER PICTURE ── */}
       <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-white font-bold text-base flex items-center gap-2">
-            <Image className="w-4 h-4 text-teal-400" />
-            Homepage Front Cover Picture
+            <Building2 className="w-4 h-4 text-teal-400" />
+            Homepage Cover Picture
           </h2>
           <span className="text-[10px] text-teal-400 font-semibold bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded-full">
-            Front Hero Picture
+            Front Screen
           </span>
         </div>
 
         <p className="text-slate-400 text-xs">
-          This is the primary image displayed on the front screen of your website.
+          Main banner image visible on the front screen of your website.
         </p>
 
         <div className="flex items-center gap-4 pt-1">
@@ -1102,77 +1039,68 @@ const GalleryTab: React.FC = () => {
 
           <div className="space-y-2 flex-1">
             <input
-              ref={heroFileInputRef}
+              ref={heroInputRef}
               type="file"
               accept="image/*"
-              onChange={handleHeroImageUpload}
+              onChange={handleHeroUpload}
               className="hidden"
             />
             <button
-              onClick={() => heroFileInputRef.current?.click()}
-              className="w-full sm:w-auto bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all"
+              onClick={() => heroInputRef.current?.click()}
+              className="w-full sm:w-auto bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md"
             >
-              <Upload className="w-3.5 h-3.5" />
-              <span>Change Front Picture</span>
+              <Upload className="w-4 h-4" />
+              <span>Change Cover Picture</span>
             </button>
 
             <button
-              onClick={removeHeroImage}
-              className="w-full sm:w-auto bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 text-xs font-bold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all"
+              onClick={resetHeroImage}
+              className="w-full sm:w-auto bg-slate-800 hover:bg-rose-900/40 text-slate-400 hover:text-rose-300 border border-slate-700 text-xs font-semibold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Remove / Reset Picture</span>
+              <span>Reset to Default</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* ── SECTION 2: BEFORE & AFTER TRANSFORMATIONS ── */}
+      {/* ── 2. BEFORE & AFTER TRANSFORMATIONS ── */}
       <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-white font-bold text-base flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-teal-400" />
-            Before & After Gallery Images
+            <CheckCircle2 className="w-4 h-4 text-teal-400" />
+            Before & After Clinical Images
           </h2>
           <span className="text-[10px] text-teal-400 font-semibold bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded-full">
-            Clinical Results
+            Patient Cases
           </span>
         </div>
 
         <p className="text-slate-400 text-xs">
-          Manage your Before & After patient transformation photos shown in the comparison gallery.
+          Edit patient transformation photos shown in the comparison slider on the website gallery.
         </p>
 
         <div className="space-y-4">
           {beforeAfterList.map((item) => (
             <div key={item.id} className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-xs font-bold text-white">{item.title}</h4>
-                  <span className="text-[10px] text-teal-400">{item.category}</span>
-                </div>
-                <button
-                  onClick={() => removeBeforeAfterCase(item.id)}
-                  className="bg-rose-600/20 hover:bg-rose-600 text-rose-400 hover:text-white px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 border border-rose-500/30 transition-all"
-                >
-                  <Trash2 className="w-3 h-3" />
-                  <span>Remove Case</span>
-                </button>
+              <div>
+                <h4 className="text-xs font-bold text-white">{item.title}</h4>
+                <span className="text-[10px] text-teal-400">{item.category}</span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 {/* Before Image */}
                 <div className="space-y-1.5">
                   <span className="text-[10px] font-bold text-slate-400 uppercase">BEFORE</span>
-                  <div className="aspect-4/3 rounded-lg overflow-hidden bg-slate-900 border border-slate-800 relative">
+                  <div className="aspect-4/3 rounded-lg overflow-hidden bg-slate-900 border border-slate-800">
                     <img src={item.beforeImage} alt="Before" className="w-full h-full object-cover" />
                   </div>
-                  <label className="block text-center bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-semibold py-1.5 rounded-lg cursor-pointer transition-colors">
+                  <label className="block text-center bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-semibold py-2 rounded-lg cursor-pointer transition-colors">
                     Upload Before
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={(e) => handleBeforeImageUpload(e, item.id)}
+                      onChange={(e) => handleBeforeUpload(item.id, e)}
                       className="hidden"
                     />
                   </label>
@@ -1181,15 +1109,15 @@ const GalleryTab: React.FC = () => {
                 {/* After Image */}
                 <div className="space-y-1.5">
                   <span className="text-[10px] font-bold text-emerald-400 uppercase">AFTER</span>
-                  <div className="aspect-4/3 rounded-lg overflow-hidden bg-slate-900 border border-slate-800 relative">
+                  <div className="aspect-4/3 rounded-lg overflow-hidden bg-slate-900 border border-slate-800">
                     <img src={item.afterImage} alt="After" className="w-full h-full object-cover" />
                   </div>
-                  <label className="block text-center bg-teal-600 hover:bg-teal-500 text-white text-[11px] font-semibold py-1.5 rounded-lg cursor-pointer transition-colors">
+                  <label className="block text-center bg-teal-600 hover:bg-teal-500 text-white text-[11px] font-semibold py-2 rounded-lg cursor-pointer transition-colors">
                     Upload After
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={(e) => handleAfterImageUpload(e, item.id)}
+                      onChange={(e) => handleAfterUpload(item.id, e)}
                       className="hidden"
                     />
                   </label>
@@ -1200,46 +1128,47 @@ const GalleryTab: React.FC = () => {
         </div>
       </div>
 
-      {/* ── SECTION 3: UPLOADED CLINIC GALLERY ── */}
+      {/* ── 3. CLINIC GALLERY PHOTOS ── */}
       <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-white font-bold text-base flex items-center gap-2">
             <Upload className="w-4 h-4 text-teal-400" />
-            Clinic Gallery Pictures
+            Clinic Gallery Photos
           </h2>
           <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="flex items-center gap-1.5 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+            onClick={() => galleryInputRef.current?.click()}
+            className="flex items-center gap-1.5 bg-teal-600 hover:bg-teal-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
           >
-            {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-            {uploading ? 'Uploading...' : 'Upload Picture'}
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Photos</span>
           </button>
-          <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleUpload} className="hidden" />
+          <input
+            ref={galleryInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleGalleryUpload}
+            className="hidden"
+          />
         </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-6 h-6 text-teal-400 animate-spin" />
-          </div>
-        ) : images.length === 0 ? (
+        {galleryImages.length === 0 ? (
           <div className="text-center py-8 text-slate-500">
-            <Image className="w-8 h-8 mx-auto mb-1 opacity-30" />
-            <p className="text-xs">No gallery pictures yet. Upload your first one above!</p>
+            <p className="text-xs">No clinic photos added yet.</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {images.map(img => (
-              <div key={img.id} className="bg-slate-950 rounded-xl overflow-hidden border border-slate-800 p-2 flex flex-col justify-between space-y-2">
+            {galleryImages.map((img) => (
+              <div key={img.id} className="bg-slate-950 rounded-xl overflow-hidden border border-slate-800 p-2 space-y-2">
                 <div className="aspect-square rounded-lg overflow-hidden bg-slate-900">
                   <img src={img.image_url} alt={img.title} className="w-full h-full object-cover" />
                 </div>
                 <button
-                  onClick={() => deleteImage(img.id)}
-                  className="w-full bg-rose-600/20 hover:bg-rose-600 text-rose-400 hover:text-white text-[11px] font-bold py-1.5 rounded-lg flex items-center justify-center gap-1 border border-rose-500/30 transition-all"
+                  onClick={() => removeGalleryImage(img.id)}
+                  className="w-full bg-slate-800 hover:bg-rose-900/40 text-slate-400 hover:text-rose-300 text-[11px] font-semibold py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all"
                 >
                   <Trash2 className="w-3 h-3" />
-                  <span>Remove Picture</span>
+                  <span>Remove</span>
                 </button>
               </div>
             ))}

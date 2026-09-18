@@ -40,16 +40,37 @@ const AppContent: React.FC = () => {
 
   // Check Supabase auth session on mount and listen for changes
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsAdminAuthenticated(!!session);
-      setAuthChecked(true);
-    });
+    let sub: { unsubscribe: () => void } | null = null;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAdminAuthenticated(!!session);
-    });
+    const initAuth = async () => {
+      try {
+        if (import.meta.env.VITE_SUPABASE_URL) {
+          const { data } = await supabase.auth.getSession();
+          setIsAdminAuthenticated(!!data?.session);
+        }
+      } catch (err) {
+        console.warn('Auth check skipped:', err);
+      } finally {
+        setAuthChecked(true);
+      }
+    };
 
-    return () => subscription.unsubscribe();
+    initAuth();
+
+    try {
+      if (import.meta.env.VITE_SUPABASE_URL) {
+        const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+          setIsAdminAuthenticated(!!session);
+        });
+        sub = data.subscription;
+      }
+    } catch (err) {
+      console.warn('Auth listener skipped:', err);
+    }
+
+    return () => {
+      if (sub) sub.unsubscribe();
+    };
   }, []);
 
   const handleNavigateTab = (tab: string) => {

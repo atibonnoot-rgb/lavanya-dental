@@ -174,7 +174,7 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [showDoctorMobileSimulator, setShowDoctorMobileSimulator] = useState<boolean>(false);
   const [lastSimulatedPush, setLastSimulatedPush] = useState<DoctorNotification | null>(null);
 
-  // ─── Load public data from Supabase on mount ───────────────────────────────
+  // ─── Load public data & Realtime Sync ──────────────────────────────────────
   useEffect(() => {
     const loadPublicData = async () => {
       try {
@@ -197,20 +197,48 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setServices(servicesData.map((r) => mapServiceRow(r as Record<string, unknown>)));
         }
 
-        // Load doctors
-        const { data: doctorsData } = await supabase
-          .from('doctors')
-          .select('*')
-          .order('display_order');
-        if (doctorsData && doctorsData.length > 0) {
-          setDoctors(doctorsData.map((r) => mapDoctorRow(r as Record<string, unknown>)));
+        // Load doctors — only override if localStorage has no saved list yet
+        const savedDoctors = localStorage.getItem(LOCAL_STORAGE_KEY_DOCTORS);
+        if (!savedDoctors) {
+          const { data: doctorsData } = await supabase
+            .from('doctors')
+            .select('*')
+            .order('display_order');
+          if (doctorsData && doctorsData.length > 0) {
+            setDoctors(doctorsData.map((r) => mapDoctorRow(r as Record<string, unknown>)));
+          }
         }
       } catch {
-        // Supabase not configured — fall back to mock data silently
+        // Supabase failover handled via local state
       }
     };
 
     loadPublicData();
+
+    // Supabase Realtime Channel for Doctors
+    let channel: any = null;
+    try {
+      channel = supabase
+        .channel('public-doctors-sync')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'doctors' }, (payload) => {
+          if (payload.eventType === 'DELETE' && payload.old?.id) {
+            setDoctors(prev => prev.filter(d => d.id !== payload.old.id));
+          } else if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            if (payload.new) {
+              const updatedDoc = mapDoctorRow(payload.new as Record<string, unknown>);
+              setDoctors(prev => {
+                const exists = prev.some(d => d.id === updatedDoc.id);
+                return exists ? prev.map(d => d.id === updatedDoc.id ? updatedDoc : d) : [...prev, updatedDoc];
+              });
+            }
+          }
+        })
+        .subscribe();
+    } catch {}
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
   }, []);
 
   // ─── Sync localStorage & Cross-Tab/Window Broadcast ─────────────────────────

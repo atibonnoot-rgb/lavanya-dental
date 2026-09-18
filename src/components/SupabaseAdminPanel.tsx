@@ -856,6 +856,40 @@ const DoctorsTab: React.FC = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: GALLERY
 // ─────────────────────────────────────────────────────────────────────────────
+// Helper: Compress uploaded images using canvas to prevent localStorage quota errors
+const compressImageFile = (file: File, maxWidth = 1000, quality = 0.8): Promise<string> => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = document.createElement('img');
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        } else {
+          resolve(e.target?.result as string);
+        }
+      };
+      img.onerror = () => resolve(e.target?.result as string);
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => resolve('');
+    reader.readAsDataURL(file);
+  });
+};
+
 const DEFAULT_GALLERY_IMAGES: GalleryImg[] = [
   {
     id: 'img-1',
@@ -885,8 +919,12 @@ const DEFAULT_GALLERY_IMAGES: GalleryImg[] = [
 
 const GalleryTab: React.FC = () => {
   const [images, setImages] = useState<GalleryImg[]>(() => {
-    const saved = localStorage.getItem('auradental_gallery_images_v1');
-    return saved ? JSON.parse(saved) : DEFAULT_GALLERY_IMAGES;
+    try {
+      const saved = localStorage.getItem('auradental_gallery_images_v1');
+      return saved ? JSON.parse(saved) : DEFAULT_GALLERY_IMAGES;
+    } catch {
+      return DEFAULT_GALLERY_IMAGES;
+    }
   });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -894,7 +932,11 @@ const GalleryTab: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    localStorage.setItem('auradental_gallery_images_v1', JSON.stringify(images));
+    try {
+      localStorage.setItem('auradental_gallery_images_v1', JSON.stringify(images));
+    } catch (err) {
+      console.warn('Storage error', err);
+    }
   }, [images]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -902,105 +944,121 @@ const GalleryTab: React.FC = () => {
     if (files.length === 0) return;
     setUploading(true);
 
+    const newImgs: GalleryImg[] = [];
     for (const file of files) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const url = ev.target?.result as string;
-        const newImg: GalleryImg = {
+      const url = await compressImageFile(file);
+      if (url) {
+        newImgs.push({
           id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
           title: file.name.split('.')[0] || 'Clinic Photo',
           category: 'General',
           image_url: url,
           type: 'general',
           description: file.name
-        };
-        setImages(prev => [newImg, ...prev]);
-      };
-      reader.readAsDataURL(file);
+        });
+      }
     }
 
-    setToast({ message: `${files.length} picture(s) uploaded successfully!`, type: 'success' });
+    if (newImgs.length > 0) {
+      setImages(prev => [...newImgs, ...prev]);
+      setToast({ message: `${newImgs.length} picture(s) uploaded successfully!`, type: 'success' });
+    }
     setUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const [heroImage, setHeroImage] = useState<string>(() => {
-    return localStorage.getItem('auradental_hero_image') || 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=900&q=80';
+    try {
+      return localStorage.getItem('auradental_hero_image') || 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=900&q=80';
+    } catch {
+      return 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=900&q=80';
+    }
   });
 
   const [beforeAfterList, setBeforeAfterList] = useState<any[]>(() => {
-    const saved = localStorage.getItem('auradental_before_after_v1');
-    return saved ? JSON.parse(saved) : [
-      {
-        id: 'case-1',
-        title: 'Full Arch Clear Aligner Alignment',
-        category: 'Orthodontics',
-        beforeImage: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=600&q=80',
-        afterImage: 'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&w=600&q=80',
-      },
-      {
-        id: 'case-2',
-        title: 'Porcelain Veneers (8 Units)',
-        category: 'Cosmetic Dentistry',
-        beforeImage: 'https://images.unsplash.com/photo-1598256989800-fe5f95da9787?auto=format&fit=crop&w=600&q=80',
-        afterImage: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=600&q=80',
-      }
-    ];
+    try {
+      const saved = localStorage.getItem('auradental_before_after_v1');
+      return saved ? JSON.parse(saved) : [
+        {
+          id: 'case-1',
+          title: 'Full Arch Clear Aligner Alignment',
+          category: 'Orthodontics',
+          beforeImage: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=600&q=80',
+          afterImage: 'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&w=600&q=80',
+        },
+        {
+          id: 'case-2',
+          title: 'Porcelain Veneers (8 Units)',
+          category: 'Cosmetic Dentistry',
+          beforeImage: 'https://images.unsplash.com/photo-1598256989800-fe5f95da9787?auto=format&fit=crop&w=600&q=80',
+          afterImage: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=600&q=80',
+        }
+      ];
+    } catch {
+      return [];
+    }
   });
 
   const heroFileInputRef = useRef<HTMLInputElement>(null);
-  const beforeFileInputRef = useRef<HTMLInputElement>(null);
-  const afterFileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedCaseId, setSelectedCaseId] = useState<string>('case-1');
 
-  const handleHeroImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleHeroImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const url = ev.target?.result as string;
+      const url = await compressImageFile(file, 1200, 0.85);
+      if (url) {
         setHeroImage(url);
-        localStorage.setItem('auradental_hero_image', url);
+        try {
+          localStorage.setItem('auradental_hero_image', url);
+        } catch (err) {
+          console.warn('Storage error', err);
+        }
         setToast({ message: 'Front cover picture updated successfully!', type: 'success' });
-      };
-      reader.readAsDataURL(file);
+      }
     }
   };
 
   const removeHeroImage = () => {
     const defaultUrl = 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=900&q=80';
     setHeroImage(defaultUrl);
-    localStorage.removeItem('auradental_hero_image');
+    try {
+      localStorage.removeItem('auradental_hero_image');
+    } catch (err) {
+      console.warn('Storage error', err);
+    }
     setToast({ message: 'Front cover picture removed / reset to default.', type: 'info' });
   };
 
-  const handleBeforeImageUpload = (e: React.ChangeEvent<HTMLInputElement>, caseId: string) => {
+  const handleBeforeImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, caseId: string) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const url = ev.target?.result as string;
+      const url = await compressImageFile(file, 800, 0.8);
+      if (url) {
         const updated = beforeAfterList.map(c => c.id === caseId ? { ...c, beforeImage: url } : c);
         setBeforeAfterList(updated);
-        localStorage.setItem('auradental_before_after_v1', JSON.stringify(updated));
+        try {
+          localStorage.setItem('auradental_before_after_v1', JSON.stringify(updated));
+        } catch (err) {
+          console.warn('Storage error', err);
+        }
         setToast({ message: 'Before picture updated!', type: 'success' });
-      };
-      reader.readAsDataURL(file);
+      }
     }
   };
 
-  const handleAfterImageUpload = (e: React.ChangeEvent<HTMLInputElement>, caseId: string) => {
+  const handleAfterImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, caseId: string) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const url = ev.target?.result as string;
+      const url = await compressImageFile(file, 800, 0.8);
+      if (url) {
         const updated = beforeAfterList.map(c => c.id === caseId ? { ...c, afterImage: url } : c);
         setBeforeAfterList(updated);
-        localStorage.setItem('auradental_before_after_v1', JSON.stringify(updated));
+        try {
+          localStorage.setItem('auradental_before_after_v1', JSON.stringify(updated));
+        } catch (err) {
+          console.warn('Storage error', err);
+        }
         setToast({ message: 'After picture updated!', type: 'success' });
-      };
-      reader.readAsDataURL(file);
+      }
     }
   };
 

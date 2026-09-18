@@ -20,12 +20,12 @@ import {
 import { supabase } from '../lib/supabase';
 
 const DEFAULT_CLINIC_SETTINGS: ClinicSettings = {
-  clinicName: 'Aura Dental',
+  clinicName: 'Lavanya Dental',
   tagline: 'Where Precision Meets Perfection',
-  logoUrl: '',
-  phone: '+1 (555) 382-9900',
-  email: 'appointments@auradental.com',
-  address: '450 Health Pavilion Blvd, Suite 300, Medical Center District, NY 10021',
+  logoUrl: '/clinic-hero.png',
+  phone: '+91 98765 43210',
+  email: 'appointments@lavanyadental.com',
+  address: 'Lavanya Dental Care Pavilion, Main Road',
   hours: {
     monday:    { open: true,  start: '08:00', end: '18:00' },
     tuesday:   { open: true,  start: '08:00', end: '18:00' },

@@ -42,29 +42,20 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
-      {/* Top strip — Open Today & HIPAA badge & Emergency */}
-      <div className="bg-slate-900 text-slate-300 text-xs py-1.5 px-4 sm:px-6">
+      {/* Top strip — Open Now & HIPAA badge */}
+      <div className="bg-slate-900 text-slate-300 py-1 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
           <span className="flex items-center gap-1.5 text-teal-400 font-medium text-[11px] sm:text-xs">
             <span className="relative flex h-2 w-2 shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
             </span>
-            {clinicSettings.hours.monday.open
-              ? `Open Today: ${clinicSettings.hours.monday.start} – ${clinicSettings.hours.monday.end}`
-              : 'Closed Today'}
+            {clinicSettings.hours.monday.open ? 'Open Now' : 'Closed Now'}
           </span>
-          <span className="hidden sm:inline-flex items-center gap-1 text-slate-400 text-xs">
+          <span className="inline-flex items-center gap-1 text-slate-400 text-[11px] sm:text-xs">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
             HIPAA &amp; GDPR Certified
           </span>
-          <button
-            onClick={() => setShowEmergencyModal(true)}
-            className="inline-flex items-center gap-1 text-rose-300 hover:text-rose-200 font-medium transition-colors text-[11px] sm:text-xs"
-          >
-            <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-            <span>Emergency: (800) 555-DENT</span>
-          </button>
         </div>
       </div>
 

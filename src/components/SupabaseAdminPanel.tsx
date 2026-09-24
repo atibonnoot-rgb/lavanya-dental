@@ -357,7 +357,7 @@ const ClinicInfoTab: React.FC = () => {
             </label>
             <input
               type="text"
-              value={(form as Record<string, unknown>)[key] as string || ''}
+              value={(form as unknown as Record<string, unknown>)[key] as string || ''}
               onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
               className="w-full bg-slate-900/60 border border-slate-600/50 text-white placeholder-slate-500 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50 transition-all"
             />
@@ -872,7 +872,7 @@ const DoctorsTab: React.FC = () => {
                   <div key={key}>
                     <label className="text-xs text-slate-400 mb-1 block">{label}</label>
                     <input
-                      value={(editing as Record<string, unknown>)[key] as string || ''}
+                      value={(editing as unknown as Record<string, unknown>)[key] as string || ''}
                       onChange={e => setEditing(d => d ? { ...d, [key]: e.target.value } : null)}
                       className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50"
                     />
@@ -1003,7 +1003,7 @@ const DEFAULT_GALLERY_IMAGES: GalleryImg[] = [
 // TAB: GALLERY (SIMPLIFIED & BULLETPROOF)
 // ─────────────────────────────────────────────────────────────────────────────
 const GalleryTab: React.FC = () => {
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // 1. Homepage Cover Picture
   const [heroImage, setHeroImage] = useState<string>(() => {
@@ -1076,7 +1076,7 @@ const GalleryTab: React.FC = () => {
       localStorage.setItem('auradental_hero_image', dataUrl);
       setToast({ message: 'Homepage cover picture updated!', type: 'success' });
     } catch (err) {
-      setToast({ message: 'Image loaded! (Storage limit full)', type: 'info' });
+      setToast({ message: 'Image loaded! (Storage limit full)', type: 'error' });
     }
   };
 
@@ -1085,7 +1085,7 @@ const GalleryTab: React.FC = () => {
     try {
       localStorage.removeItem('auradental_hero_image');
     } catch {}
-    setToast({ message: 'Cover picture reset to default.', type: 'info' });
+    setToast({ message: 'Cover picture reset to default.', type: 'error' });
   };
 
   // Upload Before Image for a Case
@@ -1154,7 +1154,7 @@ const GalleryTab: React.FC = () => {
     try {
       localStorage.setItem('auradental_gallery_images_v1', JSON.stringify(updated));
     } catch {}
-    setToast({ message: 'Photo removed', type: 'info' });
+    setToast({ message: 'Photo removed', type: 'error' });
   };
 
   return (

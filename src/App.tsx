@@ -12,13 +12,15 @@ import { AdminLogin } from './components/AdminLogin';
 import { SupabaseAdminPanel } from './components/SupabaseAdminPanel';
 import { BookingModal } from './components/BookingModal';
 import { EmergencyModal } from './components/EmergencyModal';
+import { WhatsAppBookingModal } from './components/WhatsAppBookingModal';
 import { DoctorMobileCompanion } from './components/DoctorMobileCompanion';
 import { PushNotificationToast } from './components/PushNotificationToast';
 import { Footer } from './components/Footer';
 import { supabase } from './lib/supabase';
 import { 
   Stethoscope, 
-  Calendar
+  Calendar,
+  MessageSquare
 } from 'lucide-react';
 
 const AppContent: React.FC = () => {
@@ -35,6 +37,7 @@ const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('home');
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
   const [authChecked, setAuthChecked] = useState<boolean>(false);
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState<boolean>(false);
 
   const selectedDoctor = getDoctorById(selectedDoctorId);
 
@@ -188,6 +191,23 @@ const AppContent: React.FC = () => {
           {/* Global Modals & Overlays */}
           <BookingModal />
           <EmergencyModal />
+          <WhatsAppBookingModal 
+            isOpen={showWhatsAppModal} 
+            onClose={() => setShowWhatsAppModal(false)} 
+          />
+
+          {/* Floating WhatsApp AI Booking Trigger */}
+          <button
+            onClick={() => setShowWhatsAppModal(true)}
+            className="fixed bottom-6 right-6 z-40 bg-[#25D366] hover:bg-[#20ba5a] text-white p-3.5 sm:px-4 sm:py-3 rounded-full shadow-2xl hover:shadow-emerald-600/50 flex items-center gap-2.5 transition-all transform hover:scale-105 active:scale-95 group border-2 border-white/30"
+            title="Chat with AI on WhatsApp to Book"
+          >
+            <div className="relative">
+              <MessageSquare className="w-5 h-5 fill-current" />
+              <span className="w-2.5 h-2.5 bg-white border border-emerald-700 rounded-full absolute -top-0.5 -right-0.5 animate-pulse"></span>
+            </div>
+            <span className="hidden sm:inline font-bold text-xs tracking-wide">WhatsApp AI Booking</span>
+          </button>
 
           {/* Floating Smartphone Companion */}
           {showDoctorMobileSimulator && (

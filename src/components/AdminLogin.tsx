@@ -18,27 +18,52 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
     setLoading(true);
     setError('');
 
-    // Allow master admin PIN/passcode login for instant access on any device
-    if (password === '1234' || password === 'admin' || password === 'lavanya' || !email.trim()) {
-      onAuthenticated();
+    // 1. Sanitize & normalize inputs
+    const sanitizedEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
+
+    // SQL Injection pattern detector (prevents common injection attempts like `' OR 1=1 --`)
+    const sqlInjectionPattern = /('|--|;|\/\*|\*\/|union\s+select|select\s+\*|drop\s+table|delete\s+from)/i;
+    if (sqlInjectionPattern.test(sanitizedEmail) || sqlInjectionPattern.test(cleanPassword)) {
+      setError('Security Alert: Invalid characters or SQL injection attempt detected.');
       setLoading(false);
       return;
     }
 
-    try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    // 2. Target Admin Authorized Credentials
+    const TARGET_ADMIN_EMAIL = 'atibonnoot@gmail.com';
+    const TARGET_ADMIN_PASS = '112233';
 
-      if (signInError) {
-        // Fallback to local admin authentication for demo/Vercel deployments
-        onAuthenticated();
-      } else {
-        onAuthenticated();
+    let isAuthorized = false;
+
+    // Check authorized admin credentials
+    if (sanitizedEmail === TARGET_ADMIN_EMAIL && cleanPassword === TARGET_ADMIN_PASS) {
+      isAuthorized = true;
+    } else {
+      // Also verify against Supabase Auth backend if user created account there
+      try {
+        if (import.meta.env.VITE_SUPABASE_URL) {
+          const { data, error: signInError } = await supabase.auth.signInWithPassword({
+            email: sanitizedEmail,
+            password: cleanPassword,
+          });
+          if (!signInError && data.session) {
+            isAuthorized = true;
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase auth error:', err);
       }
-    } catch {
-      onAuthenticated();
-    } finally {
-      setLoading(false);
     }
+
+    if (isAuthorized) {
+      setError('');
+      onAuthenticated();
+    } else {
+      setError('Access Denied: Invalid email address or password.');
+    }
+
+    setLoading(false);
   };
 
   return (

@@ -2,19 +2,27 @@ import React, { useState } from 'react';
 import { 
   Sparkles, 
   ShieldCheck, 
-  Clock, 
-  Check, 
-  ChevronLeft, 
-  ChevronRight 
+  Check 
 } from 'lucide-react';
 import { BEFORE_AFTER_CASES } from '../data/mockData';
 import { BeforeAfterCase } from '../types';
 
 export const BeforeAfterGallery: React.FC = () => {
   const [cases] = useState<BeforeAfterCase[]>(() => {
-    const saved = localStorage.getItem('auradental_before_after_v1');
-    return saved ? JSON.parse(saved) : BEFORE_AFTER_CASES;
+    try {
+      const saved = localStorage.getItem('auradental_before_after_v1');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].beforeImage?.includes('unsplash')) {
+          localStorage.setItem('auradental_before_after_v1', JSON.stringify(BEFORE_AFTER_CASES));
+          return BEFORE_AFTER_CASES;
+        }
+        return parsed;
+      }
+    } catch {}
+    return BEFORE_AFTER_CASES;
   });
+
   const [activeCaseIndex, setActiveCaseIndex] = useState<number>(0);
   const [sliderPosition, setSliderPosition] = useState<number>(50); // percentage 0 - 100
 
@@ -32,7 +40,7 @@ export const BeforeAfterGallery: React.FC = () => {
             <span>Documented Clinical Transformations</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold font-display text-slate-900 tracking-tight">
-            Before & After Smile Restoration Gallery
+            Before &amp; After Smile Restoration Gallery
           </h2>
           <p className="text-slate-600 text-base">
             Real patient outcomes achieved by our clinical faculty. All cases presented with explicit HIPAA compliance consent waivers.
@@ -66,51 +74,51 @@ export const BeforeAfterGallery: React.FC = () => {
             
             {/* Split Image Comparison Slider */}
             <div className="lg:col-span-7">
-              <div className="relative aspect-4/3 rounded-3xl overflow-hidden shadow-md select-none border-2 border-white bg-slate-900">
-                {/* After Image (Full background) */}
+              <div className="relative aspect-4/3 sm:aspect-16/10 rounded-3xl overflow-hidden shadow-md select-none border-2 border-white bg-slate-900">
+                {/* AFTER IMAGE (Base Layer - rendered full size underneath) */}
                 <img
                   src={currentCase.afterImage}
                   alt={`After Treatment: ${currentCase.title}`}
                   className="absolute inset-0 w-full h-full object-cover"
                 />
-                <span className="absolute top-4 right-4 bg-emerald-600/90 backdrop-blur-xs text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-md z-10">
+                <span className="absolute top-4 right-4 bg-emerald-600/90 backdrop-blur-xs text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-md z-10 pointer-events-none">
                   AFTER TREATMENT
                 </span>
 
-                {/* Before Image (Clipped overlay) */}
-                <div
-                  className="absolute inset-0 overflow-hidden"
-                  style={{ width: `${sliderPosition}%` }}
+                {/* BEFORE IMAGE (Top Layer - clipped dynamically without any scale/width distortion) */}
+                <img
+                  src={currentCase.beforeImage}
+                  alt={`Before Treatment: ${currentCase.title}`}
+                  className="absolute inset-0 w-full h-full object-cover z-10"
+                  style={{
+                    clipPath: `inset(0 ${100 - sliderPosition}% 0 0)`
+                  }}
+                />
+                <span 
+                  className="absolute top-4 left-4 bg-slate-900/90 backdrop-blur-xs text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-md z-20 pointer-events-none transition-opacity duration-200"
+                  style={{ opacity: sliderPosition < 15 ? 0 : 1 }}
                 >
-                  <img
-                    src={currentCase.beforeImage}
-                    alt={`Before Treatment: ${currentCase.title}`}
-                    className="absolute inset-0 w-full h-full object-cover max-w-none"
-                    style={{ width: '100%', minWidth: '100%', height: '100%' }}
-                  />
-                  <span className="absolute top-4 left-4 bg-slate-900/90 backdrop-blur-xs text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-md z-10">
-                    BEFORE
-                  </span>
-                </div>
+                  BEFORE
+                </span>
 
-                {/* Draggable Divider Line */}
+                {/* DRAGGABLE DIVIDER BAR & HANDLE */}
                 <div
-                  className="absolute top-0 bottom-0 w-1 bg-white cursor-ew-resize z-20 shadow-2xl"
+                  className="absolute top-0 bottom-0 w-1 bg-white cursor-ew-resize z-30 shadow-[0_0_12px_rgba(0,0,0,0.4)]"
                   style={{ left: `${sliderPosition}%` }}
                 >
-                  <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-white text-teal-800 shadow-xl flex items-center justify-center border-2 border-teal-600">
-                    <span className="text-xs font-black">⇄</span>
+                  <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-9 h-9 rounded-full bg-white text-teal-800 shadow-2xl flex items-center justify-center border-2 border-teal-600 font-bold hover:scale-110 transition-transform">
+                    <span className="text-xs tracking-tighter">◀ ▶</span>
                   </div>
                 </div>
 
-                {/* Native Range input overlaid for smooth touch/drag */}
+                {/* INVISIBLE RANGE INPUT OVERLAY FOR SMOOTH MOUSE & TOUCH DRAGGING */}
                 <input
                   type="range"
                   min="0"
                   max="100"
                   value={sliderPosition}
                   onChange={(e) => setSliderPosition(Number(e.target.value))}
-                  className="absolute inset-0 opacity-0 cursor-ew-resize w-full h-full z-30"
+                  className="absolute inset-0 opacity-0 cursor-ew-resize w-full h-full z-40"
                   aria-label="Before and after comparison slider"
                 />
               </div>

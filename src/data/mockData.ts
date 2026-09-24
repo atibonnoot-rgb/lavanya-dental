@@ -309,27 +309,27 @@ export const INITIAL_APPOINTMENTS: Appointment[] = [
 export const BEFORE_AFTER_CASES: BeforeAfterCase[] = [
   {
     id: 'case-1',
+    title: 'Minimally Invasive Porcelain Veneers (8 Units)',
+    category: 'Cosmetic Dentistry',
+    doctorName: 'Dr. Elena Rostova, DDS, AACD',
+    duration: '2 Weeks (2 Clinical Visits)',
+    description: 'Restored natural enamel luminescence, repaired alignment gaps and discolored tooth structure with ultra-thin feldspathic porcelain veneers.',
+    beforeImage: '/veneers-before.jpg',
+    afterImage: '/veneers-after.jpg',
+    consentBadge: 'HIPAA Signed Consent #2026-V04',
+    results: ['Eliminated anterior gaps & asymmetry', 'Natural surface micro-texture', 'Shade elevated to BL2 porcelain white']
+  },
+  {
+    id: 'case-2',
     title: 'Full Arch Digital Clear Aligner Alignment',
     category: 'Orthodontics',
     doctorName: 'Dr. Sarah Lin, DDS, MS',
     duration: '11 Months (22 Trays)',
     description: 'Corrected moderate anterior crowding and deep overbite using custom 3D aligners with zero tooth extraction.',
-    beforeImage: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=600&q=80',
-    afterImage: 'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&w=600&q=80',
+    beforeImage: '/veneers-before.jpg',
+    afterImage: '/veneers-after.jpg',
     consentBadge: 'HIPAA Signed Consent #2025-C11',
-    results: ['Eliminated 4mm anterior crowding', 'Optimized smile arc and buccal corridors', 'Airway profile maintained']
-  },
-  {
-    id: 'case-2',
-    title: 'Minimally Invasive Porcelain Veneers (8 Units)',
-    category: 'Cosmetic Dentistry',
-    doctorName: 'Dr. Elena Rostova, DDS, AACD',
-    duration: '2 Weeks (2 Clinical Visits)',
-    description: 'Repaired fluorosis stains, uneven incisal edges, and restored natural enamel luminescence with ultra-thin feldspathic porcelain.',
-    beforeImage: 'https://images.unsplash.com/photo-1598256989800-fe5f95da9787?auto=format&fit=crop&w=600&q=80',
-    afterImage: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=600&q=80',
-    consentBadge: 'HIPAA Signed Consent #2026-V04',
-    results: ['Shade elevated from A3 to BL2 naturally', 'Preserved 95% of healthy tooth structure', 'Natural surface micro-texture']
+    results: ['Eliminated anterior crowding', 'Optimized smile arc and buccal corridors', 'Airway profile maintained']
   },
   {
     id: 'case-3',
@@ -338,8 +338,8 @@ export const BEFORE_AFTER_CASES: BeforeAfterCase[] = [
     doctorName: 'Dr. Marcus Vance, DMD, FICOI',
     duration: '3 Months Healing + Immediate Temp',
     description: 'Replaced traumatic tooth loss with a titanium-zirconia biocompatible dental implant with customized pink gingival papilla preservation.',
-    beforeImage: 'https://images.unsplash.com/photo-1609840114035-3c981b782dfe?auto=format&fit=crop&w=600&q=80',
-    afterImage: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=600&q=80',
+    beforeImage: '/veneers-before.jpg',
+    afterImage: '/veneers-after.jpg',
     consentBadge: 'HIPAA Signed Consent #2026-I89',
     results: ['100% biological bone graft integration', 'Natural soft tissue scallop architecture', 'Lifetime fixture warranty']
   }

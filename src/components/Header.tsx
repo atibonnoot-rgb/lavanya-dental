@@ -68,7 +68,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
           <div className="flex flex-col items-center justify-center cursor-pointer min-w-0 shrink group py-1 select-none" onClick={() => onNavigateTab('home')}>
             <div className="flex items-center justify-center">
               <img 
-                src={clinicSettings?.logoUrl?.trim() || clinicLogo || '/logo.png?v=2'} 
+                src={clinicLogo || clinicSettings?.logoUrl?.trim() || '/logo.png?v=2'} 
                 alt="Lavanya Dental Clinic" 
                 onError={(e) => {
                   const target = e.currentTarget;

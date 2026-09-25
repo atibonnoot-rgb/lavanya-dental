@@ -7,7 +7,7 @@ export const INITIAL_DOCTORS: Doctor[] = [
     title: 'Chief Orthodontist & Clear Aligner Specialist',
     specialty: 'Orthodontics & Facial Aesthetics',
     degrees: 'Columbia University College of Dental Medicine • Board Certified Orthodontist',
-    experienceYears: 14,
+    experienceYears: 25,
     rating: 4.96,
     reviewsCount: 382,
     photoUrl: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=600&q=80',

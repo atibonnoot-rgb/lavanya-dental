@@ -422,8 +422,105 @@ const ClinicInfoTab: React.FC = () => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 // TAB: SERVICES
 // ─────────────────────────────────────────────────────────────────────────────
+const SERVICE_CATEGORIES = ['Preventive', 'Cosmetic', 'Restorative', 'Orthodontics', 'Surgical & Implants', 'Emergency & Endodontics'];
+const INSURANCE_OPTIONS = ['Full', 'Partial', 'Varies', 'Cosmetic/Elective'];
+
+interface ServiceEditFormProps {
+  service: DentalService;
+  isNew?: boolean;
+  saving: boolean;
+  onSave: (s: DentalService) => void;
+  onCancel: () => void;
+}
+
+const ServiceEditForm: React.FC<ServiceEditFormProps> = ({ service, isNew = false, saving, onSave, onCancel }) => {
+  const [form, setForm] = useState<DentalService>(service);
+
+  useEffect(() => {
+    setForm(service);
+  }, [service]);
+
+  return (
+    <div className="bg-slate-800/80 rounded-2xl p-4 border border-teal-500/30 space-y-3">
+      <h3 className="text-teal-400 font-bold text-sm">{isNew ? 'Add New Service' : 'Edit Service'}</h3>
+      <input
+        placeholder="Service name"
+        value={form.name}
+        onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+        className="w-full bg-slate-900/60 border border-slate-600/50 text-white placeholder-slate-500 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+      />
+      <textarea
+        placeholder="Description"
+        value={form.description}
+        onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+        rows={3}
+        className="w-full bg-slate-900/60 border border-slate-600/50 text-white placeholder-slate-500 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50 resize-none"
+      />
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-xs text-slate-400 mb-1 block">Category</label>
+          <select
+            value={form.category}
+            onChange={e => setForm(f => ({ ...f, category: e.target.value as DentalService['category'] }))}
+            className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+          >
+            {SERVICE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-slate-400 mb-1 block">Insurance</label>
+          <select
+            value={form.insuranceCovered}
+            onChange={e => setForm(f => ({ ...f, insuranceCovered: e.target.value as DentalService['insuranceCovered'] }))}
+            className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+          >
+            {INSURANCE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-slate-400 mb-1 block">Duration (min)</label>
+          <input
+            type="number"
+            value={form.durationMinutes}
+            onChange={e => setForm(f => ({ ...f, durationMinutes: +e.target.value }))}
+            className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+          />
+        </div>
+        <div className="flex items-end pb-1">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.popular}
+              onChange={e => setForm(f => ({ ...f, popular: e.target.checked }))}
+              className="w-4 h-4 rounded accent-teal-500"
+            />
+            <span className="text-xs text-slate-300">Mark as Popular</span>
+          </label>
+        </div>
+      </div>
+      <div className="flex gap-2 pt-1">
+        <button
+          onClick={() => onSave(form)}
+          disabled={saving || !form.name.trim()}
+          className="flex-1 flex items-center justify-center gap-1.5 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white py-2.5 rounded-xl text-xs font-bold transition-all"
+        >
+          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+          Save Service
+        </button>
+        <button
+          onClick={onCancel}
+          className="flex-1 flex items-center justify-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 py-2.5 rounded-xl text-xs font-bold transition-all"
+        >
+          <X className="w-3.5 h-3.5" /> Cancel
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const ServicesTab: React.FC = () => {
   const { services, setServices } = useClinic();
   const [editing, setEditing] = useState<DentalService | null>(null);
@@ -495,100 +592,6 @@ const ServicesTab: React.FC = () => {
     }
   };
 
-  const categories = ['Preventive', 'Cosmetic', 'Restorative', 'Orthodontics', 'Surgical & Implants', 'Emergency & Endodontics'];
-  const insuranceOptions = ['Full', 'Partial', 'Varies', 'Cosmetic/Elective'];
-
-  const ServiceForm: React.FC<{ service: DentalService; onSave: (s: DentalService) => void; onCancel: () => void }> = ({ service, onSave, onCancel }) => {
-    const [form, setForm] = useState<DentalService>(service);
-    return (
-      <div className="bg-slate-800/80 rounded-2xl p-4 border border-teal-500/30 space-y-3">
-        <h3 className="text-teal-400 font-bold text-sm">{adding ? 'Add New Service' : 'Edit Service'}</h3>
-        <input
-          placeholder="Service name"
-          value={form.name}
-          onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-          className="w-full bg-slate-900/60 border border-slate-600/50 text-white placeholder-slate-500 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50"
-        />
-        <textarea
-          placeholder="Description"
-          value={form.description}
-          onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-          rows={3}
-          className="w-full bg-slate-900/60 border border-slate-600/50 text-white placeholder-slate-500 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50 resize-none"
-        />
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="text-xs text-slate-400 mb-1 block">Category</label>
-            <select
-              value={form.category}
-              onChange={e => setForm(f => ({ ...f, category: e.target.value as DentalService['category'] }))}
-              className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/50"
-            >
-              {categories.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs text-slate-400 mb-1 block">Insurance</label>
-            <select
-              value={form.insuranceCovered}
-              onChange={e => setForm(f => ({ ...f, insuranceCovered: e.target.value as DentalService['insuranceCovered'] }))}
-              className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/50"
-            >
-              {insuranceOptions.map(o => <option key={o} value={o}>{o}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs text-slate-400 mb-1 block">Price ($)</label>
-            <input
-              type="number"
-              value={form.priceEstimate}
-              onChange={e => setForm(f => ({ ...f, priceEstimate: +e.target.value }))}
-              className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-slate-400 mb-1 block">Deposit ($)</label>
-            <input
-              type="number"
-              value={form.depositRequired}
-              onChange={e => setForm(f => ({ ...f, depositRequired: +e.target.value }))}
-              className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-slate-400 mb-1 block">Duration (min)</label>
-            <input
-              type="number"
-              value={form.durationMinutes}
-              onChange={e => setForm(f => ({ ...f, durationMinutes: +e.target.value }))}
-              className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50"
-            />
-          </div>
-          <div className="flex items-end">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form.popular}
-                onChange={e => setForm(f => ({ ...f, popular: e.target.checked }))}
-                className="w-4 h-4 rounded accent-teal-500"
-              />
-              <span className="text-xs text-slate-300">Mark as Popular</span>
-            </label>
-          </div>
-        </div>
-        <div className="flex gap-2 pt-1">
-          <button onClick={() => onSave(form)} disabled={saving || !form.name} className="flex-1 flex items-center justify-center gap-1.5 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white py-2.5 rounded-xl text-xs font-bold transition-all">
-            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-            Save
-          </button>
-          <button onClick={onCancel} className="flex-1 flex items-center justify-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 py-2.5 rounded-xl text-xs font-bold transition-all">
-            <X className="w-3.5 h-3.5" /> Cancel
-          </button>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="p-4 space-y-4">
       {toast && <Toast message={toast.message} type={toast.type} onDone={() => setToast(null)} />}
@@ -603,14 +606,14 @@ const ServicesTab: React.FC = () => {
       </div>
 
       {adding && editing && (
-        <ServiceForm service={editing} onSave={saveService} onCancel={() => { setAdding(false); setEditing(null); }} />
+        <ServiceEditForm service={editing} isNew={true} saving={saving} onSave={saveService} onCancel={() => { setAdding(false); setEditing(null); }} />
       )}
 
       <div className="space-y-3">
         {services.map(service => (
           <div key={service.id}>
             {!adding && editing?.id === service.id ? (
-              <ServiceForm service={editing} onSave={saveService} onCancel={() => setEditing(null)} />
+              <ServiceEditForm service={editing} isNew={false} saving={saving} onSave={saveService} onCancel={() => setEditing(null)} />
             ) : (
               <div className="bg-slate-800/60 rounded-2xl p-4 border border-slate-700/50">
                 <div className="flex items-start justify-between gap-3">
@@ -620,15 +623,13 @@ const ServicesTab: React.FC = () => {
                       {service.popular && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">★ Popular</span>}
                     </div>
                     <div className="flex items-center gap-3 text-xs text-slate-400">
-                      <span className="text-emerald-400 font-bold">${service.priceEstimate}</span>
-                      <span>•</span>
                       <span>{service.durationMinutes} min</span>
                       <span>•</span>
                       <span className="truncate">{service.category}</span>
                     </div>
                   </div>
                   <div className="flex gap-1.5 shrink-0">
-                    <button onClick={() => setEditing(service)} className="p-2 rounded-xl bg-slate-700 hover:bg-teal-700/50 text-slate-400 hover:text-teal-300 transition-all">
+                    <button onClick={() => { setAdding(false); setEditing(service); }} className="p-2 rounded-xl bg-slate-700 hover:bg-teal-700/50 text-slate-400 hover:text-teal-300 transition-all">
                       <Edit3 className="w-3.5 h-3.5" />
                     </button>
                     <button onClick={() => deleteService(service.id)} className="p-2 rounded-xl bg-slate-700 hover:bg-rose-700/50 text-slate-400 hover:text-rose-300 transition-all">
@@ -648,14 +649,197 @@ const ServicesTab: React.FC = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: DOCTORS
 // ─────────────────────────────────────────────────────────────────────────────
+interface DoctorEditFormProps {
+  doctor: Doctor;
+  isNew?: boolean;
+  saving: boolean;
+  uploading: boolean;
+  onSave: (d: Doctor) => void;
+  onCancel: () => void;
+  onDelete?: (id: string, name: string) => void;
+  onPhotoUpload: (doctorId: string, file: File) => void;
+}
+
+const DoctorEditForm: React.FC<DoctorEditFormProps> = ({
+  doctor,
+  isNew = false,
+  saving,
+  uploading,
+  onSave,
+  onCancel,
+  onDelete,
+  onPhotoUpload,
+}) => {
+  const [form, setForm] = useState<Doctor>(doctor);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setForm(doctor);
+  }, [doctor]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Immediate local preview
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const previewUrl = ev.target?.result as string;
+        if (previewUrl) {
+          setForm(f => ({ ...f, photoUrl: previewUrl }));
+        }
+      };
+      reader.readAsDataURL(file);
+      onPhotoUpload(form.id, file);
+    }
+  };
+
+  return (
+    <div className="bg-slate-800/80 rounded-2xl p-4 border border-teal-500/30 space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-teal-400 font-bold text-sm">
+          {isNew ? 'Add New Specialist' : `Editing: ${form.name.split(',')[0]}`}
+        </h3>
+        {!isNew && onDelete && (
+          <button
+            type="button"
+            onClick={() => onDelete(form.id, form.name)}
+            className="flex items-center gap-1 bg-rose-600/20 hover:bg-rose-600 text-rose-400 hover:text-white px-2.5 py-1 rounded-lg text-xs font-semibold border border-rose-500/30 transition-all"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Delete</span>
+          </button>
+        )}
+      </div>
+
+      {/* Photo upload */}
+      <div className="flex items-center gap-3">
+        <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-700 shrink-0">
+          <img
+            src={form.photoUrl}
+            alt="doctor"
+            className="w-full h-full object-cover"
+            onError={e => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/56'; }}
+          />
+        </div>
+        <div className="flex-1">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+          >
+            {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+            {uploading ? 'Uploading...' : 'Change Photo'}
+          </button>
+        </div>
+      </div>
+
+      {[
+        { label: 'Full Name (e.g. Dr. Jane Doe, MDS)', key: 'name' },
+        { label: 'Title / Qualification', key: 'title' },
+        { label: 'Specialty', key: 'specialty' },
+        { label: 'Degrees', key: 'degrees' },
+        { label: 'Phone', key: 'phone' },
+        { label: 'Email', key: 'email' },
+      ].map(({ label, key }) => (
+        <div key={key}>
+          <label className="text-xs text-slate-400 mb-1 block">{label}</label>
+          <input
+            value={(form as unknown as Record<string, unknown>)[key] as string || ''}
+            onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+            className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+          />
+        </div>
+      ))}
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-xs text-slate-400 mb-1 block">Years of Experience</label>
+          <input
+            type="number"
+            value={form.experienceYears}
+            onChange={e => setForm(f => ({ ...f, experienceYears: +e.target.value }))}
+            className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-slate-400 mb-1 block">Slot Duration (min)</label>
+          <input
+            type="number"
+            value={form.slotDurationMinutes}
+            onChange={e => setForm(f => ({ ...f, slotDurationMinutes: +e.target.value }))}
+            className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="text-xs text-slate-400 mb-1 block">Bio / Summary</label>
+        <textarea
+          value={form.bio}
+          onChange={e => setForm(f => ({ ...f, bio: e.target.value }))}
+          rows={3}
+          className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50 resize-none"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-xs text-slate-400 mb-1 block">Shift Start Time</label>
+          <input
+            type="time"
+            value={form.workingHours.start}
+            onChange={e => setForm(f => ({ ...f, workingHours: { ...f.workingHours, start: e.target.value } }))}
+            className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-2.5 py-2 text-sm focus:outline-none"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-slate-400 mb-1 block">Shift End Time</label>
+          <input
+            type="time"
+            value={form.workingHours.end}
+            onChange={e => setForm(f => ({ ...f, workingHours: { ...f.workingHours, end: e.target.value } }))}
+            className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-2.5 py-2 text-sm focus:outline-none"
+          />
+        </div>
+      </div>
+
+      <div className="flex gap-2 pt-1">
+        <button
+          type="button"
+          onClick={() => onSave(form)}
+          disabled={saving || !form.name.trim()}
+          className="flex-1 flex items-center justify-center gap-1.5 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white py-2.5 rounded-xl text-xs font-bold transition-all"
+        >
+          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+          Save Profile
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex-1 flex items-center justify-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 py-2.5 rounded-xl text-xs font-bold transition-all"
+        >
+          <X className="w-3.5 h-3.5" /> Cancel
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const DoctorsTab: React.FC = () => {
   const { doctors, setDoctors } = useClinic();
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<Doctor | null>(null);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const createEmptyDoctor = (): Doctor => ({
     id: `doc-${Date.now()}`,
@@ -732,16 +916,13 @@ const DoctorsTab: React.FC = () => {
     setSaving(false);
   };
 
-  const handlePhotoUpload = async (doctorId: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(doctorId);
-
+  const handlePhotoUpload = async (doctorId: string, file: File) => {
+    setUploading(true);
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const photoUrl = ev.target?.result as string;
       if (!photoUrl) {
-        setUploading(null);
+        setUploading(false);
         return;
       }
 
@@ -775,12 +956,12 @@ const DoctorsTab: React.FC = () => {
       }
 
       setToast({ message: 'Photo updated successfully!', type: 'success' });
-      setUploading(null);
+      setUploading(false);
     };
 
     reader.onerror = () => {
       setToast({ message: 'Failed to read image file', type: 'error' });
-      setUploading(null);
+      setUploading(false);
     };
 
     reader.readAsDataURL(file);
@@ -828,141 +1009,6 @@ const DoctorsTab: React.FC = () => {
     }
   };
 
-  const DoctorEditForm: React.FC<{ doc: Doctor; isNewDoc?: boolean }> = ({ doc, isNewDoc = false }) => (
-    <div className="bg-slate-800/80 rounded-2xl p-4 border border-teal-500/30 space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-teal-400 font-bold text-sm">
-          {isNewDoc ? 'Add New Specialist' : `Editing: ${doc.name.split(',')[0]}`}
-        </h3>
-        {!isNewDoc && (
-          <button
-            onClick={() => deleteDoctor(doc.id, doc.name)}
-            className="flex items-center gap-1 bg-rose-600/20 hover:bg-rose-600 text-rose-400 hover:text-white px-2.5 py-1 rounded-lg text-xs font-semibold border border-rose-500/30 transition-all"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>Delete</span>
-          </button>
-        )}
-      </div>
-
-      {/* Photo upload */}
-      <div className="flex items-center gap-3">
-        <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-700 shrink-0">
-          <img
-            src={doc.photoUrl}
-            alt="doctor"
-            className="w-full h-full object-cover"
-            onError={e => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/56'; }}
-          />
-        </div>
-        <div className="flex-1">
-          <input
-            ref={el => { fileInputRefs.current[doc.id] = el; }}
-            type="file"
-            accept="image/*"
-            onChange={e => handlePhotoUpload(doc.id, e)}
-            className="hidden"
-          />
-          <button
-            onClick={() => fileInputRefs.current[doc.id]?.click()}
-            disabled={uploading === doc.id}
-            className="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
-          >
-            {uploading === doc.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-            {uploading === doc.id ? 'Uploading...' : 'Change Photo'}
-          </button>
-        </div>
-      </div>
-
-      {[
-        { label: 'Full Name (e.g. Dr. Jane Doe, MDS)', key: 'name' },
-        { label: 'Title / Qualification', key: 'title' },
-        { label: 'Specialty', key: 'specialty' },
-        { label: 'Degrees', key: 'degrees' },
-        { label: 'Phone', key: 'phone' },
-        { label: 'Email', key: 'email' },
-      ].map(({ label, key }) => (
-        <div key={key}>
-          <label className="text-xs text-slate-400 mb-1 block">{label}</label>
-          <input
-            value={(doc as unknown as Record<string, unknown>)[key] as string || ''}
-            onChange={e => setEditing(d => d ? { ...d, [key]: e.target.value } : null)}
-            className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50"
-          />
-        </div>
-      ))}
-
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="text-xs text-slate-400 mb-1 block">Years of Experience</label>
-          <input
-            type="number"
-            value={doc.experienceYears}
-            onChange={e => setEditing(d => d ? { ...d, experienceYears: +e.target.value } : null)}
-            className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50"
-          />
-        </div>
-        <div>
-          <label className="text-xs text-slate-400 mb-1 block">Slot Duration (min)</label>
-          <input
-            type="number"
-            value={doc.slotDurationMinutes}
-            onChange={e => setEditing(d => d ? { ...d, slotDurationMinutes: +e.target.value } : null)}
-            className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50"
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="text-xs text-slate-400 mb-1 block">Bio / Summary</label>
-        <textarea
-          value={doc.bio}
-          onChange={e => setEditing(d => d ? { ...d, bio: e.target.value } : null)}
-          rows={3}
-          className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50 resize-none"
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="text-xs text-slate-400 mb-1 block">Shift Start Time</label>
-          <input
-            type="time"
-            value={doc.workingHours.start}
-            onChange={e => setEditing(d => d ? { ...d, workingHours: { ...d.workingHours, start: e.target.value } } : null)}
-            className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-2.5 py-2 text-sm focus:outline-none"
-          />
-        </div>
-        <div>
-          <label className="text-xs text-slate-400 mb-1 block">Shift End Time</label>
-          <input
-            type="time"
-            value={doc.workingHours.end}
-            onChange={e => setEditing(d => d ? { ...d, workingHours: { ...d.workingHours, end: e.target.value } } : null)}
-            className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-2.5 py-2 text-sm focus:outline-none"
-          />
-        </div>
-      </div>
-
-      <div className="flex gap-2 pt-1">
-        <button
-          onClick={() => saveDoctor(doc)}
-          disabled={saving || !doc.name.trim()}
-          className="flex-1 flex items-center justify-center gap-1.5 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white py-2.5 rounded-xl text-xs font-bold transition-all"
-        >
-          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-          Save Profile
-        </button>
-        <button
-          onClick={() => { setEditing(null); setAdding(false); }}
-          className="flex-1 flex items-center justify-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 py-2.5 rounded-xl text-xs font-bold transition-all"
-        >
-          <X className="w-3.5 h-3.5" /> Cancel
-        </button>
-      </div>
-    </div>
-  );
-
   return (
     <div className="p-4 space-y-4">
       {toast && <Toast message={toast.message} type={toast.type} onDone={() => setToast(null)} />}
@@ -983,14 +1029,31 @@ const DoctorsTab: React.FC = () => {
       </div>
 
       {adding && editing && (
-        <DoctorEditForm doc={editing} isNewDoc={true} />
+        <DoctorEditForm
+          doctor={editing}
+          isNew={true}
+          saving={saving}
+          uploading={uploading}
+          onSave={saveDoctor}
+          onCancel={() => { setAdding(false); setEditing(null); }}
+          onPhotoUpload={handlePhotoUpload}
+        />
       )}
 
       <div className="space-y-4">
         {doctors.map(doc => (
           <div key={doc.id}>
             {!adding && editing?.id === doc.id ? (
-              <DoctorEditForm doc={editing} isNewDoc={false} />
+              <DoctorEditForm
+                doctor={editing}
+                isNew={false}
+                saving={saving}
+                uploading={uploading}
+                onSave={saveDoctor}
+                onCancel={() => setEditing(null)}
+                onDelete={deleteDoctor}
+                onPhotoUpload={handlePhotoUpload}
+              />
             ) : (
               // Doctor card
               <div className="bg-slate-800/60 rounded-2xl p-4 border border-slate-700/50">

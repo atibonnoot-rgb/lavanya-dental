@@ -45,10 +45,10 @@ export const ServicesSection: React.FC = () => {
             <span>Comprehensive Clinical Excellence</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold font-display text-slate-900 tracking-tight">
-            Specialized Dental Services & Transparent Pricing
+            Specialized Dental Services
           </h2>
           <p className="text-slate-600 text-base">
-            Every procedure is planned using 3D digital imaging and computer guidance with zero hidden clinic fees.
+            Every procedure is planned using 3D digital imaging and computer guidance. Consultation fees are discussed at the clinic.
           </p>
         </div>
 
@@ -127,14 +127,11 @@ export const ServicesSection: React.FC = () => {
                 </div>
               </div>
 
-              {/* Pricing & Direct Booking Trigger */}
+              {/* Booking Trigger */}
               <div className="pt-6 mt-6 border-t border-slate-200/80 flex items-center justify-between gap-3">
-                <div>
-                  <span className="text-[10px] font-medium text-slate-500 uppercase block">Estimated Fee</span>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-extrabold text-slate-900 font-display">${service.priceEstimate}</span>
-                    <span className="text-[10px] text-slate-400 font-mono">(${service.depositRequired} dep)</span>
-                  </div>
+                <div className="flex items-center gap-1.5 text-xs text-teal-700 font-semibold bg-teal-50 border border-teal-200 px-2.5 py-1.5 rounded-xl">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Pay at Clinic</span>
                 </div>
 
                 <button

@@ -1,7 +1,8 @@
 import makeWASocket, { 
   DisconnectReason, 
   useMultiFileAuthState,
-  fetchLatestBaileysVersion
+  fetchLatestBaileysVersion,
+  Browsers
 } from '@whiskeysockets/baileys';
 import QRCode from 'qrcode';
 import qrcodeTerminal from 'qrcode-terminal';
@@ -130,34 +131,63 @@ async function callGeminiAI(userPhone, userMessage) {
 // Start Baileys WhatsApp Socket
 async function startWhatsAppBot() {
   const authDir = path.join(__dirname, 'auth_session');
+  const backupFile = path.join(__dirname, 'session_backup.txt');
+  const credsFile = path.join(authDir, 'creds.json');
 
-  // Auto-restore session from env variable if deployed on cloud (e.g. Render)
-  if (!fs.existsSync(authDir) && process.env.SESSION_DATA) {
-    try {
-      fs.mkdirSync(authDir, { recursive: true });
-      const sessionObj = JSON.parse(Buffer.from(process.env.SESSION_DATA, 'base64').toString('utf8'));
-      for (const [filename, content] of Object.entries(sessionObj)) {
-        fs.writeFileSync(path.join(authDir, filename), content);
+  // Auto-restore session if auth_session is missing or lacks creds.json
+  if (!fs.existsSync(credsFile)) {
+    const sessionData = process.env.SESSION_DATA || (fs.existsSync(backupFile) ? fs.readFileSync(backupFile, 'utf8') : null);
+    if (sessionData) {
+      try {
+        fs.mkdirSync(authDir, { recursive: true });
+        const sessionObj = JSON.parse(Buffer.from(sessionData, 'base64').toString('utf8'));
+        for (const [filename, content] of Object.entries(sessionObj)) {
+          fs.writeFileSync(path.join(authDir, filename), content);
+        }
+        console.log('Restored auth session from session backup.');
+      } catch (e) {
+        console.error('Failed to unpack session backup:', e.message);
       }
-      console.log('Restored auth session from SESSION_DATA environment variable.');
-    } catch (e) {
-      console.error('Failed to unpack SESSION_DATA:', e.message);
     }
   }
 
   const { state, saveCreds } = await useMultiFileAuthState(authDir);
   const { version } = await fetchLatestBaileysVersion();
 
+  // Clean up any existing socket before creating a new one
+  if (currentSock) {
+    try {
+      currentSock.ev.removeAllListeners();
+      currentSock.end();
+    } catch (e) {}
+  }
+
   const sock = makeWASocket({
     version,
     logger: pino({ level: 'silent' }),
     printQRInTerminal: false,
     auth: state,
-    browser: ['Lavanya Dental Bot', 'Chrome', '1.0.0']
+    browser: Browsers.macOS('Desktop'),
+    connectTimeoutMs: 60000,
+    keepAliveIntervalMs: 25000,
   });
   currentSock = sock;
 
-  sock.ev.on('creds.update', saveCreds);
+  // Save credentials and update backup copy so sessions survive restarts/redeploys
+  sock.ev.on('creds.update', async () => {
+    await saveCreds();
+    try {
+      const files = fs.readdirSync(authDir);
+      const sessionObj = {};
+      for (const file of files) {
+        if (file.endsWith('.json')) {
+          sessionObj[file] = fs.readFileSync(path.join(authDir, file), 'utf8');
+        }
+      }
+      const b64 = Buffer.from(JSON.stringify(sessionObj)).toString('base64');
+      fs.writeFileSync(backupFile, b64);
+    } catch (err) {}
+  });
 
   sock.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect, qr } = update;
@@ -178,12 +208,21 @@ async function startWhatsAppBot() {
     }
 
     if (connection === 'close') {
-      const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut;
+      const statusCode = (lastDisconnect?.error)?.output?.statusCode;
+      const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
       botStatus = `Disconnected (${shouldReconnect ? 'Reconnecting...' : 'Logged Out'})`;
       currentQRDataUrl = null;
-      console.log('Connection closed. Reconnect:', shouldReconnect);
+      console.log(`Connection closed (code: ${statusCode}). Reconnect: ${shouldReconnect}`);
+
+      try {
+        sock.ev.removeAllListeners();
+        sock.end();
+      } catch (e) {}
+
       if (shouldReconnect) {
-        setTimeout(startWhatsAppBot, 3000);
+        // Fast reconnect for stream restarts (code 515), standard delay for timeouts
+        const delay = statusCode === DisconnectReason.restartRequired ? 1500 : 4000;
+        setTimeout(startWhatsAppBot, delay);
       }
     } else if (connection === 'open') {
       botStatus = 'Active & Connected';

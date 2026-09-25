@@ -4,22 +4,17 @@ import {
   Star, 
   Calendar, 
   Clock, 
-  ShieldCheck, 
-  ArrowRight,
   CheckCircle2,
-  Phone
 } from 'lucide-react';
 import { useClinic } from '../context/ClinicContext';
 
 export const DoctorsSection: React.FC = () => {
-  const { doctors, setShowBookingModal, setBookingPreselectedDoctorId } = useClinic();
+  const { doctors, isLoading, setShowBookingModal, setBookingPreselectedDoctorId } = useClinic();
 
   const handleBookWithDoctor = (docId: string) => {
     setBookingPreselectedDoctorId(docId);
     setShowBookingModal(true);
   };
-
-  const availableDoctors = doctors.filter(doc => doc.isAvailableToday);
 
   return (
     <section id="doctors" className="py-16 sm:py-24 bg-slate-50 border-b border-slate-200">
@@ -40,7 +35,22 @@ export const DoctorsSection: React.FC = () => {
         </div>
 
         {/* Doctors Grid */}
-        {doctors.length === 0 ? (
+        {isLoading ? (
+          /* Loading skeleton — shown while Supabase fetches */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[1,2,3,4].map(i => (
+              <div key={i} className="bg-white rounded-3xl overflow-hidden border border-slate-200/90 shadow-sm animate-pulse">
+                <div className="aspect-[4/5] bg-slate-200" />
+                <div className="p-5 space-y-3">
+                  <div className="h-4 bg-slate-200 rounded-lg w-3/4" />
+                  <div className="h-3 bg-slate-100 rounded-lg w-1/2" />
+                  <div className="h-3 bg-slate-100 rounded-lg w-full" />
+                  <div className="h-10 bg-slate-100 rounded-xl mt-4" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : doctors.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-3xl border border-slate-200 p-8 max-w-md mx-auto shadow-sm">
             <p className="text-slate-700 text-sm font-semibold">No doctors registered yet.</p>
             <p className="text-xs text-slate-500 mt-1">Please add doctor profiles in the admin panel.</p>
@@ -65,14 +75,14 @@ export const DoctorsSection: React.FC = () => {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent"></div>
 
-                    <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-xs rounded-full px-2.5 py-1 flex items-center gap-1 shadow-md">
+                    <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm rounded-full px-2.5 py-1 flex items-center gap-1 shadow-md">
                       <Star className="w-3 h-3 text-amber-500 fill-current" />
                       <span className="text-xs font-bold text-slate-900">{doc.rating ?? 4.9}</span>
                       <span className="text-[10px] text-slate-500">({doc.reviewsCount ?? 120})</span>
                     </div>
 
-                    <div className="absolute top-3 right-3 bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-semibold px-2 py-0.5 rounded-md">
-                      {(doc.experienceYears === 14 || doc.id === 'doc-1') ? 25 : (doc.experienceYears || 25)} Years Exp
+                    <div className="absolute top-3 right-3 bg-slate-900/80 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-0.5 rounded-md">
+                      {doc.experienceYears || 5} Years Exp
                     </div>
                   </div>
 

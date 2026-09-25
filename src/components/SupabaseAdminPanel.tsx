@@ -8,7 +8,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { useClinic } from '../context/ClinicContext';
 import { DentalService, Doctor, ClinicSettings } from '../types';
-import { saveCloudClinicState, broadcastLiveSync } from '../lib/cloudSync';
+import { broadcastLiveSync } from '../lib/cloudSync';
 
 // ─── Helper Hooks ─────────────────────────────────────────────────────────────
 type TabId = 'appointments' | 'clinic' | 'services' | 'doctors' | 'gallery';
@@ -460,13 +460,36 @@ const ServiceEditForm: React.FC<ServiceEditFormProps> = ({ service, isNew = fals
         rows={2}
         className="w-full bg-slate-900/60 border border-slate-600/50 text-white placeholder-slate-500 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50 resize-none"
       />
-      <textarea
-        placeholder="Ideal Candidate For (Enter one point per line, e.g. New cavities)"
-        value={(form.recommendedFor || []).join('\n')}
-        onChange={e => setForm(f => ({ ...f, recommendedFor: e.target.value.split('\n') }))}
-        rows={3}
-        className="w-full bg-slate-900/60 border border-slate-600/50 text-white placeholder-slate-500 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50 resize-none"
-      />
+
+      {/* ══ IDEAL CANDIDATE FOR — Prominent highlighted section ══ */}
+      <div className="bg-teal-950/50 border-2 border-teal-500/50 rounded-2xl p-3 space-y-2">
+        <div className="flex items-center gap-2 mb-1">
+          <Users className="w-4 h-4 text-teal-400" />
+          <label className="text-teal-300 font-bold text-xs uppercase tracking-wider">
+            👤 Ideal Candidate For
+          </label>
+          <span className="ml-auto text-[10px] text-teal-600 bg-teal-900/40 px-2 py-0.5 rounded-full">One bullet per line</span>
+        </div>
+        <textarea
+          placeholder={"e.g. Patients with tooth sensitivity\nFirst-time dental visitors\nRoutine checkup every 6 months"}
+          value={(form.recommendedFor || []).join('\n')}
+          onChange={e => setForm(f => ({ ...f, recommendedFor: e.target.value.split('\n') }))}
+          rows={4}
+          className="w-full bg-slate-900/80 border border-teal-600/40 text-white placeholder-slate-500 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400/60 resize-none"
+        />
+        {/* Live bullet preview */}
+        {(form.recommendedFor || []).filter(r => r.trim()).length > 0 && (
+          <div className="space-y-1 pt-1 border-t border-teal-800/50">
+            <p className="text-[10px] text-teal-500 font-semibold uppercase tracking-wider mb-1">Preview (shown on website):</p>
+            {(form.recommendedFor || []).filter(r => r.trim()).map((rec, i) => (
+              <div key={i} className="flex items-start gap-1.5 text-[11px] text-teal-100">
+                <Check className="w-3 h-3 text-emerald-400 shrink-0 mt-0.5" />
+                <span>{rec}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label className="text-xs text-slate-400 mb-1 block">Category</label>
@@ -577,51 +600,61 @@ const ServicesTab: React.FC = () => {
       ? services.map(s => s.id === cleanedService.id ? cleanedService : s)
       : [...services, cleanedService];
 
-    // Optimistically update context & local storage
+    // Attempt Supabase upsert FIRST — this is the source of truth
+    try {
+      const { error } = await supabase.from('services').upsert(row, { onConflict: 'id' });
+      if (error) {
+        if (error.code === '42501') {
+          setToast({ message: '⚠️ Permission denied. Run the RLS fix SQL in Supabase dashboard first. Saved locally only.', type: 'error' });
+        } else {
+          setToast({ message: `DB error: ${error.message}. Saved locally only.`, type: 'error' });
+        }
+      } else {
+        setToast({ message: isNew ? '✅ Service added & saved to database!' : '✅ Service updated in database!', type: 'success' });
+      }
+    } catch (e) {
+      setToast({ message: 'Network error. Saved locally only. Will sync when reconnected.', type: 'error' });
+    }
+
+    // Update local state + localStorage regardless (optimistic)
     setServices(nextServices);
     try {
       localStorage.setItem('auradental_services_v1', JSON.stringify(nextServices));
       localStorage.setItem('auradental_timestamp_v1', String(Date.now()));
     } catch {}
 
-    // Persist to Cloud Storage & Realtime broadcast immediately
-    saveCloudClinicState(doctors, nextServices);
     broadcastLiveSync(doctors, nextServices);
-
-    setToast({ message: isNew ? 'Service added!' : 'Service saved!', type: 'success' });
     setEditing(null);
     setAdding(false);
-
-    // Also attempt Supabase upsert
-    try {
-      const { error } = await supabase.from('services').upsert(row, { onConflict: 'id' });
-      if (error) console.warn('Supabase service upsert warning:', error.message);
-    } catch (e) {
-      console.warn('Supabase network error saving service:', e);
-    }
-
     setSaving(false);
   };
 
   const deleteService = async (id: string) => {
     if (!confirm('Delete this service? This cannot be undone.')) return;
     const nextServices = services.filter(s => s.id !== id);
+    
+    try {
+      const { error } = await supabase.from('services').delete().eq('id', id);
+      if (error) {
+        if (error.code === '42501') {
+          setToast({ message: '⚠️ Permission denied. Run the RLS fix SQL in Supabase dashboard first.', type: 'error' });
+        } else {
+          setToast({ message: `Delete failed: ${error.message}`, type: 'error' });
+        }
+        return;
+      }
+    } catch (e) {
+      setToast({ message: 'Network error deleting service.', type: 'error' });
+      return;
+    }
+
     setServices(nextServices);
     try {
       localStorage.setItem('auradental_services_v1', JSON.stringify(nextServices));
       localStorage.setItem('auradental_timestamp_v1', String(Date.now()));
     } catch {}
-
-    saveCloudClinicState(doctors, nextServices);
     broadcastLiveSync(doctors, nextServices);
-    setToast({ message: 'Service deleted', type: 'success' });
-
-    try {
-      const { error } = await supabase.from('services').delete().eq('id', id);
-      if (error) console.warn('Supabase service delete warning:', error.message);
-    } catch (e) {
-      console.warn('Supabase network error deleting service:', e);
-    }
+    setToast({ message: '✅ Service deleted permanently.', type: 'success' });
   };
 
   return (
@@ -654,11 +687,26 @@ const ServicesTab: React.FC = () => {
                       <span className="text-white font-semibold text-sm leading-tight">{service.name}</span>
                       {service.popular && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">★ Popular</span>}
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-slate-400">
+                    <div className="flex items-center gap-3 text-xs text-slate-400 mb-2">
                       <span>{service.durationMinutes} min</span>
                       <span>•</span>
                       <span className="truncate">{service.category}</span>
                     </div>
+                    {/* Ideal Candidate chips */}
+                    {Array.isArray(service.recommendedFor) && service.recommendedFor.filter(r => r.trim()).length > 0 && (
+                      <div>
+                        <span className="text-[10px] font-bold text-teal-400 uppercase tracking-wider block mb-1.5">
+                          👤 Ideal Candidate
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {service.recommendedFor.filter(r => r.trim()).map((rec, i) => (
+                            <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-300 border border-teal-500/20">
+                              {rec}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-1.5 shrink-0">
                     <button onClick={() => { setAdding(false); setEditing(service); }} className="p-2 rounded-xl bg-slate-700 hover:bg-teal-700/50 text-slate-400 hover:text-teal-300 transition-all">
@@ -943,55 +991,53 @@ const DoctorsTab: React.FC = () => {
       ? doctors.map(d => d.id === doctor.id ? doctor : d)
       : [...doctors, doctor];
 
-    // Optimistically update local state & localStorage immediately
+    const row = {
+      id: doctor.id,
+      name: doctor.name,
+      title: doctor.title,
+      specialty: doctor.specialty,
+      degrees: doctor.degrees,
+      experience_years: doctor.experienceYears,
+      rating: doctor.rating,
+      reviews_count: doctor.reviewsCount,
+      photo_url: doctor.photoUrl,
+      bio: doctor.bio,
+      phone: doctor.phone,
+      email: doctor.email,
+      working_days: doctor.workingDays,
+      working_hours: doctor.workingHours,
+      slot_duration_minutes: doctor.slotDurationMinutes,
+      is_available_today: doctor.isAvailableToday,
+      on_call_for_emergency: doctor.onCallForEmergency,
+      display_order: 99,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Try Supabase upsert FIRST
+    try {
+      const { error } = await supabase.from('doctors').upsert(row, { onConflict: 'id' });
+      if (error) {
+        if (error.code === '42501') {
+          setToast({ message: '⚠️ Permission denied. Run fix-rls.sql in Supabase dashboard first. Saved locally only.', type: 'error' });
+        } else {
+          setToast({ message: `DB error: ${error.message}. Saved locally.`, type: 'error' });
+        }
+      } else {
+        setToast({ message: isNew ? '✅ Doctor added to database!' : '✅ Doctor profile saved!', type: 'success' });
+      }
+    } catch (e) {
+      setToast({ message: 'Network error. Saved locally only.', type: 'error' });
+    }
+
+    // Update local state regardless
     setDoctors(nextDoctors);
     try {
       localStorage.setItem('auradental_doctors_v1', JSON.stringify(nextDoctors));
       localStorage.setItem('auradental_timestamp_v1', String(Date.now()));
-    } catch (err) {
-      console.warn('LocalStorage error:', err);
-    }
-
-    // Persist to Cloud Storage & Realtime broadcast immediately
-    saveCloudClinicState(nextDoctors, services);
+    } catch {}
     broadcastLiveSync(nextDoctors, services);
-
-    setToast({ message: isNew ? 'New doctor added successfully!' : 'Doctor profile saved successfully!', type: 'success' });
     setEditing(null);
     setAdding(false);
-
-    // Also attempt Supabase upsert in background
-    try {
-      const row = {
-        id: doctor.id,
-        name: doctor.name,
-        title: doctor.title,
-        specialty: doctor.specialty,
-        degrees: doctor.degrees,
-        experience_years: doctor.experienceYears,
-        rating: doctor.rating,
-        reviews_count: doctor.reviewsCount,
-        photo_url: doctor.photoUrl,
-        bio: doctor.bio,
-        phone: doctor.phone,
-        email: doctor.email,
-        working_days: doctor.workingDays,
-        working_hours: doctor.workingHours,
-        slot_duration_minutes: doctor.slotDurationMinutes,
-        is_available_today: doctor.isAvailableToday,
-        on_call_for_emergency: doctor.onCallForEmergency,
-        display_order: 99,
-        updated_at: new Date().toISOString(),
-      };
-
-      const { error } = await supabase.from('doctors').upsert(row, { onConflict: 'id' });
-      if (error) {
-        console.warn('Supabase doctor save warning:', error.message);
-      }
-    } catch (e) {
-      console.warn('Supabase network error:', e);
-    }
-
     setSaving(false);
   };
 
@@ -999,12 +1045,8 @@ const DoctorsTab: React.FC = () => {
     setUploading(true);
     try {
       const photoUrl = await compressImageFile(file);
-      if (!photoUrl) {
-        setUploading(false);
-        return;
-      }
+      if (!photoUrl) { setUploading(false); return; }
 
-      // Update current edit form if open
       if (editing && editing.id === doctorId) {
         setEditing(d => d ? { ...d, photoUrl } : null);
       }
@@ -1014,15 +1056,10 @@ const DoctorsTab: React.FC = () => {
       try {
         localStorage.setItem('auradental_doctors_v1', JSON.stringify(updated));
         localStorage.setItem('auradental_timestamp_v1', String(Date.now()));
-      } catch (err) {
-        console.warn('LocalStorage error:', err);
-      }
-      saveCloudClinicState(updated, services);
+      } catch {}
       broadcastLiveSync(updated, services);
-
-      setToast({ message: 'Photo uploaded and synced across all devices!', type: 'success' });
+      setToast({ message: 'Photo uploaded! Save the profile to persist.', type: 'success' });
     } catch (err) {
-      console.warn('Photo processing error:', err);
       setToast({ message: 'Failed to process image file', type: 'error' });
     } finally {
       setUploading(false);
@@ -1035,18 +1072,19 @@ const DoctorsTab: React.FC = () => {
     const newVal = !doc[field];
     const dbField = field === 'isAvailableToday' ? 'is_available_today' : 'on_call_for_emergency';
     
-    // Optimistic update
     const updated = doctors.map(d => d.id === doctorId ? { ...d, [field]: newVal } : d);
     setDoctors(updated);
     try {
       localStorage.setItem('auradental_doctors_v1', JSON.stringify(updated));
       localStorage.setItem('auradental_timestamp_v1', String(Date.now()));
     } catch {}
-    saveCloudClinicState(updated, services);
     broadcastLiveSync(updated, services);
 
     try {
-      await supabase.from('doctors').update({ [dbField]: newVal }).eq('id', doctorId);
+      const { error } = await supabase.from('doctors').update({ [dbField]: newVal }).eq('id', doctorId);
+      if (error && error.code === '42501') {
+        setToast({ message: '⚠️ Cannot toggle — run RLS fix SQL first.', type: 'error' });
+      }
     } catch (e) {
       console.warn('Supabase doctor toggle warning:', e);
     }
@@ -1054,29 +1092,32 @@ const DoctorsTab: React.FC = () => {
 
   const deleteDoctor = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete ${name}?`)) return;
-    
+
+    try {
+      const { error } = await supabase.from('doctors').delete().eq('id', id);
+      if (error) {
+        if (error.code === '42501') {
+          setToast({ message: '⚠️ Permission denied. Run fix-rls.sql in Supabase dashboard first.', type: 'error' });
+        } else {
+          setToast({ message: `Delete failed: ${error.message}`, type: 'error' });
+        }
+        return;
+      }
+    } catch (e) {
+      setToast({ message: 'Network error. Could not delete.', type: 'error' });
+      return;
+    }
+
     const updated = doctors.filter(d => d.id !== id);
     setDoctors(updated);
     try {
       localStorage.setItem('auradental_doctors_v1', JSON.stringify(updated));
       localStorage.setItem('auradental_timestamp_v1', String(Date.now()));
-    } catch (err) {
-      console.warn('LocalStorage error:', err);
-    }
-    saveCloudClinicState(updated, services);
+    } catch {}
     broadcastLiveSync(updated, services);
 
-    if (editing?.id === id) {
-      setEditing(null);
-      setAdding(false);
-    }
-    setToast({ message: 'Doctor removed successfully!', type: 'success' });
-
-    try {
-      await supabase.from('doctors').delete().eq('id', id);
-    } catch (e) {
-      console.warn('Supabase delete doctor warning:', e);
-    }
+    if (editing?.id === id) { setEditing(null); setAdding(false); }
+    setToast({ message: '✅ Doctor removed permanently!', type: 'success' });
   };
 
   return (

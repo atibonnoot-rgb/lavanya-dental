@@ -7,18 +7,12 @@ import {
   AuditLog, 
   UserRole,
   ClinicSettings,
-  GalleryImage,
-  BeforeAfterCase
 } from '../types';
 import { 
-  INITIAL_DOCTORS, 
-  DENTAL_SERVICES, 
-  INITIAL_APPOINTMENTS, 
   INITIAL_AUDIT_LOGS,
-  BEFORE_AFTER_CASES
 } from '../data/mockData';
 import { supabase } from '../lib/supabase';
-import { fetchCloudClinicState, saveCloudClinicState, broadcastLiveSync } from '../lib/cloudSync';
+import { broadcastLiveSync } from '../lib/cloudSync';
 
 const DEFAULT_CLINIC_SETTINGS: ClinicSettings = {
   clinicName: 'Lavanya Dental',
@@ -49,6 +43,7 @@ interface ClinicContextType {
   appointments: Appointment[];
   doctorNotifications: DoctorNotification[];
   auditLogs: AuditLog[];
+  isLoading: boolean;  // true while initial Supabase fetch is in progress
   showBookingModal: boolean;
   setShowBookingModal: (show: boolean) => void;
   bookingPreselectedDoctorId: string | null;
@@ -140,32 +135,11 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('doc-1');
   const [clinicSettings, setClinicSettings] = useState<ClinicSettings>(DEFAULT_CLINIC_SETTINGS);
 
-  const [doctors, setDoctors] = useState<Doctor[]>(() => {
-    const saved = localStorage.getItem(LOCAL_STORAGE_KEY_DOCTORS);
-    if (saved) {
-      try {
-        const parsed: Doctor[] = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map(d => ({
-            ...d,
-            experienceYears: (d.id === 'doc-1' || d.experienceYears === 14) ? 25 : d.experienceYears
-          }));
-        }
-      } catch {}
-    }
-    return INITIAL_DOCTORS;
-  });
-
-  const [services, setServices] = useState<DentalService[]>(() => {
-    const saved = localStorage.getItem(LOCAL_STORAGE_KEY_SERVICES);
-    if (saved) {
-      try {
-        const parsed: DentalService[] = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch {}
-    }
-    return DENTAL_SERVICES;
-  });
+  // Start with empty arrays — Supabase is the source of truth.
+  // We no longer fall back to mock data so ghost clients never reappear.
+  // The loadAllData() effect below populates these from Supabase on mount.
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [services, setServices] = useState<DentalService[]>([]);
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => {
@@ -183,6 +157,7 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [lastSimulatedPush, setLastSimulatedPush] = useState<DoctorNotification | null>(null);
 
   const isLoadedRef = useRef<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // ─── Helper: map Supabase appointment row → Appointment ───────────────────
   const mapAppointmentRow = (row: Record<string, unknown>): Appointment => ({
@@ -224,47 +199,14 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     let servicesChannel: ReturnType<typeof supabase.channel> | null = null;
 
     const loadAllData = async () => {
-      let hasCloudDocs = false;
-      let hasCloudSvcs = false;
-
-      const localTimestamp = Number(localStorage.getItem(LOCAL_STORAGE_KEY_TIMESTAMP) || '0');
-      const hasLocalDoctors = !!localStorage.getItem(LOCAL_STORAGE_KEY_DOCTORS);
-      const hasLocalServices = !!localStorage.getItem(LOCAL_STORAGE_KEY_SERVICES);
-
-      // 1. Fetch persistent cloud clinic state — ONLY accept if cloud timestamp is NEWER than local
-      try {
-        const cloudData = await fetchCloudClinicState();
-        if (cloudData) {
-          if (cloudData.doctors && cloudData.doctors.length > 0) {
-            hasCloudDocs = true;
-            if (!hasLocalDoctors || (cloudData.timestamp || 0) >= localTimestamp) {
-              setDoctors(cloudData.doctors);
-              try {
-                localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(cloudData.doctors));
-              } catch {}
-            }
-          }
-          if (cloudData.services && cloudData.services.length > 0) {
-            hasCloudSvcs = true;
-            if (!hasLocalServices || (cloudData.timestamp || 0) >= localTimestamp) {
-              setServices(cloudData.services);
-              try {
-                localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(cloudData.services));
-              } catch {}
-            }
-          }
-          if (cloudData.timestamp && cloudData.timestamp >= localTimestamp) {
-            try {
-              localStorage.setItem(LOCAL_STORAGE_KEY_TIMESTAMP, String(cloudData.timestamp));
-            } catch {}
-          }
-        }
-      } catch (e) {
-        console.warn('Cloud state load error:', e);
-      }
+      // ── SUPABASE IS THE SINGLE SOURCE OF TRUTH ────────────────────────────
+      // Always wipe localStorage doctors/services caches first so stale data
+      // from a previous session can never show as ghost rows.
+      try { localStorage.removeItem(LOCAL_STORAGE_KEY_DOCTORS); } catch {}
+      try { localStorage.removeItem(LOCAL_STORAGE_KEY_SERVICES); } catch {}
 
       try {
-        // 2. Clinic settings
+        // 1. Clinic settings
         const { data: settingsData } = await supabase
           .from('clinic_settings')
           .select('*')
@@ -274,34 +216,34 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setClinicSettings(mapClinicSettingsRow(settingsData as Record<string, unknown>));
         }
 
-        // 3. Services — load latest from Supabase only if not in cloud state
-        if (!hasCloudSvcs) {
-          const { data: servicesData } = await supabase
-            .from('services')
-            .select('*')
-            .order('id');
-          if (servicesData && servicesData.length > 0) {
-            const mappedServices = servicesData.map((r) => mapServiceRow(r as Record<string, unknown>));
-            setServices(mappedServices);
-            try {
-              localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(mappedServices));
-            } catch {}
-          }
+        // 2. Services — always fetch fresh from Supabase
+        const { data: servicesData } = await supabase
+          .from('services')
+          .select('*')
+          .order('id');
+        if (servicesData && servicesData.length > 0) {
+          const mappedServices = servicesData.map((r) => mapServiceRow(r as Record<string, unknown>));
+          setServices(mappedServices);
+          try {
+            localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(mappedServices));
+          } catch {}
         }
 
-        // 4. Doctors — load latest from Supabase only if not in cloud state
-        if (!hasCloudDocs) {
-          const { data: doctorsData } = await supabase
-            .from('doctors')
-            .select('*')
-            .order('display_order');
-          if (doctorsData && doctorsData.length > 0) {
-            const mappedDoctors = doctorsData.map((r) => mapDoctorRow(r as Record<string, unknown>));
-            setDoctors(mappedDoctors);
-            try {
-              localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(mappedDoctors));
-            } catch {}
-          }
+        // 3. Doctors — always fetch fresh from Supabase
+        const { data: doctorsData } = await supabase
+          .from('doctors')
+          .select('*')
+          .order('display_order');
+        if (doctorsData && doctorsData.length > 0) {
+          const mappedDoctors = doctorsData.map((r) => mapDoctorRow(r as Record<string, unknown>));
+          setDoctors(mappedDoctors);
+          try {
+            localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(mappedDoctors));
+          } catch {}
+        } else {
+          // No doctors in Supabase yet — ensure we show nothing (no ghost data)
+          setDoctors([]);
+          try { localStorage.removeItem(LOCAL_STORAGE_KEY_DOCTORS); } catch {}
         }
 
         // 5. Appointments — load from Supabase
@@ -333,51 +275,29 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.warn('Supabase initial fetch warning:', err);
       } finally {
         isLoadedRef.current = true;
+        setIsLoading(false);
       }
     };
 
     loadAllData();
 
-    // ─── Realtime: Multi-Device Broadcast Sync ──────────────────────────────
-    try {
-      syncChannel = supabase.channel('auradental-cross-device-sync');
-      syncChannel
-        .on('broadcast', { event: 'CLINIC_SYNC_STATE' }, ({ payload }) => {
-          if (payload && payload.timestamp) {
-            const currentLocalTs = Number(localStorage.getItem(LOCAL_STORAGE_KEY_TIMESTAMP) || '0');
-            if (payload.timestamp >= currentLocalTs) {
-              if (Array.isArray(payload.doctors) && payload.doctors.length > 0) {
-                setDoctors(payload.doctors);
-                try {
-                  localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(payload.doctors));
-                } catch {}
-              }
-              if (Array.isArray(payload.services) && payload.services.length > 0) {
-                setServices(payload.services);
-                try {
-                  localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(payload.services));
-                } catch {}
-              }
-              try {
-                localStorage.setItem(LOCAL_STORAGE_KEY_TIMESTAMP, String(payload.timestamp));
-              } catch {}
-            }
-          }
-        })
-        .subscribe();
-    } catch {}
 
-    // ─── Realtime: Postgres Changes ─────────────────────────────────────────
-    // We intentionally disable postgres_changes for doctors and services because 
-    // we use the schema-less JSON cloud_state sync. If the DB schema is missing
-    // columns (like 'description' or 'recommended_for'), postgres_changes will 
-    // broadcast objects missing those fields and wipe them from the UI.
-    /*
+
+    // ─── Realtime: Postgres Changes for Doctors & Services ──────────────────
+    // Listen for admin edits on the doctors & services tables so all connected
+    // devices update in real-time without a page refresh.
     try {
       doctorsChannel = supabase
         .channel('rt-doctors-sync')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'doctors' }, (payload) => {
-          // ... legacy sync disabled
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'doctors' }, () => {
+          // Re-fetch all doctors from Supabase so we always get the freshest state
+          supabase.from('doctors').select('*').order('display_order').then(({ data }) => {
+            if (data) {
+              const mapped = data.map(r => mapDoctorRow(r as Record<string, unknown>));
+              setDoctors(mapped);
+              try { localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(mapped)); } catch {}
+            }
+          });
         })
         .subscribe();
     } catch {}
@@ -385,12 +305,18 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       servicesChannel = supabase
         .channel('rt-services-sync')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, (payload) => {
-          // ... legacy sync disabled
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, () => {
+          // Re-fetch all services from Supabase
+          supabase.from('services').select('*').order('id').then(({ data }) => {
+            if (data) {
+              const mapped = data.map(r => mapServiceRow(r as Record<string, unknown>));
+              setServices(mapped);
+              try { localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(mapped)); } catch {}
+            }
+          });
         })
         .subscribe();
     } catch {}
-    */
 
     try {
       aptsChannel = supabase
@@ -438,36 +364,30 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   }, []);
 
-  // ─── Sync changes to LocalStorage, Cloud Storage & Realtime Devices ───────
+  // ─── Sync changes to LocalStorage & Realtime Devices ──────────────────────
+  // Only sync AFTER initial load is complete to avoid overwriting Supabase data
+  // with stale localStorage values on mount.
   useEffect(() => {
+    if (!isLoadedRef.current) return;
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(doctors));
-      // 1. BroadcastChannel (same-origin tabs)
+      // BroadcastChannel (same-origin tabs)
       const bc = new BroadcastChannel('auradental_clinic_sync');
       bc.postMessage({ type: 'DOCTORS_UPDATED', data: doctors });
       bc.close();
-      
-      // 2. Global Cloud Storage Persistence & Supabase Broadcast (only if initial load is done)
-      if (isLoadedRef.current) {
-        saveCloudClinicState(doctors, services);
-        broadcastLiveSync(doctors, services);
-      }
+      broadcastLiveSync(doctors, services);
     } catch {}
   }, [doctors]);
 
   useEffect(() => {
+    if (!isLoadedRef.current) return;
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(services));
-      // 1. BroadcastChannel (same-origin tabs)
+      // BroadcastChannel (same-origin tabs)
       const bc = new BroadcastChannel('auradental_clinic_sync');
       bc.postMessage({ type: 'SERVICES_UPDATED', data: services });
       bc.close();
-      
-      // 2. Global Cloud Storage Persistence & Supabase Broadcast (only if initial load is done)
-      if (isLoadedRef.current) {
-        saveCloudClinicState(doctors, services);
-        broadcastLiveSync(doctors, services);
-      }
+      broadcastLiveSync(doctors, services);
     } catch {}
   }, [services]);
 
@@ -782,6 +702,7 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       appointments,
       doctorNotifications,
       auditLogs,
+      isLoading,
       showBookingModal,
       setShowBookingModal,
       bookingPreselectedDoctorId,

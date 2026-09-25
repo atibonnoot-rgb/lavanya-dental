@@ -119,6 +119,17 @@ const AppointmentsTab: React.FC = () => {
     }
   };
 
+  const deleteAppointment = async (id: string, name: string) => {
+    if (!window.confirm(`Delete appointment for "${name}"? This will remove it permanently.`)) return;
+    const { error } = await supabase.from('appointments').delete().eq('id', id);
+    if (!error) {
+      setAppointments(prev => prev.filter(a => a.id !== id));
+      setToast({ message: 'Appointment deleted successfully', type: 'success' });
+    } else {
+      setToast({ message: `Delete failed: ${error.message}`, type: 'error' });
+    }
+  };
+
   const statuses = ['ALL', 'Pending', 'Confirmed', 'Completed', 'Cancelled', 'Rescheduled'];
   const filtered = appointments.filter(a => filter === 'ALL' || a.status === filter);
   const pendingCount = appointments.filter(a => a.status === 'Pending').length;
@@ -247,6 +258,15 @@ const AppointmentsTab: React.FC = () => {
                         <Check className="w-3.5 h-3.5" /> Mark as Completed
                       </button>
                     )}
+
+                    <div className="pt-1">
+                      <button
+                        onClick={() => deleteAppointment(apt.id, apt.patient_name)}
+                        className="w-full flex items-center justify-center gap-1.5 bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 hover:text-rose-200 py-2 rounded-xl text-xs font-medium border border-rose-800/40 transition-all"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Delete Appointment
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

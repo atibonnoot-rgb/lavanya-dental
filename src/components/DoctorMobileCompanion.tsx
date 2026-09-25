@@ -16,7 +16,8 @@ import {
   Volume2,
   VolumeX,
   ChevronRight,
-  Plus
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { useClinic } from '../context/ClinicContext';
 import { Appointment } from '../types';
@@ -41,6 +42,7 @@ export const DoctorMobileCompanion: React.FC<DoctorMobileCompanionProps> = ({
     declineAppointmentByDoctor, 
     rescheduleAppointmentByDoctor,
     completeAppointment,
+    deleteAppointment,
     toggleDoctorAvailability,
     markNotificationRead 
   } = useClinic();
@@ -79,6 +81,23 @@ export const DoctorMobileCompanion: React.FC<DoctorMobileCompanionProps> = ({
     rescheduleAppointmentByDoctor(aptId, newRescheduleDate, newRescheduleSlot);
     setRescheduleModalOpen(false);
     setSelectedAppointmentForAction(null);
+  };
+
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDeleteAppointment = async (aptId: string, patientName: string) => {
+    if (!window.confirm(`Are you sure you want to delete the appointment for "${patientName}"? This action cannot be undone.`)) {
+      return;
+    }
+    setDeletingId(aptId);
+    try {
+      const res = await deleteAppointment(aptId);
+      if (res && !res.success) {
+        alert(`Delete failed: ${res.error || 'Please check database permissions.'}`);
+      }
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -263,35 +282,45 @@ export const DoctorMobileCompanion: React.FC<DoctorMobileCompanionProps> = ({
                         </div>
 
                         {/* SINGLE-TAP QUICK ACTIONS (PRD 4.2) */}
-                        <div className="grid grid-cols-3 gap-1.5 pt-1">
-                          <button
-                            onClick={() => handle1TapConfirm(apt.id)}
-                            className="inline-flex items-center justify-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-2 rounded-xl text-[11px] font-bold transition-all shadow-xs"
-                          >
-                            <Check className="w-3.5 h-3.5 stroke-[3]" />
-                            <span>Confirm</span>
-                          </button>
+                        <div className="flex items-center gap-1.5 pt-1">
+                          <div className="grid grid-cols-3 gap-1.5 flex-1">
+                            <button
+                              onClick={() => handle1TapConfirm(apt.id)}
+                              className="inline-flex items-center justify-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-2 rounded-xl text-[11px] font-bold transition-all shadow-xs"
+                            >
+                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                              <span>Confirm</span>
+                            </button>
 
-                          <button
-                            onClick={() => {
-                              setSelectedAppointmentForAction(apt);
-                              setRescheduleModalOpen(true);
-                            }}
-                            className="inline-flex items-center justify-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-800 py-2 px-1 rounded-xl text-[11px] font-semibold transition-colors"
-                          >
-                            <RotateCcw className="w-3 h-3" />
-                            <span>Suggest Slot</span>
-                          </button>
+                            <button
+                              onClick={() => {
+                                setSelectedAppointmentForAction(apt);
+                                setRescheduleModalOpen(true);
+                              }}
+                              className="inline-flex items-center justify-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-800 py-2 px-1 rounded-xl text-[11px] font-semibold transition-colors"
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                              <span>Suggest Slot</span>
+                            </button>
 
+                            <button
+                              onClick={() => {
+                                setSelectedAppointmentForAction(apt);
+                                setShowDeclineConfirm(true);
+                              }}
+                              className="inline-flex items-center justify-center gap-1 bg-rose-50 hover:bg-rose-100 text-rose-700 py-2 px-1 rounded-xl text-[11px] font-semibold transition-colors"
+                            >
+                              <X className="w-3 h-3" />
+                              <span>Decline</span>
+                            </button>
+                          </div>
                           <button
-                            onClick={() => {
-                              setSelectedAppointmentForAction(apt);
-                              setShowDeclineConfirm(true);
-                            }}
-                            className="inline-flex items-center justify-center gap-1 bg-rose-50 hover:bg-rose-100 text-rose-700 py-2 px-1 rounded-xl text-[11px] font-semibold transition-colors"
+                            onClick={() => handleDeleteAppointment(apt.id, apt.patientName)}
+                            disabled={deletingId === apt.id}
+                            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors shrink-0 disabled:opacity-50"
+                            title="Delete wrong booking"
                           >
-                            <X className="w-3 h-3" />
-                            <span>Decline</span>
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
@@ -363,14 +392,25 @@ export const DoctorMobileCompanion: React.FC<DoctorMobileCompanionProps> = ({
 
                         <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
                           <span className="text-slate-400 font-mono">{apt.patientPhone}</span>
-                          {apt.status === 'Confirmed' && (
+                          <div className="flex items-center gap-2">
+                            {apt.status === 'Confirmed' && (
+                              <button
+                                onClick={() => completeAppointment(apt.id, 'Standard procedure completed successfully with zero complications.')}
+                                className="text-teal-700 hover:text-teal-900 font-bold"
+                              >
+                                Mark Completed ✓
+                              </button>
+                            )}
                             <button
-                              onClick={() => completeAppointment(apt.id, 'Standard procedure completed successfully with zero complications.')}
-                              className="text-teal-700 hover:text-teal-900 font-bold"
+                              onClick={() => handleDeleteAppointment(apt.id, apt.patientName)}
+                              disabled={deletingId === apt.id}
+                              className="text-rose-600 hover:text-rose-800 font-bold flex items-center gap-1 hover:bg-rose-50 px-2 py-0.5 rounded-md transition-colors disabled:opacity-50"
+                              title="Delete appointment"
                             >
-                              Mark Completed ✓
+                              <Trash2 className="w-3 h-3" />
+                              <span>{deletingId === apt.id ? 'Deleting...' : 'Delete'}</span>
                             </button>
-                          )}
+                          </div>
                         </div>
                       </div>
                     ))

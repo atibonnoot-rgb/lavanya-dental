@@ -67,6 +67,7 @@ interface ClinicContextType {
   declineAppointmentByDoctor: (appointmentId: string, reason: string) => void;
   rescheduleAppointmentByDoctor: (appointmentId: string, newDate: string, newTimeSlot: string, note?: string) => void;
   completeAppointment: (appointmentId: string, doctorNotes?: string) => void;
+  deleteAppointment: (appointmentId: string) => Promise<{ success: boolean; error?: string }>;
   toggleDoctorAvailability: (doctorId: string) => void;
   markNotificationRead: (notifId: string) => void;
   getDoctorById: (id: string) => Doctor | undefined;
@@ -655,6 +656,36 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
   };
 
+  const deleteAppointment = async (appointmentId: string): Promise<{ success: boolean; error?: string }> => {
+    const aptToDelete = appointments.find(a => a.id === appointmentId);
+
+    // 1. Optimistic UI update
+    setAppointments(prev => prev.filter(a => a.id !== appointmentId));
+    setDoctorNotifications(prev => prev.filter(n => n.appointmentId !== appointmentId));
+
+    try {
+      // 2. Delete from Supabase
+      const { error } = await supabase.from('appointments').delete().eq('id', appointmentId);
+      if (error) {
+        console.error('Failed to delete appointment from Supabase:', error);
+        return { success: false, error: error.message };
+      }
+
+      addAuditLog(
+        'Doctor/Admin',
+        'Doctor',
+        'APPOINTMENT_DELETED',
+        `Appointment ${aptToDelete?.confirmationCode || appointmentId} for ${aptToDelete?.patientName || 'Patient'} was deleted permanently.`
+      );
+
+      return { success: true };
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Unknown error';
+      console.error('Delete appointment error:', errMsg);
+      return { success: false, error: errMsg };
+    }
+  };
+
   const toggleDoctorAvailability = (doctorId: string) => {
     setDoctors(prev => prev.map(doc => 
       doc.id === doctorId ? { ...doc, isAvailableToday: !doc.isAvailableToday } : doc
@@ -722,6 +753,7 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       declineAppointmentByDoctor,
       rescheduleAppointmentByDoctor,
       completeAppointment,
+      deleteAppointment,
       toggleDoctorAvailability,
       markNotificationRead,
       getDoctorById,

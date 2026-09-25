@@ -38,8 +38,19 @@ DROP POLICY IF EXISTS "Allow public insert on audit_logs" ON audit_logs;
 CREATE POLICY "Allow public insert on audit_logs" ON audit_logs FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow public read on audit_logs" ON audit_logs FOR SELECT USING (true);
 
+-- APPOINTMENTS TABLE: Allow public read + insert + update + delete
+DROP POLICY IF EXISTS "Allow public read on appointments" ON appointments;
+DROP POLICY IF EXISTS "Allow public insert on appointments" ON appointments;
+DROP POLICY IF EXISTS "Allow public update on appointments" ON appointments;
+DROP POLICY IF EXISTS "Allow public delete on appointments" ON appointments;
+
+CREATE POLICY "Allow public read on appointments" ON appointments FOR SELECT USING (true);
+CREATE POLICY "Allow public insert on appointments" ON appointments FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update on appointments" ON appointments FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public delete on appointments" ON appointments FOR DELETE USING (true);
+
 -- Verify policies were created
 SELECT schemaname, tablename, policyname, cmd, roles 
 FROM pg_policies 
-WHERE tablename IN ('doctors', 'services', 'clinic_settings', 'audit_logs')
+WHERE tablename IN ('doctors', 'services', 'clinic_settings', 'audit_logs', 'appointments')
 ORDER BY tablename, cmd;

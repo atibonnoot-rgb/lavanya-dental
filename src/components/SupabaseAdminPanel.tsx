@@ -446,6 +446,7 @@ const ServicesTab: React.FC = () => {
 
   const saveService = async (service: DentalService) => {
     setSaving(true);
+    const isNew = !services.some(s => s.id === service.id);
     const row = {
       id: service.id,
       name: service.name,
@@ -460,29 +461,37 @@ const ServicesTab: React.FC = () => {
       updated_at: new Date().toISOString(),
     };
 
-    const { error } = await supabase.from('services').upsert(row, { onConflict: 'id' });
-    if (!error) {
-      setServices(prev => {
-        const exists = prev.find(s => s.id === service.id);
-        return exists ? prev.map(s => s.id === service.id ? service : s) : [...prev, service];
-      });
-      setToast({ message: adding ? 'Service added!' : 'Service saved!', type: 'success' });
-      setEditing(null);
-      setAdding(false);
-    } else {
-      setToast({ message: 'Failed to save service', type: 'error' });
+    // Optimistically update context immediately — realtime will also fire for other devices
+    setServices(prev => {
+      const exists = prev.some(s => s.id === service.id);
+      return exists ? prev.map(s => s.id === service.id ? service : s) : [...prev, service];
+    });
+    setToast({ message: isNew ? 'Service added!' : 'Service saved!', type: 'success' });
+    setEditing(null);
+    setAdding(false);
+
+    // Persist to Supabase in background (realtime will sync other devices)
+    try {
+      const { error } = await supabase.from('services').upsert(row, { onConflict: 'id' });
+      if (error) console.warn('Supabase service upsert warning:', error.message);
+    } catch (e) {
+      console.warn('Supabase network error saving service:', e);
     }
+
     setSaving(false);
   };
 
   const deleteService = async (id: string) => {
     if (!confirm('Delete this service? This cannot be undone.')) return;
-    const { error } = await supabase.from('services').delete().eq('id', id);
-    if (!error) {
-      setServices(prev => prev.filter(s => s.id !== id));
-      setToast({ message: 'Service deleted', type: 'success' });
-    } else {
-      setToast({ message: 'Failed to delete', type: 'error' });
+    // Optimistically remove from context
+    setServices(prev => prev.filter(s => s.id !== id));
+    setToast({ message: 'Service deleted', type: 'success' });
+    // Persist deletion to Supabase in background
+    try {
+      const { error } = await supabase.from('services').delete().eq('id', id);
+      if (error) console.warn('Supabase service delete warning:', error.message);
+    } catch (e) {
+      console.warn('Supabase network error deleting service:', e);
     }
   };
 
@@ -641,14 +650,54 @@ const ServicesTab: React.FC = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 const DoctorsTab: React.FC = () => {
   const { doctors, setDoctors } = useClinic();
+  const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<Doctor | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
+  const createEmptyDoctor = (): Doctor => ({
+    id: `doc-${Date.now()}`,
+    name: 'Dr. ',
+    title: 'B.D.S Dental Specialist',
+    specialty: 'General & Cosmetic Dentistry',
+    degrees: 'B.D.S',
+    experienceYears: 5,
+    rating: 4.9,
+    reviewsCount: 12,
+    photoUrl: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=600',
+    bio: 'Dedicated dental specialist providing personalized patient care.',
+    phone: '+91 98765 00000',
+    email: 'doctor@lavanyadental.com',
+    workingDays: [1, 2, 3, 4, 5],
+    workingHours: { start: '09:00', end: '17:00' },
+    slotDurationMinutes: 45,
+    isAvailableToday: true,
+    onCallForEmergency: false,
+  });
+
   const saveDoctor = async (doctor: Doctor) => {
     setSaving(true);
+    const isNew = !doctors.some(d => d.id === doctor.id);
+
+    // Optimistically update local state & localStorage immediately
+    setDoctors(prev => {
+      const exists = prev.some(d => d.id === doctor.id);
+      const updated = exists ? prev.map(d => d.id === doctor.id ? doctor : d) : [...prev, doctor];
+      try {
+        localStorage.setItem('auradental_doctors_v1', JSON.stringify(updated));
+      } catch (err) {
+        console.warn('LocalStorage error:', err);
+      }
+      return updated;
+    });
+
+    setToast({ message: isNew ? 'New doctor added successfully!' : 'Doctor profile saved successfully!', type: 'success' });
+    setEditing(null);
+    setAdding(false);
+
+    // Persist to Supabase in background (realtime will sync other devices)
     try {
       const row = {
         id: doctor.id,
@@ -668,32 +717,18 @@ const DoctorsTab: React.FC = () => {
         slot_duration_minutes: doctor.slotDurationMinutes,
         is_available_today: doctor.isAvailableToday,
         on_call_for_emergency: doctor.onCallForEmergency,
+        display_order: 99,
         updated_at: new Date().toISOString(),
       };
 
-      // Try updating Supabase database
       const { error } = await supabase.from('doctors').upsert(row, { onConflict: 'id' });
       if (error) {
-        console.warn('Supabase doctor save error (using local storage fallback):', error);
+        console.warn('Supabase doctor save warning:', error.message);
       }
     } catch (e) {
-      console.warn('Supabase network error (using local storage fallback):', e);
+      console.warn('Supabase network error:', e);
     }
 
-    // Always update local state and localStorage for a smooth user experience
-    setDoctors(prev => {
-      const exists = prev.some(d => d.id === doctor.id);
-      const updated = exists ? prev.map(d => d.id === doctor.id ? doctor : d) : [...prev, doctor];
-      try {
-        localStorage.setItem('auradental_doctors_v1', JSON.stringify(updated));
-      } catch (err) {
-        console.warn('LocalStorage error:', err);
-      }
-      return updated;
-    });
-
-    setToast({ message: 'Doctor profile saved successfully!', type: 'success' });
-    setEditing(null);
     setSaving(false);
   };
 
@@ -726,7 +761,7 @@ const DoctorsTab: React.FC = () => {
         return updated;
       });
 
-      // Attempt Supabase update
+      // Attempt Supabase storage upload
       try {
         const ext = file.name.split('.').pop();
         const path = `doctors/${doctorId}.${ext}`;
@@ -756,18 +791,20 @@ const DoctorsTab: React.FC = () => {
     if (!doc) return;
     const newVal = !doc[field];
     const dbField = field === 'isAvailableToday' ? 'is_available_today' : 'on_call_for_emergency';
-    await supabase.from('doctors').update({ [dbField]: newVal }).eq('id', doctorId);
+    
+    // Optimistic update
     setDoctors(prev => prev.map(d => d.id === doctorId ? { ...d, [field]: newVal } : d));
+    try {
+      await supabase.from('doctors').update({ [dbField]: newVal }).eq('id', doctorId);
+    } catch (e) {
+      console.warn('Supabase doctor toggle warning:', e);
+    }
   };
 
   const deleteDoctor = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete ${name}?`)) return;
-    try {
-      await supabase.from('doctors').delete().eq('id', id);
-    } catch (e) {
-      console.warn('Supabase delete doctor warning:', e);
-    }
-
+    
+    // Optimistic removal
     setDoctors(prev => {
       const updated = prev.filter(d => d.id !== id);
       try {
@@ -778,29 +815,153 @@ const DoctorsTab: React.FC = () => {
       return updated;
     });
 
-    if (editing?.id === id) setEditing(null);
-    setToast({ message: 'Doctor entry removed!', type: 'success' });
+    if (editing?.id === id) {
+      setEditing(null);
+      setAdding(false);
+    }
+    setToast({ message: 'Doctor removed successfully!', type: 'success' });
+
+    try {
+      await supabase.from('doctors').delete().eq('id', id);
+    } catch (e) {
+      console.warn('Supabase delete doctor warning:', e);
+    }
   };
 
-  const createEmptyDoctor = (): Doctor => ({
-    id: `doc-${Date.now()}`,
-    name: 'Dr. New Specialist',
-    title: 'B.D.S Dental Specialist',
-    specialty: 'General & Cosmetic Dentistry',
-    degrees: 'B.D.S',
-    experienceYears: 5,
-    rating: 4.9,
-    reviewsCount: 12,
-    photoUrl: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=600',
-    bio: 'Dedicated dental specialist providing personalized patient care.',
-    phone: '+91 98765 00000',
-    email: 'doctor@lavanyadental.com',
-    workingDays: [1, 2, 3, 4, 5],
-    workingHours: { start: '09:00', end: '17:00' },
-    slotDurationMinutes: 45,
-    isAvailableToday: true,
-    onCallForEmergency: false,
-  });
+  const DoctorEditForm: React.FC<{ doc: Doctor; isNewDoc?: boolean }> = ({ doc, isNewDoc = false }) => (
+    <div className="bg-slate-800/80 rounded-2xl p-4 border border-teal-500/30 space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-teal-400 font-bold text-sm">
+          {isNewDoc ? 'Add New Specialist' : `Editing: ${doc.name.split(',')[0]}`}
+        </h3>
+        {!isNewDoc && (
+          <button
+            onClick={() => deleteDoctor(doc.id, doc.name)}
+            className="flex items-center gap-1 bg-rose-600/20 hover:bg-rose-600 text-rose-400 hover:text-white px-2.5 py-1 rounded-lg text-xs font-semibold border border-rose-500/30 transition-all"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Delete</span>
+          </button>
+        )}
+      </div>
+
+      {/* Photo upload */}
+      <div className="flex items-center gap-3">
+        <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-700 shrink-0">
+          <img
+            src={doc.photoUrl}
+            alt="doctor"
+            className="w-full h-full object-cover"
+            onError={e => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/56'; }}
+          />
+        </div>
+        <div className="flex-1">
+          <input
+            ref={el => { fileInputRefs.current[doc.id] = el; }}
+            type="file"
+            accept="image/*"
+            onChange={e => handlePhotoUpload(doc.id, e)}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRefs.current[doc.id]?.click()}
+            disabled={uploading === doc.id}
+            className="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+          >
+            {uploading === doc.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+            {uploading === doc.id ? 'Uploading...' : 'Change Photo'}
+          </button>
+        </div>
+      </div>
+
+      {[
+        { label: 'Full Name (e.g. Dr. Jane Doe, MDS)', key: 'name' },
+        { label: 'Title / Qualification', key: 'title' },
+        { label: 'Specialty', key: 'specialty' },
+        { label: 'Degrees', key: 'degrees' },
+        { label: 'Phone', key: 'phone' },
+        { label: 'Email', key: 'email' },
+      ].map(({ label, key }) => (
+        <div key={key}>
+          <label className="text-xs text-slate-400 mb-1 block">{label}</label>
+          <input
+            value={(doc as unknown as Record<string, unknown>)[key] as string || ''}
+            onChange={e => setEditing(d => d ? { ...d, [key]: e.target.value } : null)}
+            className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+          />
+        </div>
+      ))}
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-xs text-slate-400 mb-1 block">Years of Experience</label>
+          <input
+            type="number"
+            value={doc.experienceYears}
+            onChange={e => setEditing(d => d ? { ...d, experienceYears: +e.target.value } : null)}
+            className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-slate-400 mb-1 block">Slot Duration (min)</label>
+          <input
+            type="number"
+            value={doc.slotDurationMinutes}
+            onChange={e => setEditing(d => d ? { ...d, slotDurationMinutes: +e.target.value } : null)}
+            className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="text-xs text-slate-400 mb-1 block">Bio / Summary</label>
+        <textarea
+          value={doc.bio}
+          onChange={e => setEditing(d => d ? { ...d, bio: e.target.value } : null)}
+          rows={3}
+          className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50 resize-none"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-xs text-slate-400 mb-1 block">Shift Start Time</label>
+          <input
+            type="time"
+            value={doc.workingHours.start}
+            onChange={e => setEditing(d => d ? { ...d, workingHours: { ...d.workingHours, start: e.target.value } } : null)}
+            className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-2.5 py-2 text-sm focus:outline-none"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-slate-400 mb-1 block">Shift End Time</label>
+          <input
+            type="time"
+            value={doc.workingHours.end}
+            onChange={e => setEditing(d => d ? { ...d, workingHours: { ...d.workingHours, end: e.target.value } } : null)}
+            className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-2.5 py-2 text-sm focus:outline-none"
+          />
+        </div>
+      </div>
+
+      <div className="flex gap-2 pt-1">
+        <button
+          onClick={() => saveDoctor(doc)}
+          disabled={saving || !doc.name.trim()}
+          className="flex-1 flex items-center justify-center gap-1.5 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white py-2.5 rounded-xl text-xs font-bold transition-all"
+        >
+          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+          Save Profile
+        </button>
+        <button
+          onClick={() => { setEditing(null); setAdding(false); }}
+          className="flex-1 flex items-center justify-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 py-2.5 rounded-xl text-xs font-bold transition-all"
+        >
+          <X className="w-3.5 h-3.5" /> Cancel
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="p-4 space-y-4">
@@ -811,6 +972,7 @@ const DoctorsTab: React.FC = () => {
         <button
           onClick={() => {
             const newDoc = createEmptyDoctor();
+            setAdding(true);
             setEditing(newDoc);
           }}
           className="flex items-center gap-1.5 bg-teal-600 hover:bg-teal-500 text-white px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-md"
@@ -820,110 +982,15 @@ const DoctorsTab: React.FC = () => {
         </button>
       </div>
 
+      {adding && editing && (
+        <DoctorEditForm doc={editing} isNewDoc={true} />
+      )}
+
       <div className="space-y-4">
         {doctors.map(doc => (
           <div key={doc.id}>
-            {editing?.id === doc.id ? (
-              // Edit form
-              <div className="bg-slate-800/80 rounded-2xl p-4 border border-teal-500/30 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-teal-400 font-bold text-sm">Editing: {editing.name.split(',')[0]}</h3>
-                  <button
-                    onClick={() => deleteDoctor(editing.id, editing.name)}
-                    className="flex items-center gap-1 bg-rose-600/20 hover:bg-rose-600 text-rose-400 hover:text-white px-2.5 py-1 rounded-lg text-xs font-semibold border border-rose-500/30 transition-all"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Delete</span>
-                  </button>
-                </div>
-
-                {/* Photo upload */}
-                <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-700 shrink-0">
-                    <img src={editing.photoUrl} alt="doctor" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/56'; }} />
-                  </div>
-                  <div className="flex-1">
-                    <input
-                      ref={el => { fileInputRefs.current[doc.id] = el; }}
-                      type="file"
-                      accept="image/*"
-                      onChange={e => handlePhotoUpload(doc.id, e)}
-                      className="hidden"
-                    />
-                    <button
-                      onClick={() => fileInputRefs.current[doc.id]?.click()}
-                      disabled={uploading === doc.id}
-                      className="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
-                    >
-                      {uploading === doc.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                      {uploading === doc.id ? 'Uploading...' : 'Change Photo'}
-                    </button>
-                  </div>
-                </div>
-
-                {[
-                  { label: 'Full Name', key: 'name' },
-                  { label: 'Title', key: 'title' },
-                  { label: 'Specialty', key: 'specialty' },
-                  { label: 'Degrees', key: 'degrees' },
-                  { label: 'Phone', key: 'phone' },
-                  { label: 'Email', key: 'email' },
-                ].map(({ label, key }) => (
-                  <div key={key}>
-                    <label className="text-xs text-slate-400 mb-1 block">{label}</label>
-                    <input
-                      value={(editing as unknown as Record<string, unknown>)[key] as string || ''}
-                      onChange={e => setEditing(d => d ? { ...d, [key]: e.target.value } : null)}
-                      className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50"
-                    />
-                  </div>
-                ))}
-
-                <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Bio</label>
-                  <textarea
-                    value={editing.bio}
-                    onChange={e => setEditing(d => d ? { ...d, bio: e.target.value } : null)}
-                    rows={3}
-                    className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50 resize-none"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-xs text-slate-400 mb-1 block">Start Time</label>
-                    <input
-                      type="time"
-                      value={editing.workingHours.start}
-                      onChange={e => setEditing(d => d ? { ...d, workingHours: { ...d.workingHours, start: e.target.value } } : null)}
-                      className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-2.5 py-2 text-sm focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-slate-400 mb-1 block">End Time</label>
-                    <input
-                      type="time"
-                      value={editing.workingHours.end}
-                      onChange={e => setEditing(d => d ? { ...d, workingHours: { ...d.workingHours, end: e.target.value } } : null)}
-                      className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-2.5 py-2 text-sm focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-2 pt-1">
-                  <button
-                    onClick={() => saveDoctor(editing)}
-                    disabled={saving}
-                    className="flex-1 flex items-center justify-center gap-1.5 bg-teal-600 hover:bg-teal-500 text-white py-2.5 rounded-xl text-xs font-bold"
-                  >
-                    {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                    Save Profile
-                  </button>
-                  <button onClick={() => setEditing(null)} className="flex-1 flex items-center justify-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 py-2.5 rounded-xl text-xs font-bold">
-                    <X className="w-3.5 h-3.5" /> Cancel
-                  </button>
-                </div>
-              </div>
+            {!adding && editing?.id === doc.id ? (
+              <DoctorEditForm doc={editing} isNewDoc={false} />
             ) : (
               // Doctor card
               <div className="bg-slate-800/60 rounded-2xl p-4 border border-slate-700/50">
@@ -937,13 +1004,19 @@ const DoctorsTab: React.FC = () => {
                   <div className="flex-1 min-w-0">
                     <p className="text-white font-semibold text-sm leading-tight truncate">{doc.name.split(',')[0]}</p>
                     <p className="text-teal-400 text-xs">{doc.specialty}</p>
-                    <p className="text-slate-400 text-xs">{doc.workingHours.start} – {doc.workingHours.end}</p>
+                    <p className="text-slate-400 text-xs">{doc.workingHours.start} – {doc.workingHours.end} • {doc.experienceYears} yrs exp</p>
                   </div>
                   <div className="flex items-center gap-1 self-start">
-                    <button onClick={() => setEditing(doc)} className="p-2 rounded-xl bg-slate-700 hover:bg-teal-700/50 text-slate-400 hover:text-teal-300 transition-all">
+                    <button
+                      onClick={() => { setAdding(false); setEditing(doc); }}
+                      className="p-2 rounded-xl bg-slate-700 hover:bg-teal-700/50 text-slate-400 hover:text-teal-300 transition-all"
+                    >
                       <Edit3 className="w-3.5 h-3.5" />
                     </button>
-                    <button onClick={() => deleteDoctor(doc.id, doc.name)} className="p-2 rounded-xl bg-slate-700 hover:bg-rose-700/50 text-slate-400 hover:text-rose-300 transition-all">
+                    <button
+                      onClick={() => deleteDoctor(doc.id, doc.name)}
+                      className="p-2 rounded-xl bg-slate-700 hover:bg-rose-700/50 text-slate-400 hover:text-rose-300 transition-all"
+                    >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>

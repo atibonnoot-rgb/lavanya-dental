@@ -330,9 +330,31 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         .subscribe();
     } catch {}
 
+    // ─── Realtime: Services ────────────────────────────────────────────────
+    let servicesChannel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      servicesChannel = supabase
+        .channel('rt-services-sync')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, (payload) => {
+          if (payload.eventType === 'DELETE' && payload.old?.id) {
+            setServices(prev => prev.filter(s => s.id !== payload.old.id));
+          } else if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            if (payload.new) {
+              const updatedSvc = mapServiceRow(payload.new as Record<string, unknown>);
+              setServices(prev => {
+                const exists = prev.some(s => s.id === updatedSvc.id);
+                return exists ? prev.map(s => s.id === updatedSvc.id ? updatedSvc : s) : [...prev, updatedSvc];
+              });
+            }
+          }
+        })
+        .subscribe();
+    } catch {}
+
     return () => {
       if (doctorsChannel) supabase.removeChannel(doctorsChannel);
       if (aptsChannel) supabase.removeChannel(aptsChannel);
+      if (servicesChannel) supabase.removeChannel(servicesChannel);
     };
   }, []);
 

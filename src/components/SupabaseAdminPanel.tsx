@@ -455,8 +455,15 @@ const ServiceEditForm: React.FC<ServiceEditFormProps> = ({ service, isNew = fals
       />
       <textarea
         placeholder="Description"
-        value={form.description}
+        value={form.description || ''}
         onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+        rows={2}
+        className="w-full bg-slate-900/60 border border-slate-600/50 text-white placeholder-slate-500 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50 resize-none"
+      />
+      <textarea
+        placeholder="Ideal Candidate For (Enter one point per line, e.g. New cavities)"
+        value={(form.recommendedFor || []).join('\n')}
+        onChange={e => setForm(f => ({ ...f, recommendedFor: e.target.value.split('\n') }))}
         rows={3}
         className="w-full bg-slate-900/60 border border-slate-600/50 text-white placeholder-slate-500 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50 resize-none"
       />
@@ -544,24 +551,31 @@ const ServicesTab: React.FC = () => {
 
   const saveService = async (service: DentalService) => {
     setSaving(true);
-    const isNew = !services.some(s => s.id === service.id);
+    
+    // Clean up empty lines from recommendedFor
+    const cleanedService = {
+      ...service,
+      recommendedFor: (service.recommendedFor || []).map(s => s.trim()).filter(Boolean)
+    };
+
+    const isNew = !services.some(s => s.id === cleanedService.id);
     const row = {
-      id: service.id,
-      name: service.name,
-      category: service.category,
-      description: service.description,
-      duration_minutes: service.durationMinutes,
-      price_estimate: service.priceEstimate,
-      deposit_required: service.depositRequired,
-      recommended_for: service.recommendedFor,
-      popular: service.popular,
-      insurance_covered: service.insuranceCovered,
+      id: cleanedService.id,
+      name: cleanedService.name,
+      category: cleanedService.category,
+      description: cleanedService.description,
+      duration_minutes: cleanedService.durationMinutes,
+      price_estimate: cleanedService.priceEstimate,
+      deposit_required: cleanedService.depositRequired,
+      recommended_for: cleanedService.recommendedFor,
+      popular: cleanedService.popular,
+      insurance_covered: cleanedService.insuranceCovered,
       updated_at: new Date().toISOString(),
     };
 
-    const nextServices = services.some(s => s.id === service.id)
-      ? services.map(s => s.id === service.id ? service : s)
-      : [...services, service];
+    const nextServices = services.some(s => s.id === cleanedService.id)
+      ? services.map(s => s.id === cleanedService.id ? cleanedService : s)
+      : [...services, cleanedService];
 
     // Optimistically update context & local storage
     setServices(nextServices);

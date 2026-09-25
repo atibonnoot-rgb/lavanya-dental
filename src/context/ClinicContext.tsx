@@ -364,27 +364,16 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } catch {}
 
     // ─── Realtime: Postgres Changes ─────────────────────────────────────────
+    // We intentionally disable postgres_changes for doctors and services because 
+    // we use the schema-less JSON cloud_state sync. If the DB schema is missing
+    // columns (like 'description' or 'recommended_for'), postgres_changes will 
+    // broadcast objects missing those fields and wipe them from the UI.
+    /*
     try {
       doctorsChannel = supabase
         .channel('rt-doctors-sync')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'doctors' }, (payload) => {
-          if (payload.eventType === 'DELETE' && payload.old?.id) {
-            setDoctors(prev => {
-              const next = prev.filter(d => d.id !== payload.old.id);
-              try { localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(next)); } catch {}
-              return next;
-            });
-          } else if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            if (payload.new) {
-              const updatedDoc = mapDoctorRow(payload.new as Record<string, unknown>);
-              setDoctors(prev => {
-                const exists = prev.some(d => d.id === updatedDoc.id);
-                const next = exists ? prev.map(d => d.id === updatedDoc.id ? updatedDoc : d) : [...prev, updatedDoc];
-                try { localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(next)); } catch {}
-                return next;
-              });
-            }
-          }
+          // ... legacy sync disabled
         })
         .subscribe();
     } catch {}
@@ -393,26 +382,11 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       servicesChannel = supabase
         .channel('rt-services-sync')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, (payload) => {
-          if (payload.eventType === 'DELETE' && payload.old?.id) {
-            setServices(prev => {
-              const next = prev.filter(s => s.id !== payload.old.id);
-              try { localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(next)); } catch {}
-              return next;
-            });
-          } else if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            if (payload.new) {
-              const updatedSvc = mapServiceRow(payload.new as Record<string, unknown>);
-              setServices(prev => {
-                const exists = prev.some(s => s.id === updatedSvc.id);
-                const next = exists ? prev.map(s => s.id === updatedSvc.id ? updatedSvc : s) : [...prev, updatedSvc];
-                try { localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(next)); } catch {}
-                return next;
-              });
-            }
-          }
+          // ... legacy sync disabled
         })
         .subscribe();
     } catch {}
+    */
 
     try {
       aptsChannel = supabase

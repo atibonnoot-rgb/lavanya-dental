@@ -678,6 +678,39 @@ interface DoctorEditFormProps {
   onPhotoUpload: (doctorId: string, file: File) => void;
 }
 
+const compressImageFile = (file: File, maxWidth = 360, quality = 0.72): Promise<string> => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (readerEvent) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        } else {
+          resolve(readerEvent.target?.result as string);
+        }
+      };
+      img.onerror = () => resolve(readerEvent.target?.result as string);
+      img.src = readerEvent.target?.result as string;
+    };
+    reader.onerror = () => resolve('');
+    reader.readAsDataURL(file);
+  });
+};
+
 const DoctorEditForm: React.FC<DoctorEditFormProps> = ({
   doctor,
   isNew = false,
@@ -695,18 +728,13 @@ const DoctorEditForm: React.FC<DoctorEditFormProps> = ({
     setForm(doctor);
   }, [doctor]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Immediate local preview
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const previewUrl = ev.target?.result as string;
-        if (previewUrl) {
-          setForm(f => ({ ...f, photoUrl: previewUrl }));
-        }
-      };
-      reader.readAsDataURL(file);
+      const compressedUrl = await compressImageFile(file);
+      if (compressedUrl) {
+        setForm(f => ({ ...f, photoUrl: compressedUrl }));
+      }
       onPhotoUpload(form.id, file);
     }
   };
@@ -729,33 +757,46 @@ const DoctorEditForm: React.FC<DoctorEditFormProps> = ({
         )}
       </div>
 
-      {/* Photo upload */}
-      <div className="flex items-center gap-3">
-        <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-700 shrink-0">
-          <img
-            src={form.photoUrl}
-            alt="doctor"
-            className="w-full h-full object-cover"
-            onError={e => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/56'; }}
-          />
+      {/* Photo upload and URL input */}
+      <div className="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-700/60">
+        <div className="flex items-center gap-3">
+          <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-700 shrink-0 border border-slate-600">
+            <img
+              src={form.photoUrl || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=600'}
+              alt="doctor"
+              className="w-full h-full object-cover"
+              onError={e => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=600'; }}
+            />
+          </div>
+          <div className="flex-1">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="flex items-center gap-1.5 bg-teal-600/30 hover:bg-teal-600 text-teal-300 hover:text-white px-3 py-2 rounded-xl text-xs font-semibold border border-teal-500/30 transition-all"
+            >
+              {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+              {uploading ? 'Processing Image...' : 'Upload Photo (Auto-Sync)'}
+            </button>
+          </div>
         </div>
-        <div className="flex-1">
+
+        <div>
+          <label className="text-[11px] text-slate-400 mb-1 block">Or paste Image Web Link / URL</label>
           <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="hidden"
+            type="url"
+            value={form.photoUrl}
+            onChange={e => setForm(f => ({ ...f, photoUrl: e.target.value }))}
+            placeholder="https://images.unsplash.com/..."
+            className="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-2.5 py-1.5 text-xs focus:outline-none focus:border-teal-500"
           />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
-          >
-            {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-            {uploading ? 'Uploading...' : 'Change Photo'}
-          </button>
         </div>
       </div>
 
@@ -770,9 +811,10 @@ const DoctorEditForm: React.FC<DoctorEditFormProps> = ({
         <div key={key}>
           <label className="text-xs text-slate-400 mb-1 block">{label}</label>
           <input
-            value={(form as unknown as Record<string, unknown>)[key] as string || ''}
+            type="text"
+            value={(form as any)[key] || ''}
             onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
-            className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+            className="w-full bg-slate-900/60 border border-slate-600/50 text-white rounded-xl px-2.5 py-2 text-sm focus:outline-none focus:border-teal-500"
           />
         </div>
       ))}
@@ -941,9 +983,8 @@ const DoctorsTab: React.FC = () => {
 
   const handlePhotoUpload = async (doctorId: string, file: File) => {
     setUploading(true);
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      const photoUrl = ev.target?.result as string;
+    try {
+      const photoUrl = await compressImageFile(file);
       if (!photoUrl) {
         setUploading(false);
         return;
@@ -958,35 +999,20 @@ const DoctorsTab: React.FC = () => {
       setDoctors(updated);
       try {
         localStorage.setItem('auradental_doctors_v1', JSON.stringify(updated));
+        localStorage.setItem('auradental_timestamp_v1', String(Date.now()));
       } catch (err) {
         console.warn('LocalStorage error:', err);
       }
       saveCloudClinicState(updated, services);
       broadcastLiveSync(updated, services);
 
-      // Attempt Supabase storage upload
-      try {
-        const ext = file.name.split('.').pop();
-        const path = `doctors/${doctorId}.${ext}`;
-        await supabase.storage.from('clinic-media').upload(path, file, { upsert: true });
-        const { data: { publicUrl } } = supabase.storage.from('clinic-media').getPublicUrl(path);
-        if (publicUrl) {
-          await supabase.from('doctors').update({ photo_url: publicUrl }).eq('id', doctorId);
-        }
-      } catch (err) {
-        console.warn('Supabase photo upload skipped/failed:', err);
-      }
-
-      setToast({ message: 'Photo updated successfully!', type: 'success' });
+      setToast({ message: 'Photo uploaded and synced across all devices!', type: 'success' });
+    } catch (err) {
+      console.warn('Photo processing error:', err);
+      setToast({ message: 'Failed to process image file', type: 'error' });
+    } finally {
       setUploading(false);
-    };
-
-    reader.onerror = () => {
-      setToast({ message: 'Failed to read image file', type: 'error' });
-      setUploading(false);
-    };
-
-    reader.readAsDataURL(file);
+    }
   };
 
   const toggleAvailability = async (doctorId: string, field: 'isAvailableToday' | 'onCallForEmergency') => {

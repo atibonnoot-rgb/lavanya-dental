@@ -18,6 +18,7 @@ import {
   BEFORE_AFTER_CASES
 } from '../data/mockData';
 import { supabase } from '../lib/supabase';
+import { fetchCloudClinicState, saveCloudClinicState, broadcastLiveSync } from '../lib/cloudSync';
 
 const DEFAULT_CLINIC_SETTINGS: ClinicSettings = {
   clinicName: 'Lavanya Dental',
@@ -180,6 +181,8 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [showDoctorMobileSimulator, setShowDoctorMobileSimulator] = useState<boolean>(false);
   const [lastSimulatedPush, setLastSimulatedPush] = useState<DoctorNotification | null>(null);
 
+  const isLoadedRef = useRef<boolean>(false);
+
   // ─── Helper: map Supabase appointment row → Appointment ───────────────────
   const mapAppointmentRow = (row: Record<string, unknown>): Appointment => ({
     id: row.id as string,
@@ -212,7 +215,7 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     otpVerified: (row.otp_verified as boolean) || false,
   });
 
-  // ─── Global Realtime Broadcast & DB Sync ─────────────────────────────────
+  // ─── Global Realtime Broadcast, Cloud Storage & DB Sync ───────────────────
   useEffect(() => {
     let syncChannel: ReturnType<typeof supabase.channel> | null = null;
     let doctorsChannel: ReturnType<typeof supabase.channel> | null = null;
@@ -220,8 +223,34 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     let servicesChannel: ReturnType<typeof supabase.channel> | null = null;
 
     const loadAllData = async () => {
+      let hasCloudDocs = false;
+      let hasCloudSvcs = false;
+
+      // 1. Fetch persistent cloud clinic state (shared across all devices)
       try {
-        // 1. Clinic settings
+        const cloudData = await fetchCloudClinicState();
+        if (cloudData) {
+          if (cloudData.doctors && cloudData.doctors.length > 0) {
+            hasCloudDocs = true;
+            setDoctors(cloudData.doctors);
+            try {
+              localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(cloudData.doctors));
+            } catch {}
+          }
+          if (cloudData.services && cloudData.services.length > 0) {
+            hasCloudSvcs = true;
+            setServices(cloudData.services);
+            try {
+              localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(cloudData.services));
+            } catch {}
+          }
+        }
+      } catch (e) {
+        console.warn('Cloud state load error:', e);
+      }
+
+      try {
+        // 2. Clinic settings
         const { data: settingsData } = await supabase
           .from('clinic_settings')
           .select('*')
@@ -231,41 +260,45 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setClinicSettings(mapClinicSettingsRow(settingsData as Record<string, unknown>));
         }
 
-        // 2. Services — merge with local custom services so newly created services are preserved
-        const { data: servicesData } = await supabase
-          .from('services')
-          .select('*')
-          .order('id');
-        if (servicesData && servicesData.length > 0) {
-          const mappedServices = servicesData.map((r) => mapServiceRow(r as Record<string, unknown>));
-          setServices(prev => {
-            const customServices = prev.filter(s => !mappedServices.some(ms => ms.id === s.id));
-            const merged = [...mappedServices, ...customServices];
-            try {
-              localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(merged));
-            } catch {}
-            return merged;
-          });
+        // 3. Services — only fallback to Supabase seed if cloud state was missing
+        if (!hasCloudSvcs) {
+          const { data: servicesData } = await supabase
+            .from('services')
+            .select('*')
+            .order('id');
+          if (servicesData && servicesData.length > 0) {
+            const mappedServices = servicesData.map((r) => mapServiceRow(r as Record<string, unknown>));
+            setServices(prev => {
+              const customServices = prev.filter(s => !mappedServices.some(ms => ms.id === s.id));
+              const merged = [...mappedServices, ...customServices];
+              try {
+                localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(merged));
+              } catch {}
+              return merged;
+            });
+          }
         }
 
-        // 3. Doctors — merge with local custom doctors so newly created doctors are preserved
-        const { data: doctorsData } = await supabase
-          .from('doctors')
-          .select('*')
-          .order('display_order');
-        if (doctorsData && doctorsData.length > 0) {
-          const mappedDoctors = doctorsData.map((r) => mapDoctorRow(r as Record<string, unknown>));
-          setDoctors(prev => {
-            const customDoctors = prev.filter(d => !mappedDoctors.some(md => md.id === d.id));
-            const merged = [...mappedDoctors, ...customDoctors];
-            try {
-              localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(merged));
-            } catch {}
-            return merged;
-          });
+        // 4. Doctors — only fallback to Supabase seed if cloud state was missing
+        if (!hasCloudDocs) {
+          const { data: doctorsData } = await supabase
+            .from('doctors')
+            .select('*')
+            .order('display_order');
+          if (doctorsData && doctorsData.length > 0) {
+            const mappedDoctors = doctorsData.map((r) => mapDoctorRow(r as Record<string, unknown>));
+            setDoctors(prev => {
+              const customDoctors = prev.filter(d => !mappedDoctors.some(md => md.id === d.id));
+              const merged = [...mappedDoctors, ...customDoctors];
+              try {
+                localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(merged));
+              } catch {}
+              return merged;
+            });
+          }
         }
 
-        // 4. Appointments — load from Supabase
+        // 5. Appointments — load from Supabase
         const { data: aptsData } = await supabase
           .from('appointments')
           .select('*')
@@ -292,6 +325,8 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       } catch (err) {
         console.warn('Supabase initial fetch warning:', err);
+      } finally {
+        isLoadedRef.current = true;
       }
     };
 
@@ -336,7 +371,6 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         })
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') {
-            // Request latest state from any companion device on the network
             syncChannel?.send({
               type: 'broadcast',
               event: 'REQUEST_CLINIC_STATE',
@@ -443,46 +477,36 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   }, []);
 
-  // ─── Sync changes across LocalStorage, Same-Origin Tabs & Realtime Devices ──
+  // ─── Sync changes to LocalStorage, Cloud Storage & Realtime Devices ───────
   useEffect(() => {
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(doctors));
-      // 1. Same-origin BroadcastChannel
+      // 1. BroadcastChannel (same-origin tabs)
       const bc = new BroadcastChannel('auradental_clinic_sync');
       bc.postMessage({ type: 'DOCTORS_UPDATED', data: doctors });
       bc.close();
-      // 2. Supabase Realtime Broadcast to all external devices (mobile & desktop)
-      const ch = supabase.channel('auradental-cross-device-sync');
-      ch.subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          ch.send({
-            type: 'broadcast',
-            event: 'CLINIC_SYNC_STATE',
-            payload: { doctors, services, timestamp: Date.now() }
-          });
-        }
-      });
+      
+      // 2. Global Cloud Storage Persistence & Supabase Broadcast (only if initial load is done)
+      if (isLoadedRef.current) {
+        saveCloudClinicState(doctors, services);
+        broadcastLiveSync(doctors, services);
+      }
     } catch {}
   }, [doctors]);
 
   useEffect(() => {
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(services));
-      // 1. Same-origin BroadcastChannel
+      // 1. BroadcastChannel (same-origin tabs)
       const bc = new BroadcastChannel('auradental_clinic_sync');
       bc.postMessage({ type: 'SERVICES_UPDATED', data: services });
       bc.close();
-      // 2. Supabase Realtime Broadcast to all external devices (mobile & desktop)
-      const ch = supabase.channel('auradental-cross-device-sync');
-      ch.subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          ch.send({
-            type: 'broadcast',
-            event: 'CLINIC_SYNC_STATE',
-            payload: { doctors, services, timestamp: Date.now() }
-          });
-        }
-      });
+      
+      // 2. Global Cloud Storage Persistence & Supabase Broadcast (only if initial load is done)
+      if (isLoadedRef.current) {
+        saveCloudClinicState(doctors, services);
+        broadcastLiveSync(doctors, services);
+      }
     } catch {}
   }, [services]);
 
@@ -492,7 +516,7 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } catch {}
   }, [auditLogs]);
 
-  // Listen for storage events and same-origin broadcast channel events
+  // Listen for storage events, same-origin broadcast channel events, and tab focus/visibility
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       if (e.key === LOCAL_STORAGE_KEY_DOCTORS && e.newValue) {
@@ -502,6 +526,23 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         try { setServices(JSON.parse(e.newValue)); } catch {}
       }
     };
+
+    const handleTabFocus = async () => {
+      try {
+        const cloudData = await fetchCloudClinicState();
+        if (cloudData) {
+          if (cloudData.doctors && cloudData.doctors.length > 0) {
+            setDoctors(cloudData.doctors);
+            try { localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(cloudData.doctors)); } catch {}
+          }
+          if (cloudData.services && cloudData.services.length > 0) {
+            setServices(cloudData.services);
+            try { localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(cloudData.services)); } catch {}
+          }
+        }
+      } catch {}
+    };
+
     let bc: BroadcastChannel | null = null;
     try {
       bc = new BroadcastChannel('auradental_clinic_sync');
@@ -514,9 +555,20 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       };
     } catch {}
+
     window.addEventListener('storage', handleStorage);
+    window.addEventListener('focus', handleTabFocus);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        handleTabFocus();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
       window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('focus', handleTabFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
       if (bc) bc.close();
     };
   }, []);

@@ -8,6 +8,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { useClinic } from '../context/ClinicContext';
 import { DentalService, Doctor, ClinicSettings } from '../types';
+import { saveCloudClinicState, broadcastLiveSync } from '../lib/cloudSync';
 
 // ─── Helper Hooks ─────────────────────────────────────────────────────────────
 type TabId = 'appointments' | 'clinic' | 'services' | 'doctors' | 'gallery';
@@ -522,7 +523,7 @@ const ServiceEditForm: React.FC<ServiceEditFormProps> = ({ service, isNew = fals
 };
 
 const ServicesTab: React.FC = () => {
-  const { services, setServices } = useClinic();
+  const { services, setServices, doctors } = useClinic();
   const [editing, setEditing] = useState<DentalService | null>(null);
   const [adding, setAdding] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -558,16 +559,25 @@ const ServicesTab: React.FC = () => {
       updated_at: new Date().toISOString(),
     };
 
-    // Optimistically update context immediately — realtime will also fire for other devices
-    setServices(prev => {
-      const exists = prev.some(s => s.id === service.id);
-      return exists ? prev.map(s => s.id === service.id ? service : s) : [...prev, service];
-    });
+    const nextServices = services.some(s => s.id === service.id)
+      ? services.map(s => s.id === service.id ? service : s)
+      : [...services, service];
+
+    // Optimistically update context & local storage
+    setServices(nextServices);
+    try {
+      localStorage.setItem('auradental_services_v1', JSON.stringify(nextServices));
+    } catch {}
+
+    // Persist to Cloud Storage & Realtime broadcast immediately
+    saveCloudClinicState(doctors, nextServices);
+    broadcastLiveSync(doctors, nextServices);
+
     setToast({ message: isNew ? 'Service added!' : 'Service saved!', type: 'success' });
     setEditing(null);
     setAdding(false);
 
-    // Persist to Supabase in background (realtime will sync other devices)
+    // Also attempt Supabase upsert
     try {
       const { error } = await supabase.from('services').upsert(row, { onConflict: 'id' });
       if (error) console.warn('Supabase service upsert warning:', error.message);
@@ -580,10 +590,16 @@ const ServicesTab: React.FC = () => {
 
   const deleteService = async (id: string) => {
     if (!confirm('Delete this service? This cannot be undone.')) return;
-    // Optimistically remove from context
-    setServices(prev => prev.filter(s => s.id !== id));
+    const nextServices = services.filter(s => s.id !== id);
+    setServices(nextServices);
+    try {
+      localStorage.setItem('auradental_services_v1', JSON.stringify(nextServices));
+    } catch {}
+
+    saveCloudClinicState(doctors, nextServices);
+    broadcastLiveSync(doctors, nextServices);
     setToast({ message: 'Service deleted', type: 'success' });
-    // Persist deletion to Supabase in background
+
     try {
       const { error } = await supabase.from('services').delete().eq('id', id);
       if (error) console.warn('Supabase service delete warning:', error.message);
@@ -834,7 +850,7 @@ const DoctorEditForm: React.FC<DoctorEditFormProps> = ({
 };
 
 const DoctorsTab: React.FC = () => {
-  const { doctors, setDoctors } = useClinic();
+  const { doctors, setDoctors, services } = useClinic();
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<Doctor | null>(null);
   const [saving, setSaving] = useState(false);
@@ -865,23 +881,27 @@ const DoctorsTab: React.FC = () => {
     setSaving(true);
     const isNew = !doctors.some(d => d.id === doctor.id);
 
+    const nextDoctors = doctors.some(d => d.id === doctor.id)
+      ? doctors.map(d => d.id === doctor.id ? doctor : d)
+      : [...doctors, doctor];
+
     // Optimistically update local state & localStorage immediately
-    setDoctors(prev => {
-      const exists = prev.some(d => d.id === doctor.id);
-      const updated = exists ? prev.map(d => d.id === doctor.id ? doctor : d) : [...prev, doctor];
-      try {
-        localStorage.setItem('auradental_doctors_v1', JSON.stringify(updated));
-      } catch (err) {
-        console.warn('LocalStorage error:', err);
-      }
-      return updated;
-    });
+    setDoctors(nextDoctors);
+    try {
+      localStorage.setItem('auradental_doctors_v1', JSON.stringify(nextDoctors));
+    } catch (err) {
+      console.warn('LocalStorage error:', err);
+    }
+
+    // Persist to Cloud Storage & Realtime broadcast immediately
+    saveCloudClinicState(nextDoctors, services);
+    broadcastLiveSync(nextDoctors, services);
 
     setToast({ message: isNew ? 'New doctor added successfully!' : 'Doctor profile saved successfully!', type: 'success' });
     setEditing(null);
     setAdding(false);
 
-    // Persist to Supabase in background (realtime will sync other devices)
+    // Also attempt Supabase upsert in background
     try {
       const row = {
         id: doctor.id,
@@ -931,16 +951,15 @@ const DoctorsTab: React.FC = () => {
         setEditing(d => d ? { ...d, photoUrl } : null);
       }
 
-      // Update doctor state and persist in localStorage
-      setDoctors(prev => {
-        const updated = prev.map(d => d.id === doctorId ? { ...d, photoUrl } : d);
-        try {
-          localStorage.setItem('auradental_doctors_v1', JSON.stringify(updated));
-        } catch (err) {
-          console.warn('LocalStorage error:', err);
-        }
-        return updated;
-      });
+      const updated = doctors.map(d => d.id === doctorId ? { ...d, photoUrl } : d);
+      setDoctors(updated);
+      try {
+        localStorage.setItem('auradental_doctors_v1', JSON.stringify(updated));
+      } catch (err) {
+        console.warn('LocalStorage error:', err);
+      }
+      saveCloudClinicState(updated, services);
+      broadcastLiveSync(updated, services);
 
       // Attempt Supabase storage upload
       try {
@@ -974,7 +993,11 @@ const DoctorsTab: React.FC = () => {
     const dbField = field === 'isAvailableToday' ? 'is_available_today' : 'on_call_for_emergency';
     
     // Optimistic update
-    setDoctors(prev => prev.map(d => d.id === doctorId ? { ...d, [field]: newVal } : d));
+    const updated = doctors.map(d => d.id === doctorId ? { ...d, [field]: newVal } : d);
+    setDoctors(updated);
+    saveCloudClinicState(updated, services);
+    broadcastLiveSync(updated, services);
+
     try {
       await supabase.from('doctors').update({ [dbField]: newVal }).eq('id', doctorId);
     } catch (e) {
@@ -985,16 +1008,15 @@ const DoctorsTab: React.FC = () => {
   const deleteDoctor = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete ${name}?`)) return;
     
-    // Optimistic removal
-    setDoctors(prev => {
-      const updated = prev.filter(d => d.id !== id);
-      try {
-        localStorage.setItem('auradental_doctors_v1', JSON.stringify(updated));
-      } catch (err) {
-        console.warn('LocalStorage error:', err);
-      }
-      return updated;
-    });
+    const updated = doctors.filter(d => d.id !== id);
+    setDoctors(updated);
+    try {
+      localStorage.setItem('auradental_doctors_v1', JSON.stringify(updated));
+    } catch (err) {
+      console.warn('LocalStorage error:', err);
+    }
+    saveCloudClinicState(updated, services);
+    broadcastLiveSync(updated, services);
 
     if (editing?.id === id) {
       setEditing(null);

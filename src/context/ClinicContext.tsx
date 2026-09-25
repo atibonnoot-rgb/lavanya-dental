@@ -234,22 +234,26 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // 1. Fetch persistent cloud clinic state — ONLY accept if cloud timestamp is NEWER than local
       try {
         const cloudData = await fetchCloudClinicState();
-        if (cloudData && (!hasLocalDoctors || (cloudData.timestamp || 0) > localTimestamp)) {
+        if (cloudData) {
           if (cloudData.doctors && cloudData.doctors.length > 0) {
             hasCloudDocs = true;
-            setDoctors(cloudData.doctors);
-            try {
-              localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(cloudData.doctors));
-            } catch {}
+            if (!hasLocalDoctors || (cloudData.timestamp || 0) >= localTimestamp) {
+              setDoctors(cloudData.doctors);
+              try {
+                localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(cloudData.doctors));
+              } catch {}
+            }
           }
           if (cloudData.services && cloudData.services.length > 0) {
             hasCloudSvcs = true;
-            setServices(cloudData.services);
-            try {
-              localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(cloudData.services));
-            } catch {}
+            if (!hasLocalServices || (cloudData.timestamp || 0) >= localTimestamp) {
+              setServices(cloudData.services);
+              try {
+                localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(cloudData.services));
+              } catch {}
+            }
           }
-          if (cloudData.timestamp) {
+          if (cloudData.timestamp && cloudData.timestamp >= localTimestamp) {
             try {
               localStorage.setItem(LOCAL_STORAGE_KEY_TIMESTAMP, String(cloudData.timestamp));
             } catch {}

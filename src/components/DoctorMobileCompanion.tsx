@@ -385,9 +385,27 @@ export const DoctorMobileCompanion: React.FC<DoctorMobileCompanionProps> = ({
                     <CalendarIcon className="w-4 h-4 text-teal-600" />
                     <span className="font-bold text-slate-900">Today & Upcoming Schedule</span>
                   </div>
-                  <span className="text-[10px] bg-teal-100 text-teal-800 font-bold px-2 py-0.5 rounded-md">
-                    {confirmedAppointments.length} Confirmed
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {doctorAppointments.some(a => a.status === 'Completed' || a.status === 'Cancelled') && (
+                      <button
+                        onClick={async () => {
+                          const toClear = doctorAppointments.filter(a => a.status === 'Completed' || a.status === 'Cancelled');
+                          if (!window.confirm(`Delete all ${toClear.length} completed/cancelled appointment(s)?`)) return;
+                          for (const a of toClear) {
+                            await deleteAppointment(a.id);
+                          }
+                        }}
+                        className="text-[10px] bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded-md flex items-center gap-1 transition-colors"
+                        title="Clear all completed and cancelled appointments"
+                      >
+                        <Trash2 className="w-3 h-3 text-rose-600" />
+                        <span>Clear Done</span>
+                      </button>
+                    )}
+                    <span className="text-[10px] bg-teal-100 text-teal-800 font-bold px-2 py-0.5 rounded-md">
+                      {confirmedAppointments.length} Confirmed
+                    </span>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -398,22 +416,35 @@ export const DoctorMobileCompanion: React.FC<DoctorMobileCompanionProps> = ({
                       <div 
                         key={apt.id} 
                         className={`bg-white rounded-2xl p-3 border transition-all ${
-                          apt.status === 'Confirmed' ? 'border-emerald-200' : 'border-slate-200'
+                          apt.status === 'Confirmed' ? 'border-emerald-200 shadow-xs' : 'border-slate-200'
                         }`}
                       >
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-bold font-mono text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md">
                             {apt.timeSlot} • {apt.date}
                           </span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            apt.status === 'Confirmed' ? 'bg-emerald-100 text-emerald-800' :
-                            apt.status === 'Completed' ? 'bg-slate-100 text-slate-700' :
-                            apt.status === 'Rescheduled' ? 'bg-blue-100 text-blue-800' :
-                            apt.status === 'Pending' ? 'bg-amber-100 text-amber-800' :
-                            'bg-rose-100 text-rose-800'
-                          }`}>
-                            {apt.status}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              apt.status === 'Confirmed' ? 'bg-emerald-100 text-emerald-800' :
+                              apt.status === 'Completed' ? 'bg-slate-100 text-slate-700' :
+                              apt.status === 'Rescheduled' ? 'bg-blue-100 text-blue-800' :
+                              apt.status === 'Pending' ? 'bg-amber-100 text-amber-800' :
+                              'bg-rose-100 text-rose-800'
+                            }`}>
+                              {apt.status}
+                            </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteAppointment(apt.id, apt.patientName);
+                              }}
+                              disabled={deletingId === apt.id}
+                              className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors disabled:opacity-50"
+                              title="Delete appointment"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
 
                         <h4 className="text-xs font-bold text-slate-900 mt-2">{apt.patientName}</h4>
@@ -425,13 +456,13 @@ export const DoctorMobileCompanion: React.FC<DoctorMobileCompanionProps> = ({
                         </div>
                         <p className="text-[11px] text-slate-500 mt-0.5">{apt.primaryComplaint}</p>
 
-                        <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                          <span className="text-slate-400 font-mono">{apt.patientPhone}</span>
+                        <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                          <span className="text-slate-400 font-mono text-[10px]">{apt.patientPhone}</span>
                           <div className="flex items-center gap-2">
                             {apt.status === 'Confirmed' && (
                               <button
                                 onClick={() => completeAppointment(apt.id, 'Standard procedure completed successfully with zero complications.')}
-                                className="text-teal-700 hover:text-teal-900 font-bold"
+                                className="text-teal-700 hover:text-teal-900 font-bold bg-teal-50 hover:bg-teal-100 px-2 py-1 rounded-md transition-colors text-[10px]"
                               >
                                 Mark Completed ✓
                               </button>
@@ -439,10 +470,10 @@ export const DoctorMobileCompanion: React.FC<DoctorMobileCompanionProps> = ({
                             <button
                               onClick={() => handleDeleteAppointment(apt.id, apt.patientName)}
                               disabled={deletingId === apt.id}
-                              className="text-rose-600 hover:text-rose-800 font-bold flex items-center gap-1 hover:bg-rose-50 px-2 py-0.5 rounded-md transition-colors disabled:opacity-50"
+                              className="text-rose-600 hover:text-rose-800 font-bold flex items-center gap-1 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-md transition-colors disabled:opacity-50 text-[10px]"
                               title="Delete appointment"
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Trash2 className="w-3 h-3 text-rose-600" />
                               <span>{deletingId === apt.id ? 'Deleting...' : 'Delete'}</span>
                             </button>
                           </div>

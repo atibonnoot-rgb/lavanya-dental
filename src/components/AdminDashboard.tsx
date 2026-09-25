@@ -14,7 +14,8 @@ import {
   AlertTriangle,
   Lock,
   Search,
-  Filter
+  Filter,
+  Trash2
 } from 'lucide-react';
 import { useClinic } from '../context/ClinicContext';
 import { CLINIC_KPIS } from '../data/mockData';
@@ -27,6 +28,7 @@ export const AdminDashboard: React.FC = () => {
     auditLogs, 
     toggleDoctorAvailability,
     confirmAppointmentByDoctor,
+    deleteAppointment,
     setShowBookingModal
   } = useClinic();
 
@@ -323,14 +325,27 @@ export const AdminDashboard: React.FC = () => {
                         </span>
                       </td>
                       <td className="p-3 text-right">
-                        {apt.status === 'Pending' && (
+                        <div className="flex items-center justify-end gap-1.5">
+                          {apt.status === 'Pending' && (
+                            <button
+                              onClick={() => confirmAppointmentByDoctor(apt.id)}
+                              className="text-xs text-emerald-700 hover:text-emerald-900 font-bold bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200"
+                            >
+                              Approve
+                            </button>
+                          )}
                           <button
-                            onClick={() => confirmAppointmentByDoctor(apt.id)}
-                            className="text-xs text-emerald-700 hover:text-emerald-900 font-bold bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200"
+                            onClick={() => {
+                              if (window.confirm(`Delete appointment ${apt.confirmationCode} for ${apt.patientName}?`)) {
+                                deleteAppointment(apt.id);
+                              }
+                            }}
+                            className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 p-1 rounded-md transition-colors"
+                            title="Delete appointment"
                           >
-                            Approve
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
-                        )}
+                        </div>
                       </td>
                     </tr>
                   );

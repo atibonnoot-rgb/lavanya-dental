@@ -13,6 +13,7 @@ import {
 } from '../data/mockData';
 import { supabase } from '../lib/supabase';
 import { broadcastLiveSync } from '../lib/cloudSync';
+import { playNotificationSound } from '../lib/sound';
 
 const DEFAULT_CLINIC_SETTINGS: ClinicSettings = {
   clinicName: 'Lavanya Dental',
@@ -142,7 +143,14 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [services, setServices] = useState<DentalService[]>([]);
 
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY_APPOINTMENTS);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY_AUDIT);
     return saved ? JSON.parse(saved) : INITIAL_AUDIT_LOGS;
@@ -252,9 +260,12 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           .from('appointments')
           .select('*')
           .order('created_at', { ascending: false });
-        if (aptsData && aptsData.length > 0) {
+        if (aptsData) {
           const mappedApts = aptsData.map((r) => mapAppointmentRow(r as Record<string, unknown>));
           setAppointments(mappedApts);
+          try {
+            localStorage.setItem(LOCAL_STORAGE_KEY_APPOINTMENTS, JSON.stringify(mappedApts));
+          } catch {}
           const notifs: DoctorNotification[] = mappedApts
             .filter(a => a.status === 'Pending')
             .map(a => ({
@@ -324,10 +335,13 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         .channel('rt-appointments-sync')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, (payload) => {
           if (payload.eventType === 'INSERT' && payload.new) {
+            playNotificationSound();
             const newApt = mapAppointmentRow(payload.new as Record<string, unknown>);
             setAppointments(prev => {
               if (prev.some(a => a.id === newApt.id)) return prev;
-              return [newApt, ...prev];
+              const next = [newApt, ...prev];
+              try { localStorage.setItem(LOCAL_STORAGE_KEY_APPOINTMENTS, JSON.stringify(next)); } catch {}
+              return next;
             });
             const notif: DoctorNotification = {
               id: `notif-${newApt.id}-${Date.now()}`,
@@ -346,12 +360,19 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               if (prev.some(n => n.appointmentId === newApt.id)) return prev;
               return [notif, ...prev];
             });
-            setLastSimulatedPush(notif);
           } else if (payload.eventType === 'UPDATE' && payload.new) {
             const updated = mapAppointmentRow(payload.new as Record<string, unknown>);
-            setAppointments(prev => prev.map(a => a.id === updated.id ? updated : a));
+            setAppointments(prev => {
+              const next = prev.map(a => a.id === updated.id ? updated : a);
+              try { localStorage.setItem(LOCAL_STORAGE_KEY_APPOINTMENTS, JSON.stringify(next)); } catch {}
+              return next;
+            });
           } else if (payload.eventType === 'DELETE' && payload.old?.id) {
-            setAppointments(prev => prev.filter(a => a.id !== payload.old.id));
+            setAppointments(prev => {
+              const next = prev.filter(a => a.id !== payload.old.id);
+              try { localStorage.setItem(LOCAL_STORAGE_KEY_APPOINTMENTS, JSON.stringify(next)); } catch {}
+              return next;
+            });
           }
         })
         .subscribe();
@@ -393,6 +414,16 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [services]);
 
   useEffect(() => {
+    if (!isLoadedRef.current) return;
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY_APPOINTMENTS, JSON.stringify(appointments));
+      const bc = new BroadcastChannel('auradental_clinic_sync');
+      bc.postMessage({ type: 'APPOINTMENTS_UPDATED', data: appointments });
+      bc.close();
+    } catch {}
+  }, [appointments]);
+
+  useEffect(() => {
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY_AUDIT, JSON.stringify(auditLogs));
     } catch {}
@@ -407,6 +438,9 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (e.key === LOCAL_STORAGE_KEY_SERVICES && e.newValue) {
         try { setServices(JSON.parse(e.newValue)); } catch {}
       }
+      if (e.key === LOCAL_STORAGE_KEY_APPOINTMENTS && e.newValue) {
+        try { setAppointments(JSON.parse(e.newValue)); } catch {}
+      }
     };
 
     let bc: BroadcastChannel | null = null;
@@ -418,6 +452,9 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
         if (msg.data?.type === 'SERVICES_UPDATED' && Array.isArray(msg.data.data)) {
           setServices(msg.data.data);
+        }
+        if (msg.data?.type === 'APPOINTMENTS_UPDATED' && Array.isArray(msg.data.data)) {
+          setAppointments(msg.data.data);
         }
       };
     } catch {}
@@ -494,10 +531,15 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       status: 'Pending',
     };
 
+    // Play chime sound
+    playNotificationSound();
+
     // Optimistic UI — add immediately (realtime INSERT event will dedup via guard)
     setAppointments(prev => {
       if (prev.some(a => a.id === newAppointment.id)) return prev;
-      return [newAppointment, ...prev];
+      const next = [newAppointment, ...prev];
+      try { localStorage.setItem(LOCAL_STORAGE_KEY_APPOINTMENTS, JSON.stringify(next)); } catch {}
+      return next;
     });
 
     // Persist to Supabase — realtime will fire INSERT on all other clients
@@ -553,7 +595,6 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (prev.some(n => n.appointmentId === newAppointment.id)) return prev;
       return [newNotification, ...prev];
     });
-    setLastSimulatedPush(newNotification);
 
     setTimeout(() => {
       addAuditLog(

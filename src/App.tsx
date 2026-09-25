@@ -12,7 +12,6 @@ import { SupabaseAdminPanel } from './components/SupabaseAdminPanel';
 import { BookingModal } from './components/BookingModal';
 import { EmergencyModal } from './components/EmergencyModal';
 import { DoctorMobileCompanion } from './components/DoctorMobileCompanion';
-import { PushNotificationToast } from './components/PushNotificationToast';
 import { Footer } from './components/Footer';
 import { supabase } from './lib/supabase';
 import { 
@@ -200,9 +199,6 @@ const AppContent: React.FC = () => {
               onClose={() => setShowDoctorMobileSimulator(false)} 
             />
           )}
-
-          {/* Real-Time Push Notification Alert Toast */}
-          <PushNotificationToast />
         </>
       )}
     </div>

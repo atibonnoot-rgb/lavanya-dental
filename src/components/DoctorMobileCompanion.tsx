@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useClinic } from '../context/ClinicContext';
 import { Appointment } from '../types';
+import { playNotificationSound } from '../lib/sound';
 
 interface DoctorMobileCompanionProps {
   isModal?: boolean;
@@ -47,7 +48,16 @@ export const DoctorMobileCompanion: React.FC<DoctorMobileCompanionProps> = ({
     markNotificationRead 
   } = useClinic();
 
-  const currentDoctor = doctors.find(d => d.id === selectedDoctorId) || doctors[0];
+  const isAllDoctors = selectedDoctorId === 'all';
+  const currentDoctor = doctors.find(d => d.id === selectedDoctorId) || doctors[0] || {
+    id: 'all',
+    name: 'All Specialists',
+    title: 'Staff Clinicians',
+    specialty: 'Complete Clinic Schedule',
+    photoUrl: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=400&auto=format&fit=crop&q=80',
+    isAvailableToday: true,
+    workingHours: { start: '08:30', end: '19:00' },
+  };
 
   const [activeTab, setActiveTab] = useState<'schedule' | 'alerts' | 'profile'>('alerts');
   const [selectedAppointmentForAction, setSelectedAppointmentForAction] = useState<Appointment | null>(null);
@@ -58,13 +68,17 @@ export const DoctorMobileCompanion: React.FC<DoctorMobileCompanionProps> = ({
   const [showDeclineConfirm, setShowDeclineConfirm] = useState<boolean>(false);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
 
-  // Appointments for this doctor
-  const doctorAppointments = currentDoctor ? appointments.filter(a => a.doctorId === currentDoctor.id) : [];
+  // Appointments for this doctor or all doctors
+  const doctorAppointments = isAllDoctors 
+    ? appointments 
+    : (currentDoctor ? appointments.filter(a => a.doctorId === currentDoctor.id) : appointments);
   const pendingAppointments = doctorAppointments.filter(a => a.status === 'Pending');
   const confirmedAppointments = doctorAppointments.filter(a => a.status === 'Confirmed');
   
-  // Notifications for this doctor
-  const notifications = currentDoctor ? doctorNotifications.filter(n => n.doctorId === currentDoctor.id) : [];
+  // Notifications for this doctor or all doctors
+  const notifications = isAllDoctors 
+    ? doctorNotifications 
+    : (currentDoctor ? doctorNotifications.filter(n => n.doctorId === currentDoctor.id) : doctorNotifications);
 
   const handle1TapConfirm = (aptId: string) => {
     confirmAppointmentByDoctor(aptId);
@@ -156,16 +170,22 @@ export const DoctorMobileCompanion: React.FC<DoctorMobileCompanionProps> = ({
                 onChange={(e) => setSelectedDoctorId(e.target.value)}
                 className="bg-slate-800 text-[10px] text-teal-300 rounded-lg px-2 py-1 border border-slate-700 outline-hidden font-medium"
               >
-                {doctors.map(d => (
-                  <option key={d.id} value={d.id}>{d.name.split(',')[0]}</option>
-                ))}
+                <option value="all">⭐ All Doctors ({appointments.length})</option>
+                {doctors.map(d => {
+                  const count = appointments.filter(a => a.doctorId === d.id).length;
+                  return (
+                    <option key={d.id} value={d.id}>
+                      {d.name.split(',')[0]} ({count})
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
             {/* Availability & Push Sound Toggle */}
             <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-800 text-[11px]">
               <button
-                onClick={() => toggleDoctorAvailability(currentDoctor.id)}
+                onClick={() => currentDoctor.id !== 'all' && toggleDoctorAvailability(currentDoctor.id)}
                 className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full font-semibold transition-colors ${
                   currentDoctor.isAvailableToday 
                     ? 'bg-emerald-950 text-emerald-300 border border-emerald-700/50' 
@@ -177,9 +197,14 @@ export const DoctorMobileCompanion: React.FC<DoctorMobileCompanionProps> = ({
               </button>
 
               <button
-                onClick={() => setSoundEnabled(!soundEnabled)}
+                onClick={() => {
+                  if (!soundEnabled) {
+                    playNotificationSound();
+                  }
+                  setSoundEnabled(!soundEnabled);
+                }}
                 className="text-slate-400 hover:text-white p-1"
-                title="Toggle push notification chime"
+                title="Toggle notification chime sound"
               >
                 {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-teal-400" /> : <VolumeX className="w-3.5 h-3.5" />}
               </button>
@@ -259,7 +284,12 @@ export const DoctorMobileCompanion: React.FC<DoctorMobileCompanionProps> = ({
                               </span>
                             </div>
                             <h4 className="text-sm font-bold text-slate-900 mt-0.5">{apt.patientName}</h4>
-                            <p className="text-xs text-teal-800 font-medium">{serv?.name}</p>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <p className="text-xs text-teal-800 font-medium truncate">{serv?.name || 'Consultation'}</p>
+                              <span className="text-[10px] text-slate-500 font-medium bg-slate-100 px-1.5 py-0.2 rounded-md shrink-0">
+                                Dr. {doctors.find(d => d.id === apt.doctorId)?.name.split(',')[0] || 'Clinician'}
+                              </span>
+                            </div>
                           </div>
 
                           <div className="text-right">
@@ -388,7 +418,13 @@ export const DoctorMobileCompanion: React.FC<DoctorMobileCompanionProps> = ({
                         </div>
 
                         <h4 className="text-xs font-bold text-slate-900 mt-2">{apt.patientName}</h4>
-                        <p className="text-[11px] text-slate-500">{apt.primaryComplaint}</p>
+                        <div className="flex items-center justify-between text-[10px] text-teal-700 font-medium mt-0.5">
+                          <span className="truncate">{services.find(s => s.id === apt.serviceId)?.name || 'General Consultation'}</span>
+                          <span className="text-slate-500 font-normal shrink-0">
+                            Dr. {doctors.find(d => d.id === apt.doctorId)?.name.split(',')[0] || 'Clinician'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">{apt.primaryComplaint}</p>
 
                         <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
                           <span className="text-slate-400 font-mono">{apt.patientPhone}</span>

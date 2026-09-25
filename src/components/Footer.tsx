@@ -9,6 +9,7 @@ import {
   CheckCircle2 
 } from 'lucide-react';
 import { useClinic } from '../context/ClinicContext';
+import clinicLogo from '../assets/logo.png';
 
 export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onNavigateTab }) => {
   const { setShowEmergencyModal, setShowBookingModal, clinicSettings } = useClinic();
@@ -33,17 +34,17 @@ export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onN
           {/* Col 1: Brand & Credentials (4 cols) */}
           <div className="lg:col-span-4 space-y-4">
             <div className="flex flex-col items-start gap-1 cursor-pointer" onClick={() => onNavigateTab('home')}>
-              <div className="bg-white px-3 py-1.5 rounded-xl shadow-sm inline-block">
+              <div className="bg-white px-3.5 py-2 rounded-xl shadow-sm inline-flex flex-col items-center">
                 <img 
-                  src="/logo.png" 
+                  src={clinicLogo} 
                   alt="Lavanya Dental Clinic" 
-                  className="h-8 w-auto object-contain" 
+                  className="h-9 w-auto object-contain" 
                 />
+                <span className="text-[10px] font-black tracking-[0.22em] text-[#0f2d59] uppercase font-sans select-none mt-0.5">
+                  DENTAL CLINIC
+                </span>
               </div>
-              <span className="text-[11px] font-black tracking-[0.22em] text-sky-400 uppercase font-sans select-none">
-                DENTAL CLINIC
-              </span>
-              <p className="text-[11px] text-slate-400 mt-1">Comprehensive Dental Surgery & Aesthetics</p>
+              <p className="text-[11px] text-slate-400 mt-2">Comprehensive Dental Surgery & Aesthetics</p>
             </div>
 
             <p className="text-slate-400 leading-relaxed">

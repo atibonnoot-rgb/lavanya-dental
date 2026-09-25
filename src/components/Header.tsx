@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { useClinic } from '../context/ClinicContext';
 
+import clinicLogo from '../assets/logo.png';
+
 interface HeaderProps {
   onNavigateTab: (tabId: string) => void;
   activeTab: string;
@@ -61,17 +63,17 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
 
       {/* Main navigation row */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6">
-        <div className="flex items-center justify-between h-16 sm:h-18 gap-2">
+        <div className="flex items-center justify-between h-18 sm:h-20 gap-2">
           {/* Logo & Brand Lockup */}
-          <div className="flex flex-col items-start justify-center cursor-pointer min-w-0 shrink group py-1" onClick={() => onNavigateTab('home')}>
-            <div className="flex items-center">
+          <div className="flex flex-col items-center justify-center cursor-pointer min-w-0 shrink group py-1" onClick={() => onNavigateTab('home')}>
+            <div className="flex items-center justify-center">
               <img 
-                src="/logo.png" 
+                src={clinicLogo} 
                 alt="Lavanya Dental Clinic" 
-                className="h-8 sm:h-9 w-auto object-contain transition-transform duration-200 group-hover:scale-105" 
+                className="h-9 sm:h-11 w-auto object-contain transition-transform duration-200 group-hover:scale-105" 
               />
             </div>
-            <span className="text-[9.5px] sm:text-[11px] font-black tracking-[0.22em] text-[#0f2d59] uppercase -mt-0.5 ml-0.5 font-sans select-none">
+            <span className="text-[10px] sm:text-[11.5px] font-black tracking-[0.26em] text-[#0f2d59] uppercase -mt-0.5 font-sans select-none text-center">
               DENTAL CLINIC
             </span>
           </div>

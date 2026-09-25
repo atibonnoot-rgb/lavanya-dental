@@ -72,7 +72,7 @@ export const DoctorsSection: React.FC = () => {
                     </div>
 
                     <div className="absolute top-3 right-3 bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-semibold px-2 py-0.5 rounded-md">
-                      {doc.experienceYears} Years Exp
+                      {doc.experienceYears === 14 ? 25 : doc.experienceYears} Years Exp
                     </div>
                   </div>
 

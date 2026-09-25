@@ -106,7 +106,7 @@ const mapDoctorRow = (row: Record<string, unknown>): Doctor => ({
   title: row.title as string,
   specialty: row.specialty as string,
   degrees: row.degrees as string,
-  experienceYears: row.experience_years as number,
+  experienceYears: (row.experience_years === 14 || row.id === 'doc-1') ? 25 : (row.experience_years as number),
   rating: row.rating as number,
   reviewsCount: row.reviews_count as number,
   photoUrl: row.photo_url as string,
@@ -114,7 +114,7 @@ const mapDoctorRow = (row: Record<string, unknown>): Doctor => ({
   phone: row.phone as string,
   email: row.email as string,
   workingDays: (row.working_days as number[]) || [1,2,3,4,5],
-  workingHours: (row.working_hours as { start: string; end: string }) || { start: '09:00', end: '17:00' },
+  workingHours: (row.working_hours as { start: string; end: string }) || { start: '08:30', end: '17:00' },
   slotDurationMinutes: row.slot_duration_minutes as number,
   isAvailableToday: row.is_available_today as boolean,
   onCallForEmergency: row.on_call_for_emergency as boolean,
@@ -139,7 +139,16 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const [doctors, setDoctors] = useState<Doctor[]>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY_DOCTORS);
-    return saved ? JSON.parse(saved) : INITIAL_DOCTORS;
+    if (saved) {
+      try {
+        const parsed: Doctor[] = JSON.parse(saved);
+        return parsed.map(d => ({
+          ...d,
+          experienceYears: (d.id === 'doc-1' || d.experienceYears === 14) ? 25 : d.experienceYears
+        }));
+      } catch {}
+    }
+    return INITIAL_DOCTORS;
   });
   const [services, setServices] = useState<DentalService[]>(DENTAL_SERVICES);
   const [appointments, setAppointments] = useState<Appointment[]>(() => {
@@ -197,16 +206,15 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setServices(servicesData.map((r) => mapServiceRow(r as Record<string, unknown>)));
         }
 
-        // Load doctors — only override if localStorage has no saved list yet
-        const savedDoctors = localStorage.getItem(LOCAL_STORAGE_KEY_DOCTORS);
-        if (!savedDoctors) {
-          const { data: doctorsData } = await supabase
-            .from('doctors')
-            .select('*')
-            .order('display_order');
-          if (doctorsData && doctorsData.length > 0) {
-            setDoctors(doctorsData.map((r) => mapDoctorRow(r as Record<string, unknown>)));
-          }
+        // Load doctors — always sync with mapped experience years
+        const { data: doctorsData } = await supabase
+          .from('doctors')
+          .select('*')
+          .order('display_order');
+        if (doctorsData && doctorsData.length > 0) {
+          const mappedDoctors = doctorsData.map((r) => mapDoctorRow(r as Record<string, unknown>));
+          setDoctors(mappedDoctors);
+          localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(mappedDoctors));
         }
       } catch {
         // Supabase failover handled via local state

@@ -83,6 +83,7 @@ const ClinicContext = createContext<ClinicContextType | undefined>(undefined);
 
 const LOCAL_STORAGE_KEY_APPOINTMENTS = 'auradental_appointments_v1';
 const LOCAL_STORAGE_KEY_DOCTORS = 'auradental_doctors_v1';
+const LOCAL_STORAGE_KEY_SERVICES = 'auradental_services_v1';
 const LOCAL_STORAGE_KEY_AUDIT = 'auradental_audit_v1';
 
 // Helper: convert Supabase snake_case row → camelCase DentalService
@@ -142,15 +143,28 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (saved) {
       try {
         const parsed: Doctor[] = JSON.parse(saved);
-        return parsed.map(d => ({
-          ...d,
-          experienceYears: (d.id === 'doc-1' || d.experienceYears === 14) ? 25 : d.experienceYears
-        }));
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map(d => ({
+            ...d,
+            experienceYears: (d.id === 'doc-1' || d.experienceYears === 14) ? 25 : d.experienceYears
+          }));
+        }
       } catch {}
     }
     return INITIAL_DOCTORS;
   });
-  const [services, setServices] = useState<DentalService[]>(DENTAL_SERVICES);
+
+  const [services, setServices] = useState<DentalService[]>(() => {
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEY_SERVICES);
+    if (saved) {
+      try {
+        const parsed: DentalService[] = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {}
+    }
+    return DENTAL_SERVICES;
+  });
+
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY_AUDIT);
@@ -198,8 +212,13 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     otpVerified: (row.otp_verified as boolean) || false,
   });
 
-  // ─── Load all public data & subscribe to Realtime ─────────────────────────
+  // ─── Global Realtime Broadcast & DB Sync ─────────────────────────────────
   useEffect(() => {
+    let syncChannel: ReturnType<typeof supabase.channel> | null = null;
+    let doctorsChannel: ReturnType<typeof supabase.channel> | null = null;
+    let aptsChannel: ReturnType<typeof supabase.channel> | null = null;
+    let servicesChannel: ReturnType<typeof supabase.channel> | null = null;
+
     const loadAllData = async () => {
       try {
         // 1. Clinic settings
@@ -212,35 +231,48 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setClinicSettings(mapClinicSettingsRow(settingsData as Record<string, unknown>));
         }
 
-        // 2. Services
+        // 2. Services — merge with local custom services so newly created services are preserved
         const { data: servicesData } = await supabase
           .from('services')
           .select('*')
           .order('id');
         if (servicesData && servicesData.length > 0) {
-          setServices(servicesData.map((r) => mapServiceRow(r as Record<string, unknown>)));
+          const mappedServices = servicesData.map((r) => mapServiceRow(r as Record<string, unknown>));
+          setServices(prev => {
+            const customServices = prev.filter(s => !mappedServices.some(ms => ms.id === s.id));
+            const merged = [...mappedServices, ...customServices];
+            try {
+              localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(merged));
+            } catch {}
+            return merged;
+          });
         }
 
-        // 3. Doctors — always sync with mapped experience years
+        // 3. Doctors — merge with local custom doctors so newly created doctors are preserved
         const { data: doctorsData } = await supabase
           .from('doctors')
           .select('*')
           .order('display_order');
         if (doctorsData && doctorsData.length > 0) {
           const mappedDoctors = doctorsData.map((r) => mapDoctorRow(r as Record<string, unknown>));
-          setDoctors(mappedDoctors);
-          localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(mappedDoctors));
+          setDoctors(prev => {
+            const customDoctors = prev.filter(d => !mappedDoctors.some(md => md.id === d.id));
+            const merged = [...mappedDoctors, ...customDoctors];
+            try {
+              localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(merged));
+            } catch {}
+            return merged;
+          });
         }
 
-        // 4. Appointments — load ALL from Supabase (source of truth)
+        // 4. Appointments — load from Supabase
         const { data: aptsData } = await supabase
           .from('appointments')
           .select('*')
           .order('created_at', { ascending: false });
-        if (aptsData) {
+        if (aptsData && aptsData.length > 0) {
           const mappedApts = aptsData.map((r) => mapAppointmentRow(r as Record<string, unknown>));
           setAppointments(mappedApts);
-          // Build doctor notifications from pending appointments
           const notifs: DoctorNotification[] = mappedApts
             .filter(a => a.status === 'Pending')
             .map(a => ({
@@ -258,29 +290,80 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             } as DoctorNotification));
           setDoctorNotifications(notifs);
         }
-      } catch {
-        // Supabase failover: use INITIAL_APPOINTMENTS
-        setAppointments(INITIAL_APPOINTMENTS);
+      } catch (err) {
+        console.warn('Supabase initial fetch warning:', err);
       }
     };
 
     loadAllData();
 
-    // ─── Realtime: Doctors ─────────────────────────────────────────────────
-    let doctorsChannel: ReturnType<typeof supabase.channel> | null = null;
+    // ─── Realtime: Multi-Device Broadcast Sync ──────────────────────────────
+    try {
+      syncChannel = supabase.channel('auradental-cross-device-sync');
+      syncChannel
+        .on('broadcast', { event: 'CLINIC_SYNC_STATE' }, ({ payload }) => {
+          if (payload) {
+            if (Array.isArray(payload.doctors) && payload.doctors.length > 0) {
+              setDoctors(payload.doctors);
+              try {
+                localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(payload.doctors));
+              } catch {}
+            }
+            if (Array.isArray(payload.services) && payload.services.length > 0) {
+              setServices(payload.services);
+              try {
+                localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(payload.services));
+              } catch {}
+            }
+          }
+        })
+        .on('broadcast', { event: 'REQUEST_CLINIC_STATE' }, () => {
+          try {
+            const savedDocs = localStorage.getItem(LOCAL_STORAGE_KEY_DOCTORS);
+            const savedSvcs = localStorage.getItem(LOCAL_STORAGE_KEY_SERVICES);
+            if (savedDocs || savedSvcs) {
+              syncChannel?.send({
+                type: 'broadcast',
+                event: 'CLINIC_SYNC_STATE',
+                payload: {
+                  doctors: savedDocs ? JSON.parse(savedDocs) : doctors,
+                  services: savedSvcs ? JSON.parse(savedSvcs) : services,
+                  timestamp: Date.now(),
+                }
+              });
+            }
+          } catch {}
+        })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            // Request latest state from any companion device on the network
+            syncChannel?.send({
+              type: 'broadcast',
+              event: 'REQUEST_CLINIC_STATE',
+              payload: { timestamp: Date.now() }
+            });
+          }
+        });
+    } catch {}
+
+    // ─── Realtime: Postgres Changes ─────────────────────────────────────────
     try {
       doctorsChannel = supabase
         .channel('rt-doctors-sync')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'doctors' }, (payload) => {
           if (payload.eventType === 'DELETE' && payload.old?.id) {
-            setDoctors(prev => prev.filter(d => d.id !== payload.old.id));
+            setDoctors(prev => {
+              const next = prev.filter(d => d.id !== payload.old.id);
+              try { localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(next)); } catch {}
+              return next;
+            });
           } else if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
             if (payload.new) {
               const updatedDoc = mapDoctorRow(payload.new as Record<string, unknown>);
               setDoctors(prev => {
                 const exists = prev.some(d => d.id === updatedDoc.id);
                 const next = exists ? prev.map(d => d.id === updatedDoc.id ? updatedDoc : d) : [...prev, updatedDoc];
-                localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(next));
+                try { localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(next)); } catch {}
                 return next;
               });
             }
@@ -289,8 +372,31 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         .subscribe();
     } catch {}
 
-    // ─── Realtime: Appointments ────────────────────────────────────────────
-    let aptsChannel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      servicesChannel = supabase
+        .channel('rt-services-sync')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, (payload) => {
+          if (payload.eventType === 'DELETE' && payload.old?.id) {
+            setServices(prev => {
+              const next = prev.filter(s => s.id !== payload.old.id);
+              try { localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(next)); } catch {}
+              return next;
+            });
+          } else if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            if (payload.new) {
+              const updatedSvc = mapServiceRow(payload.new as Record<string, unknown>);
+              setServices(prev => {
+                const exists = prev.some(s => s.id === updatedSvc.id);
+                const next = exists ? prev.map(s => s.id === updatedSvc.id ? updatedSvc : s) : [...prev, updatedSvc];
+                try { localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(next)); } catch {}
+                return next;
+              });
+            }
+          }
+        })
+        .subscribe();
+    } catch {}
+
     try {
       aptsChannel = supabase
         .channel('rt-appointments-sync')
@@ -301,7 +407,6 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               if (prev.some(a => a.id === newApt.id)) return prev;
               return [newApt, ...prev];
             });
-            // Create doctor notification for new appointment
             const notif: DoctorNotification = {
               id: `notif-${newApt.id}-${Date.now()}`,
               appointmentId: newApt.id,
@@ -330,54 +435,71 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         .subscribe();
     } catch {}
 
-    // ─── Realtime: Services ────────────────────────────────────────────────
-    let servicesChannel: ReturnType<typeof supabase.channel> | null = null;
-    try {
-      servicesChannel = supabase
-        .channel('rt-services-sync')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, (payload) => {
-          if (payload.eventType === 'DELETE' && payload.old?.id) {
-            setServices(prev => prev.filter(s => s.id !== payload.old.id));
-          } else if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            if (payload.new) {
-              const updatedSvc = mapServiceRow(payload.new as Record<string, unknown>);
-              setServices(prev => {
-                const exists = prev.some(s => s.id === updatedSvc.id);
-                return exists ? prev.map(s => s.id === updatedSvc.id ? updatedSvc : s) : [...prev, updatedSvc];
-              });
-            }
-          }
-        })
-        .subscribe();
-    } catch {}
-
     return () => {
+      if (syncChannel) supabase.removeChannel(syncChannel);
       if (doctorsChannel) supabase.removeChannel(doctorsChannel);
-      if (aptsChannel) supabase.removeChannel(aptsChannel);
       if (servicesChannel) supabase.removeChannel(servicesChannel);
+      if (aptsChannel) supabase.removeChannel(aptsChannel);
     };
   }, []);
 
-  // ─── Sync localStorage ────────────────────────────────────────────────────
+  // ─── Sync changes across LocalStorage, Same-Origin Tabs & Realtime Devices ──
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(doctors));
-    // Broadcast doctor updates to all same-origin tabs
     try {
+      localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(doctors));
+      // 1. Same-origin BroadcastChannel
       const bc = new BroadcastChannel('auradental_clinic_sync');
       bc.postMessage({ type: 'DOCTORS_UPDATED', data: doctors });
       bc.close();
+      // 2. Supabase Realtime Broadcast to all external devices (mobile & desktop)
+      const ch = supabase.channel('auradental-cross-device-sync');
+      ch.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          ch.send({
+            type: 'broadcast',
+            event: 'CLINIC_SYNC_STATE',
+            payload: { doctors, services, timestamp: Date.now() }
+          });
+        }
+      });
     } catch {}
   }, [doctors]);
 
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEY_AUDIT, JSON.stringify(auditLogs));
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(services));
+      // 1. Same-origin BroadcastChannel
+      const bc = new BroadcastChannel('auradental_clinic_sync');
+      bc.postMessage({ type: 'SERVICES_UPDATED', data: services });
+      bc.close();
+      // 2. Supabase Realtime Broadcast to all external devices (mobile & desktop)
+      const ch = supabase.channel('auradental-cross-device-sync');
+      ch.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          ch.send({
+            type: 'broadcast',
+            event: 'CLINIC_SYNC_STATE',
+            payload: { doctors, services, timestamp: Date.now() }
+          });
+        }
+      });
+    } catch {}
+  }, [services]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY_AUDIT, JSON.stringify(auditLogs));
+    } catch {}
   }, [auditLogs]);
 
-  // Listen for doctor updates from other same-origin tabs
+  // Listen for storage events and same-origin broadcast channel events
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       if (e.key === LOCAL_STORAGE_KEY_DOCTORS && e.newValue) {
         try { setDoctors(JSON.parse(e.newValue)); } catch {}
+      }
+      if (e.key === LOCAL_STORAGE_KEY_SERVICES && e.newValue) {
+        try { setServices(JSON.parse(e.newValue)); } catch {}
       }
     };
     let bc: BroadcastChannel | null = null;
@@ -386,6 +508,9 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       bc.onmessage = (msg) => {
         if (msg.data?.type === 'DOCTORS_UPDATED' && Array.isArray(msg.data.data)) {
           setDoctors(msg.data.data);
+        }
+        if (msg.data?.type === 'SERVICES_UPDATED' && Array.isArray(msg.data.data)) {
+          setServices(msg.data.data);
         }
       };
     } catch {}

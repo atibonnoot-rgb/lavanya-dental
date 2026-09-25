@@ -151,30 +151,13 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return INITIAL_DOCTORS;
   });
   const [services, setServices] = useState<DentalService[]>(DENTAL_SERVICES);
-  const [appointments, setAppointments] = useState<Appointment[]>(() => {
-    const saved = localStorage.getItem(LOCAL_STORAGE_KEY_APPOINTMENTS);
-    return saved ? JSON.parse(saved) : INITIAL_APPOINTMENTS;
-  });
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY_AUDIT);
     return saved ? JSON.parse(saved) : INITIAL_AUDIT_LOGS;
   });
 
-  const [doctorNotifications, setDoctorNotifications] = useState<DoctorNotification[]>([
-    {
-      id: 'notif-init-1',
-      appointmentId: 'apt-102',
-      doctorId: 'doc-2',
-      type: 'NEW_BOOKING',
-      patientName: 'David K. Miller',
-      serviceName: 'Single Tooth 3D Guided Dental Implant Consultation',
-      date: '2026-09-19',
-      timeSlot: '13:00',
-      read: false,
-      timestamp: 'Just now',
-      urgent: false
-    }
-  ]);
+  const [doctorNotifications, setDoctorNotifications] = useState<DoctorNotification[]>([]);
 
   const [showBookingModal, setShowBookingModal] = useState<boolean>(false);
   const [bookingPreselectedDoctorId, setBookingPreselectedDoctorId] = useState<string | null>(null);
@@ -183,11 +166,43 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [showDoctorMobileSimulator, setShowDoctorMobileSimulator] = useState<boolean>(false);
   const [lastSimulatedPush, setLastSimulatedPush] = useState<DoctorNotification | null>(null);
 
-  // ─── Load public data & Realtime Sync ──────────────────────────────────────
+  // ─── Helper: map Supabase appointment row → Appointment ───────────────────
+  const mapAppointmentRow = (row: Record<string, unknown>): Appointment => ({
+    id: row.id as string,
+    confirmationCode: (row.confirmation_code as string) || '',
+    patientName: (row.patient_name as string) || '',
+    patientPhone: (row.patient_phone as string) || '',
+    patientEmail: (row.patient_email as string) || '',
+    doctorId: (row.doctor_id as string) || '',
+    serviceId: (row.service_id as string) || '',
+    date: (row.date as string) || '',
+    timeSlot: (row.time_slot as string) || '',
+    status: (row.status as Appointment['status']) || 'Pending',
+    primaryComplaint: (row.primary_complaint as string) || '',
+    medicalHistory: (row.medical_history as Appointment['medicalHistory']) || {
+      hasAllergies: false,
+      hasHeartCondition: false,
+      hasDiabetes: false,
+      hasBleedingDisorder: false,
+      isPregnant: false,
+      previousDentalAnxiety: false,
+    },
+    insuranceProvider: row.insurance_provider as string | undefined,
+    insurancePolicyNumber: row.insurance_policy_number as string | undefined,
+    depositAmount: (row.deposit_amount as number) || 0,
+    depositPaid: (row.deposit_paid as boolean) || false,
+    paymentMethod: (row.payment_method as Appointment['paymentMethod']) || 'Clinic',
+    createdAt: (row.created_at as string) || new Date().toISOString(),
+    doctorNotes: row.doctor_notes as string | undefined,
+    rescheduledTo: row.rescheduled_to as Appointment['rescheduledTo'] | undefined,
+    otpVerified: (row.otp_verified as boolean) || false,
+  });
+
+  // ─── Load all public data & subscribe to Realtime ─────────────────────────
   useEffect(() => {
-    const loadPublicData = async () => {
+    const loadAllData = async () => {
       try {
-        // Load clinic settings
+        // 1. Clinic settings
         const { data: settingsData } = await supabase
           .from('clinic_settings')
           .select('*')
@@ -197,7 +212,7 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setClinicSettings(mapClinicSettingsRow(settingsData as Record<string, unknown>));
         }
 
-        // Load services
+        // 2. Services
         const { data: servicesData } = await supabase
           .from('services')
           .select('*')
@@ -206,7 +221,7 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setServices(servicesData.map((r) => mapServiceRow(r as Record<string, unknown>)));
         }
 
-        // Load doctors — always sync with mapped experience years
+        // 3. Doctors — always sync with mapped experience years
         const { data: doctorsData } = await supabase
           .from('doctors')
           .select('*')
@@ -216,18 +231,46 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setDoctors(mappedDoctors);
           localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(mappedDoctors));
         }
+
+        // 4. Appointments — load ALL from Supabase (source of truth)
+        const { data: aptsData } = await supabase
+          .from('appointments')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (aptsData) {
+          const mappedApts = aptsData.map((r) => mapAppointmentRow(r as Record<string, unknown>));
+          setAppointments(mappedApts);
+          // Build doctor notifications from pending appointments
+          const notifs: DoctorNotification[] = mappedApts
+            .filter(a => a.status === 'Pending')
+            .map(a => ({
+              id: `notif-${a.id}`,
+              appointmentId: a.id,
+              doctorId: a.doctorId,
+              type: a.serviceId === 'serv-7' ? 'EMERGENCY_ALERT' : 'NEW_BOOKING',
+              patientName: a.patientName,
+              serviceName: a.serviceId,
+              date: a.date,
+              timeSlot: a.timeSlot,
+              read: false,
+              timestamp: a.createdAt,
+              urgent: a.serviceId === 'serv-7',
+            } as DoctorNotification));
+          setDoctorNotifications(notifs);
+        }
       } catch {
-        // Supabase failover handled via local state
+        // Supabase failover: use INITIAL_APPOINTMENTS
+        setAppointments(INITIAL_APPOINTMENTS);
       }
     };
 
-    loadPublicData();
+    loadAllData();
 
-    // Supabase Realtime Channel for Doctors
-    let channel: any = null;
+    // ─── Realtime: Doctors ─────────────────────────────────────────────────
+    let doctorsChannel: ReturnType<typeof supabase.channel> | null = null;
     try {
-      channel = supabase
-        .channel('public-doctors-sync')
+      doctorsChannel = supabase
+        .channel('rt-doctors-sync')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'doctors' }, (payload) => {
           if (payload.eventType === 'DELETE' && payload.old?.id) {
             setDoctors(prev => prev.filter(d => d.id !== payload.old.id));
@@ -236,7 +279,9 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               const updatedDoc = mapDoctorRow(payload.new as Record<string, unknown>);
               setDoctors(prev => {
                 const exists = prev.some(d => d.id === updatedDoc.id);
-                return exists ? prev.map(d => d.id === updatedDoc.id ? updatedDoc : d) : [...prev, updatedDoc];
+                const next = exists ? prev.map(d => d.id === updatedDoc.id ? updatedDoc : d) : [...prev, updatedDoc];
+                localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(next));
+                return next;
               });
             }
           }
@@ -244,23 +289,61 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         .subscribe();
     } catch {}
 
+    // ─── Realtime: Appointments ────────────────────────────────────────────
+    let aptsChannel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      aptsChannel = supabase
+        .channel('rt-appointments-sync')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, (payload) => {
+          if (payload.eventType === 'INSERT' && payload.new) {
+            const newApt = mapAppointmentRow(payload.new as Record<string, unknown>);
+            setAppointments(prev => {
+              if (prev.some(a => a.id === newApt.id)) return prev;
+              return [newApt, ...prev];
+            });
+            // Create doctor notification for new appointment
+            const notif: DoctorNotification = {
+              id: `notif-${newApt.id}-${Date.now()}`,
+              appointmentId: newApt.id,
+              doctorId: newApt.doctorId,
+              type: newApt.serviceId === 'serv-7' ? 'EMERGENCY_ALERT' : 'NEW_BOOKING',
+              patientName: newApt.patientName,
+              serviceName: newApt.serviceId,
+              date: newApt.date,
+              timeSlot: newApt.timeSlot,
+              read: false,
+              timestamp: 'Just now',
+              urgent: newApt.serviceId === 'serv-7',
+            };
+            setDoctorNotifications(prev => {
+              if (prev.some(n => n.appointmentId === newApt.id)) return prev;
+              return [notif, ...prev];
+            });
+            setLastSimulatedPush(notif);
+          } else if (payload.eventType === 'UPDATE' && payload.new) {
+            const updated = mapAppointmentRow(payload.new as Record<string, unknown>);
+            setAppointments(prev => prev.map(a => a.id === updated.id ? updated : a));
+          } else if (payload.eventType === 'DELETE' && payload.old?.id) {
+            setAppointments(prev => prev.filter(a => a.id !== payload.old.id));
+          }
+        })
+        .subscribe();
+    } catch {}
+
     return () => {
-      if (channel) supabase.removeChannel(channel);
+      if (doctorsChannel) supabase.removeChannel(doctorsChannel);
+      if (aptsChannel) supabase.removeChannel(aptsChannel);
     };
   }, []);
 
-  // ─── Sync localStorage & Cross-Tab/Window Broadcast ─────────────────────────
-  useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEY_APPOINTMENTS, JSON.stringify(appointments));
-  }, [appointments]);
-
+  // ─── Sync localStorage ────────────────────────────────────────────────────
   useEffect(() => {
     localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(doctors));
-    // Broadcast doctor updates to all tabs/windows
+    // Broadcast doctor updates to all same-origin tabs
     try {
-      const channel = new BroadcastChannel('auradental_clinic_sync');
-      channel.postMessage({ type: 'DOCTORS_UPDATED', data: doctors });
-      channel.close();
+      const bc = new BroadcastChannel('auradental_clinic_sync');
+      bc.postMessage({ type: 'DOCTORS_UPDATED', data: doctors });
+      bc.close();
     } catch {}
   }, [doctors]);
 
@@ -268,16 +351,13 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     localStorage.setItem(LOCAL_STORAGE_KEY_AUDIT, JSON.stringify(auditLogs));
   }, [auditLogs]);
 
-  // Listen for storage changes from other windows/tabs
+  // Listen for doctor updates from other same-origin tabs
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       if (e.key === LOCAL_STORAGE_KEY_DOCTORS && e.newValue) {
-        try {
-          setDoctors(JSON.parse(e.newValue));
-        } catch {}
+        try { setDoctors(JSON.parse(e.newValue)); } catch {}
       }
     };
-
     let bc: BroadcastChannel | null = null;
     try {
       bc = new BroadcastChannel('auradental_clinic_sync');
@@ -287,7 +367,6 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       };
     } catch {}
-
     window.addEventListener('storage', handleStorage);
     return () => {
       window.removeEventListener('storage', handleStorage);
@@ -359,9 +438,13 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       status: 'Pending',
     };
 
-    setAppointments(prev => [newAppointment, ...prev]);
+    // Optimistic UI — add immediately (realtime INSERT event will dedup via guard)
+    setAppointments(prev => {
+      if (prev.some(a => a.id === newAppointment.id)) return prev;
+      return [newAppointment, ...prev];
+    });
 
-    // Persist to Supabase
+    // Persist to Supabase — realtime will fire INSERT on all other clients
     await supabase.from('appointments').insert({
       id: newAppointment.id,
       confirmation_code: newAppointment.confirmationCode,
@@ -388,15 +471,16 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       `Patient (${newAppointment.patientName})`,
       'Patient',
       'APPOINTMENT_REQUEST_CREATED',
-      `Booking code ${confirmationCode} created for ${data.date} at ${data.timeSlot}. Deposit: $${data.depositAmount}. PHI encrypted.`
+      `Booking code ${confirmationCode} created for ${data.date} at ${data.timeSlot}. Deposit: ₹${data.depositAmount}. PHI encrypted.`
     );
 
     const assignedDoctor = getDoctorById(data.doctorId);
     const selectedService = getServiceById(data.serviceId);
     const serviceName = selectedService ? selectedService.name : 'Dental Procedure';
 
+    // Notification for THIS device — realtime handles other devices
     const newNotification: DoctorNotification = {
-      id: `notif-${Date.now()}`,
+      id: `notif-${newAppointment.id}-local`,
       appointmentId: newAppointment.id,
       doctorId: data.doctorId,
       type: data.serviceId === 'serv-7' ? 'EMERGENCY_ALERT' : 'NEW_BOOKING',
@@ -409,7 +493,10 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       urgent: data.serviceId === 'serv-7'
     };
 
-    setDoctorNotifications(prev => [newNotification, ...prev]);
+    setDoctorNotifications(prev => {
+      if (prev.some(n => n.appointmentId === newAppointment.id)) return prev;
+      return [newNotification, ...prev];
+    });
     setLastSimulatedPush(newNotification);
 
     setTimeout(() => {

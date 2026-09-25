@@ -36,12 +36,12 @@ export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onN
             <div className="flex flex-col items-start gap-1 cursor-pointer" onClick={() => onNavigateTab('home')}>
               <div className="bg-white px-5 py-3 rounded-2xl shadow-sm inline-flex flex-col items-center border border-slate-200/60 select-none">
                 <img 
-                  src={clinicLogo || '/logo.png'} 
+                  src={clinicSettings?.logoUrl?.trim() || clinicLogo || '/logo.png?v=2'} 
                   alt="Lavanya Dental Clinic" 
                   onError={(e) => {
                     const target = e.currentTarget;
-                    if (!target.src.endsWith('/logo.png')) {
-                      target.src = '/logo.png';
+                    if (!target.src.includes('logo.png')) {
+                      target.src = '/logo.png?v=2';
                     }
                   }}
                   className="h-10 sm:h-12 w-auto object-contain" 

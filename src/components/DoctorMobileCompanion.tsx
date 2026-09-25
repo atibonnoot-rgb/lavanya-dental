@@ -13,6 +13,7 @@ import {
   Stethoscope, 
   CheckCircle2, 
   RotateCcw,
+  RefreshCw,
   Volume2,
   VolumeX,
   ChevronRight,
@@ -45,7 +46,8 @@ export const DoctorMobileCompanion: React.FC<DoctorMobileCompanionProps> = ({
     completeAppointment,
     deleteAppointment,
     toggleDoctorAvailability,
-    markNotificationRead 
+    markNotificationRead,
+    refreshData 
   } = useClinic();
 
   const isAllDoctors = selectedDoctorId === 'all';
@@ -113,6 +115,25 @@ export const DoctorMobileCompanion: React.FC<DoctorMobileCompanionProps> = ({
     }
   };
 
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [refreshFeedback, setRefreshFeedback] = useState<string | null>(null);
+
+  const handleManualRefresh = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await refreshData();
+      setRefreshFeedback('Live synced');
+      setTimeout(() => setRefreshFeedback(null), 2200);
+    } catch (e) {
+      console.warn('Manual refresh failed:', e);
+      setRefreshFeedback('Sync failed');
+      setTimeout(() => setRefreshFeedback(null), 2200);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <div className={`flex flex-col items-center justify-center ${isModal ? 'fixed inset-0 z-50 p-4 bg-slate-950/70 backdrop-blur-xs' : 'w-full py-8'}`}>
       
@@ -150,6 +171,14 @@ export const DoctorMobileCompanion: React.FC<DoctorMobileCompanionProps> = ({
         {/* Mobile App View Container */}
         <div className="flex-1 bg-slate-100 rounded-[36px] overflow-hidden flex flex-col relative border border-slate-200">
           
+          {/* Subtle live sync status banner */}
+          {refreshFeedback && (
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-40 bg-teal-900/90 text-teal-200 text-[10px] font-bold px-3 py-1 rounded-full shadow-lg border border-teal-400/40 flex items-center gap-1.5 backdrop-blur-md">
+              <Check className="w-3 h-3 text-teal-300" />
+              <span>{refreshFeedback}</span>
+            </div>
+          )}
+
           {/* Mobile Top Bar */}
           <div className="bg-slate-900 text-white p-4 pt-5 pb-3">
             <div className="flex items-center justify-between">
@@ -195,18 +224,31 @@ export const DoctorMobileCompanion: React.FC<DoctorMobileCompanionProps> = ({
                 <span>{currentDoctor.isAvailableToday ? 'Accepting Patients' : 'Paused / In Surgery'}</span>
               </button>
 
-              <button
-                onClick={() => {
-                  if (!soundEnabled) {
-                    playNotificationSound();
-                  }
-                  setSoundEnabled(!soundEnabled);
-                }}
-                className="text-slate-400 hover:text-white p-1"
-                title="Toggle notification chime sound"
-              >
-                {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-teal-400" /> : <VolumeX className="w-3.5 h-3.5" />}
-              </button>
+              <div className="flex items-center gap-1.5">
+                {/* Instant In-Page Refresh Button */}
+                <button
+                  onClick={handleManualRefresh}
+                  disabled={isRefreshing}
+                  className="flex items-center gap-1 text-[10px] font-semibold text-slate-300 hover:text-white bg-slate-800/90 hover:bg-slate-700 px-2 py-0.5 rounded-full border border-slate-700 transition-colors disabled:opacity-60"
+                  title="Refresh schedule & bookings without reloading page"
+                >
+                  <RefreshCw className={`w-3 h-3 text-teal-400 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  <span>{isRefreshing ? 'Syncing...' : 'Refresh'}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (!soundEnabled) {
+                      playNotificationSound();
+                    }
+                    setSoundEnabled(!soundEnabled);
+                  }}
+                  className="text-slate-400 hover:text-white p-1"
+                  title="Toggle notification chime sound"
+                >
+                  {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-teal-400" /> : <VolumeX className="w-3.5 h-3.5" />}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -254,7 +296,17 @@ export const DoctorMobileCompanion: React.FC<DoctorMobileCompanionProps> = ({
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase px-1">
                   <span>Pending Booking Approvals</span>
-                  <span className="text-teal-700">{pendingAppointments.length} Action Needed</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-teal-700">{pendingAppointments.length} Action Needed</span>
+                    <button
+                      onClick={handleManualRefresh}
+                      disabled={isRefreshing}
+                      className="text-slate-400 hover:text-teal-700 p-0.5 hover:bg-slate-200 rounded-md transition-colors"
+                      title="Refresh bookings"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin text-teal-600' : ''}`} />
+                    </button>
+                  </div>
                 </div>
 
                 {pendingAppointments.length === 0 ? (
@@ -405,6 +457,14 @@ export const DoctorMobileCompanion: React.FC<DoctorMobileCompanionProps> = ({
                     <span className="text-[10px] bg-teal-100 text-teal-800 font-bold px-2 py-0.5 rounded-md">
                       {confirmedAppointments.length} Confirmed
                     </span>
+                    <button
+                      onClick={handleManualRefresh}
+                      disabled={isRefreshing}
+                      className="text-slate-400 hover:text-teal-700 p-1 hover:bg-slate-100 rounded-md transition-colors"
+                      title="Refresh schedule"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-teal-600' : ''}`} />
+                    </button>
                   </div>
                 </div>
 

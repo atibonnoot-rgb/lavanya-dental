@@ -6,3 +6,8 @@ coverage/
 *.log
 .env*
 !.env.example
+.vercel
+auth_info_baileys/
+whatsapp-bot/auth_info_baileys/
+whatsapp-bot/auth_session/
+whatsapp-bot/node_modules/

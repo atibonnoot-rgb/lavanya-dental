@@ -19,7 +19,7 @@ const DEFAULT_CLINIC_SETTINGS: ClinicSettings = {
   clinicName: 'Lavanya Dental',
   tagline: 'Where Precision Meets Perfection',
   logoUrl: '',
-  phone: '+91 98765 43210',
+  phone: '+91 8555052843',
   email: 'appointments@lavanyadental.com',
   address: 'Lavanya Dental Care Pavilion, Main Road',
   hours: {
@@ -75,6 +75,7 @@ interface ClinicContextType {
   getServiceById: (id: string) => DentalService | undefined;
   findAppointmentByCodeOrPhone: (query: string) => Appointment[];
   updateClinicSettings: (settings: Partial<ClinicSettings>) => Promise<void>;
+  refreshData: () => Promise<void>;
 }
 
 const ClinicContext = createContext<ClinicContextType | undefined>(undefined);
@@ -200,6 +201,90 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     otpVerified: (row.otp_verified as boolean) || false,
   });
 
+  const refreshData = async () => {
+    // ── SUPABASE IS THE SINGLE SOURCE OF TRUTH ────────────────────────────
+    // Always wipe localStorage doctors/services caches first so stale data
+    // from a previous session can never show as ghost rows.
+    try { localStorage.removeItem(LOCAL_STORAGE_KEY_DOCTORS); } catch {}
+    try { localStorage.removeItem(LOCAL_STORAGE_KEY_SERVICES); } catch {}
+
+    try {
+      // 1. Clinic settings
+      const { data: settingsData } = await supabase
+        .from('clinic_settings')
+        .select('*')
+        .limit(1)
+        .single();
+      if (settingsData) {
+        setClinicSettings(mapClinicSettingsRow(settingsData as Record<string, unknown>));
+      }
+
+      // 2. Services — always fetch fresh from Supabase
+      const { data: servicesData } = await supabase
+        .from('services')
+        .select('*')
+        .order('id');
+      if (servicesData && servicesData.length > 0) {
+        const mappedServices = servicesData.map((r) => mapServiceRow(r as Record<string, unknown>));
+        setServices(mappedServices);
+        try {
+          localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(mappedServices));
+        } catch {}
+      }
+
+      // 3. Doctors — always fetch fresh from Supabase
+      const { data: doctorsData } = await supabase
+        .from('doctors')
+        .select('*')
+        .order('display_order');
+      if (doctorsData && doctorsData.length > 0) {
+        const mappedDoctors = doctorsData.map((r) => mapDoctorRow(r as Record<string, unknown>));
+        setDoctors(mappedDoctors);
+        try {
+          localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(mappedDoctors));
+        } catch {}
+      } else {
+        // No doctors in Supabase yet — ensure we show nothing (no ghost data)
+        setDoctors([]);
+        try { localStorage.removeItem(LOCAL_STORAGE_KEY_DOCTORS); } catch {}
+      }
+
+      // 5. Appointments — load from Supabase
+      const { data: aptsData } = await supabase
+        .from('appointments')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (aptsData) {
+        const mappedApts = aptsData.map((r) => mapAppointmentRow(r as Record<string, unknown>));
+        setAppointments(mappedApts);
+        try {
+          localStorage.setItem(LOCAL_STORAGE_KEY_APPOINTMENTS, JSON.stringify(mappedApts));
+        } catch {}
+        const notifs: DoctorNotification[] = mappedApts
+          .filter(a => a.status === 'Pending')
+          .map(a => ({
+            id: `notif-${a.id}`,
+            appointmentId: a.id,
+            doctorId: a.doctorId,
+            type: a.serviceId === 'serv-7' ? 'EMERGENCY_ALERT' : 'NEW_BOOKING',
+            patientName: a.patientName,
+            serviceName: a.serviceId,
+            date: a.date,
+            timeSlot: a.timeSlot,
+            read: false,
+            timestamp: a.createdAt,
+            urgent: a.serviceId === 'serv-7',
+          } as DoctorNotification));
+        setDoctorNotifications(notifs);
+      }
+    } catch (err) {
+      console.warn('Supabase fetch/refresh warning:', err);
+    } finally {
+      isLoadedRef.current = true;
+      setIsLoading(false);
+    }
+  };
+
   // ─── Global Realtime Broadcast, Cloud Storage & DB Sync ───────────────────
   useEffect(() => {
     let syncChannel: ReturnType<typeof supabase.channel> | null = null;
@@ -207,91 +292,7 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     let aptsChannel: ReturnType<typeof supabase.channel> | null = null;
     let servicesChannel: ReturnType<typeof supabase.channel> | null = null;
 
-    const loadAllData = async () => {
-      // ── SUPABASE IS THE SINGLE SOURCE OF TRUTH ────────────────────────────
-      // Always wipe localStorage doctors/services caches first so stale data
-      // from a previous session can never show as ghost rows.
-      try { localStorage.removeItem(LOCAL_STORAGE_KEY_DOCTORS); } catch {}
-      try { localStorage.removeItem(LOCAL_STORAGE_KEY_SERVICES); } catch {}
-
-      try {
-        // 1. Clinic settings
-        const { data: settingsData } = await supabase
-          .from('clinic_settings')
-          .select('*')
-          .limit(1)
-          .single();
-        if (settingsData) {
-          setClinicSettings(mapClinicSettingsRow(settingsData as Record<string, unknown>));
-        }
-
-        // 2. Services — always fetch fresh from Supabase
-        const { data: servicesData } = await supabase
-          .from('services')
-          .select('*')
-          .order('id');
-        if (servicesData && servicesData.length > 0) {
-          const mappedServices = servicesData.map((r) => mapServiceRow(r as Record<string, unknown>));
-          setServices(mappedServices);
-          try {
-            localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(mappedServices));
-          } catch {}
-        }
-
-        // 3. Doctors — always fetch fresh from Supabase
-        const { data: doctorsData } = await supabase
-          .from('doctors')
-          .select('*')
-          .order('display_order');
-        if (doctorsData && doctorsData.length > 0) {
-          const mappedDoctors = doctorsData.map((r) => mapDoctorRow(r as Record<string, unknown>));
-          setDoctors(mappedDoctors);
-          try {
-            localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(mappedDoctors));
-          } catch {}
-        } else {
-          // No doctors in Supabase yet — ensure we show nothing (no ghost data)
-          setDoctors([]);
-          try { localStorage.removeItem(LOCAL_STORAGE_KEY_DOCTORS); } catch {}
-        }
-
-        // 5. Appointments — load from Supabase
-        const { data: aptsData } = await supabase
-          .from('appointments')
-          .select('*')
-          .order('created_at', { ascending: false });
-        if (aptsData) {
-          const mappedApts = aptsData.map((r) => mapAppointmentRow(r as Record<string, unknown>));
-          setAppointments(mappedApts);
-          try {
-            localStorage.setItem(LOCAL_STORAGE_KEY_APPOINTMENTS, JSON.stringify(mappedApts));
-          } catch {}
-          const notifs: DoctorNotification[] = mappedApts
-            .filter(a => a.status === 'Pending')
-            .map(a => ({
-              id: `notif-${a.id}`,
-              appointmentId: a.id,
-              doctorId: a.doctorId,
-              type: a.serviceId === 'serv-7' ? 'EMERGENCY_ALERT' : 'NEW_BOOKING',
-              patientName: a.patientName,
-              serviceName: a.serviceId,
-              date: a.date,
-              timeSlot: a.timeSlot,
-              read: false,
-              timestamp: a.createdAt,
-              urgent: a.serviceId === 'serv-7',
-            } as DoctorNotification));
-          setDoctorNotifications(notifs);
-        }
-      } catch (err) {
-        console.warn('Supabase initial fetch warning:', err);
-      } finally {
-        isLoadedRef.current = true;
-        setIsLoading(false);
-      }
-    };
-
-    loadAllData();
+    refreshData();
 
 
 
@@ -808,6 +809,7 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       getServiceById,
       findAppointmentByCodeOrPhone,
       updateClinicSettings,
+      refreshData,
     }}>
       {children}
     </ClinicContext.Provider>

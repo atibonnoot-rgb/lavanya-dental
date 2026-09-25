@@ -51,32 +51,51 @@ class RootErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState
             border: '1px solid #334155',
             borderRadius: '24px',
             padding: '2.5rem',
-            maxWidth: '480px',
-            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)'
+            maxWidth: '560px',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+            textAlign: 'left'
           }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✨</div>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#38bdf8' }}>
+            <div style={{ fontSize: '2.5rem', marginBottom: '1rem', textAlign: 'center' }}>✨</div>
+            <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#38bdf8', textAlign: 'center' }}>
               AuraDental Platform
             </h1>
-            <p style={{ fontSize: '0.875rem', color: '#94a3b8', marginBottom: '1.5rem', lineHeight: '1.5' }}>
-              We refreshed your session to load the latest clinic updates.
+            <p style={{ fontSize: '0.875rem', color: '#94a3b8', marginBottom: '1rem', lineHeight: '1.5', textAlign: 'center' }}>
+              A client session conflict was detected. Click below to refresh and load latest clinic data.
             </p>
-            <button
-              onClick={this.handleReset}
-              style={{
-                background: '#0d9488',
-                color: '#ffffff',
-                border: 'none',
-                padding: '0.75rem 1.75rem',
-                borderRadius: '12px',
-                fontWeight: '600',
-                fontSize: '0.875rem',
-                cursor: 'pointer',
-                transition: 'background 0.2s'
-              }}
-            >
-              Refresh Platform
-            </button>
+            {this.state.error && (
+              <pre style={{
+                background: '#0f172a',
+                color: '#f43f5e',
+                padding: '0.75rem',
+                borderRadius: '8px',
+                fontSize: '0.75rem',
+                overflowX: 'auto',
+                marginBottom: '1.25rem',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word'
+              }}>
+                {this.state.error.toString()}
+                {'\n'}
+                {this.state.error.stack}
+              </pre>
+            )}
+            <div style={{ textAlign: 'center' }}>
+              <button
+                onClick={this.handleReset}
+                style={{
+                  background: '#0d9488',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '0.75rem 2rem',
+                  borderRadius: '12px',
+                  fontWeight: '600',
+                  fontSize: '0.875rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Refresh & Load Platform
+              </button>
+            </div>
           </div>
         </div>
       );

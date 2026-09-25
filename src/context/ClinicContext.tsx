@@ -270,34 +270,30 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setClinicSettings(mapClinicSettingsRow(settingsData as Record<string, unknown>));
         }
 
-        // 3. Services — only seed from Supabase if the user has NEVER stored any services
-        if (!hasLocalServices && !hasCloudSvcs) {
-          const { data: servicesData } = await supabase
-            .from('services')
-            .select('*')
-            .order('id');
-          if (servicesData && servicesData.length > 0) {
-            const mappedServices = servicesData.map((r) => mapServiceRow(r as Record<string, unknown>));
-            setServices(mappedServices);
-            try {
-              localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(mappedServices));
-            } catch {}
-          }
+        // 3. Services — load latest from Supabase
+        const { data: servicesData } = await supabase
+          .from('services')
+          .select('*')
+          .order('id');
+        if (servicesData && servicesData.length > 0) {
+          const mappedServices = servicesData.map((r) => mapServiceRow(r as Record<string, unknown>));
+          setServices(mappedServices);
+          try {
+            localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(mappedServices));
+          } catch {}
         }
 
-        // 4. Doctors — only seed from Supabase if the user has NEVER stored any doctors
-        if (!hasLocalDoctors && !hasCloudDocs) {
-          const { data: doctorsData } = await supabase
-            .from('doctors')
-            .select('*')
-            .order('display_order');
-          if (doctorsData && doctorsData.length > 0) {
-            const mappedDoctors = doctorsData.map((r) => mapDoctorRow(r as Record<string, unknown>));
-            setDoctors(mappedDoctors);
-            try {
-              localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(mappedDoctors));
-            } catch {}
-          }
+        // 4. Doctors — load latest from Supabase
+        const { data: doctorsData } = await supabase
+          .from('doctors')
+          .select('*')
+          .order('display_order');
+        if (doctorsData && doctorsData.length > 0) {
+          const mappedDoctors = doctorsData.map((r) => mapDoctorRow(r as Record<string, unknown>));
+          setDoctors(mappedDoctors);
+          try {
+            localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(mappedDoctors));
+          } catch {}
         }
 
         // 5. Appointments — load from Supabase

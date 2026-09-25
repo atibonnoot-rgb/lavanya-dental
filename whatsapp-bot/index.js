@@ -209,9 +209,8 @@ async function startWhatsAppBot() {
 
     if (connection === 'close') {
       const statusCode = (lastDisconnect?.error)?.output?.statusCode;
-      const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-      botStatus = `Disconnected (${shouldReconnect ? 'Reconnecting...' : 'Logged Out'})`;
-      currentQRDataUrl = null;
+      const isLoggedOut = statusCode === DisconnectReason.loggedOut;
+      const shouldReconnect = !isLoggedOut;
       console.log(`Connection closed (code: ${statusCode}). Reconnect: ${shouldReconnect}`);
 
       try {
@@ -219,8 +218,18 @@ async function startWhatsAppBot() {
         sock.end();
       } catch (e) {}
 
-      if (shouldReconnect) {
-        // Fast reconnect for stream restarts (code 515), standard delay for timeouts
+      if (isLoggedOut) {
+        botStatus = 'Session Expired on Phone. Generating fresh QR code...';
+        currentQRDataUrl = null;
+        try {
+          if (fs.existsSync(authDir)) fs.rmSync(authDir, { recursive: true, force: true });
+          if (fs.existsSync(backupFile)) fs.rmSync(backupFile, { force: true });
+        } catch (e) {}
+        console.log('Stale auth keys removed. Generating fresh QR code...');
+        setTimeout(startWhatsAppBot, 2000);
+      } else {
+        botStatus = `Disconnected (${shouldReconnect ? 'Reconnecting...' : 'Closed'})`;
+        currentQRDataUrl = null;
         const delay = statusCode === DisconnectReason.restartRequired ? 1500 : 4000;
         setTimeout(startWhatsAppBot, delay);
       }

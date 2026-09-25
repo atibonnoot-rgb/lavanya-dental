@@ -65,7 +65,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
       <div className="max-w-7xl mx-auto px-3 sm:px-6">
         <div className="flex items-center justify-between h-20 sm:h-22 gap-3">
           {/* Logo & Brand Lockup */}
-          <div className="flex flex-col items-center justify-center cursor-pointer min-w-0 shrink group pt-2.5 pb-0.5 mt-1 select-none" onClick={() => onNavigateTab('home')}>
+          <div className="flex flex-col items-center justify-center cursor-pointer min-w-0 shrink group py-1 select-none" onClick={() => onNavigateTab('home')}>
             <div className="flex items-center justify-center">
               <img 
                 src={clinicLogo} 
@@ -73,7 +73,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
                 className="h-14 sm:h-16 md:h-20 w-auto object-contain transition-transform duration-200 group-hover:scale-105" 
               />
             </div>
-            <span className="text-[10px] sm:text-[11.5px] md:text-[12px] font-black tracking-[0.25em] text-[#0f2d59] uppercase font-sans text-center leading-tight -mt-1.5">
+            <span className="text-[10px] sm:text-[11.5px] md:text-[12px] font-black tracking-[0.25em] text-[#0f2d59] uppercase font-sans text-center leading-tight mt-0.5">
               DENTAL CLINIC
             </span>
           </div>

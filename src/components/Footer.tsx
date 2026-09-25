@@ -40,7 +40,7 @@ export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onN
                   alt="Lavanya Dental Clinic" 
                   className="h-14 sm:h-16 md:h-18 w-auto object-contain" 
                 />
-                <span className="text-[10.5px] sm:text-[12px] font-black tracking-[0.25em] text-[#0f2d59] uppercase font-sans text-center -mt-1 leading-tight">
+                <span className="text-[10.5px] sm:text-[12px] font-black tracking-[0.25em] text-[#0f2d59] uppercase font-sans text-center mt-1.5 leading-tight">
                   DENTAL CLINIC
                 </span>
               </div>

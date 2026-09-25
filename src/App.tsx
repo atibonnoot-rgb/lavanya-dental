@@ -80,9 +80,7 @@ const AppContent: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // While checking auth, show nothing (avoids flash)
-  if (!authChecked) return null;
-
+  // Public website rendered immediately without white-screen block
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans selection:bg-teal-100 selection:text-teal-900">
       

@@ -57,12 +57,12 @@ export const DoctorMobileCompanion: React.FC<DoctorMobileCompanionProps> = ({
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
 
   // Appointments for this doctor
-  const doctorAppointments = appointments.filter(a => a.doctorId === currentDoctor.id);
+  const doctorAppointments = currentDoctor ? appointments.filter(a => a.doctorId === currentDoctor.id) : [];
   const pendingAppointments = doctorAppointments.filter(a => a.status === 'Pending');
   const confirmedAppointments = doctorAppointments.filter(a => a.status === 'Confirmed');
   
   // Notifications for this doctor
-  const notifications = doctorNotifications.filter(n => n.doctorId === currentDoctor.id);
+  const notifications = currentDoctor ? doctorNotifications.filter(n => n.doctorId === currentDoctor.id) : [];
 
   const handle1TapConfirm = (aptId: string) => {
     confirmAppointmentByDoctor(aptId);

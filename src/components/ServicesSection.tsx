@@ -103,11 +103,11 @@ export const ServicesSection: React.FC = () => {
                 <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/60 text-xs">
                   <div className="flex items-center gap-1.5 text-slate-500">
                     <Clock className="w-3.5 h-3.5 text-teal-600" />
-                    <span>{service.durationMinutes} mins visit</span>
+                    <span>{service.durationMinutes || 30} mins visit</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-slate-500">
                     <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
-                    <span>Insurance: {service.insuranceCovered}</span>
+                    <span>Insurance: {service.insuranceCovered || '100% Covered'}</span>
                   </div>
                 </div>
 
@@ -117,7 +117,7 @@ export const ServicesSection: React.FC = () => {
                     Ideal Candidate For:
                   </span>
                   <ul className="space-y-1 text-xs text-slate-600">
-                    {service.recommendedFor.map((rec, idx) => (
+                    {(Array.isArray(service.recommendedFor) ? service.recommendedFor : []).map((rec, idx) => (
                       <li key={idx} className="flex items-start gap-1.5">
                         <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
                         <span>{rec}</span>

@@ -134,6 +134,31 @@ export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onN
           </div>
         </div>
 
+        {/* Developer Credit & Availability Badge */}
+        <div className="pt-4 flex justify-center pb-2">
+          <div className="inline-flex flex-wrap items-center justify-center gap-2 sm:gap-3 px-3.5 py-1.5 rounded-full bg-slate-900/60 border border-slate-800/80 hover:border-slate-700/80 transition-all text-[11px] text-slate-400 shadow-sm backdrop-blur-xs">
+            <span className="flex items-center gap-1.5">
+              <span>⚡</span>
+              <span>Engineered by <span className="text-slate-200 font-medium">Aditya Chikatamalla</span></span>
+            </span>
+            <span className="text-slate-700 hidden sm:inline">•</span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="text-slate-300">Available for hire</span>
+              <a 
+                href="tel:7396561933" 
+                className="text-emerald-400 hover:text-emerald-300 font-mono font-medium transition-colors hover:underline tracking-tight"
+                title="Call Aditya Chikatamalla"
+              >
+                7396561933
+              </a>
+            </span>
+          </div>
+        </div>
+
       </div>
     </footer>
   );

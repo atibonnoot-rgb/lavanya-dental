@@ -122,6 +122,21 @@ async function callGeminiAI(userPhone, userMessage) {
 // Start Baileys WhatsApp Socket
 async function startWhatsAppBot() {
   const authDir = path.join(__dirname, 'auth_session');
+
+  // Auto-restore session from env variable if deployed on cloud (e.g. Render)
+  if (!fs.existsSync(authDir) && process.env.SESSION_DATA) {
+    try {
+      fs.mkdirSync(authDir, { recursive: true });
+      const sessionObj = JSON.parse(Buffer.from(process.env.SESSION_DATA, 'base64').toString('utf8'));
+      for (const [filename, content] of Object.entries(sessionObj)) {
+        fs.writeFileSync(path.join(authDir, filename), content);
+      }
+      console.log('Restored auth session from SESSION_DATA environment variable.');
+    } catch (e) {
+      console.error('Failed to unpack SESSION_DATA:', e.message);
+    }
+  }
+
   const { state, saveCreds } = await useMultiFileAuthState(authDir);
   const { version } = await fetchLatestBaileysVersion();
 
@@ -273,6 +288,12 @@ async function startWhatsAppBot() {
 
 // Simple Web Dashboard for Easy QR Scanning & Monitoring
 const server = http.createServer(async (req, res) => {
+  if (req.url === '/ping' || req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('OK');
+    return;
+  }
+
   if (req.url === '/reset') {
     const authDir = path.join(__dirname, 'auth_session');
     try {
@@ -394,7 +415,8 @@ const server = http.createServer(async (req, res) => {
 </html>`);
 });
 
-server.listen(3005, () => {
-  console.log('Web Dashboard running at: http://localhost:3005');
+const PORT = process.env.PORT || 3005;
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Web Dashboard running at: http://localhost:${PORT}`);
   startWhatsAppBot();
 });

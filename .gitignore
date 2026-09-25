@@ -11,3 +11,4 @@ auth_info_baileys/
 whatsapp-bot/auth_info_baileys/
 whatsapp-bot/auth_session/
 whatsapp-bot/node_modules/
+whatsapp-bot/*.txt

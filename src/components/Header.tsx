@@ -62,28 +62,18 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
       {/* Main navigation row */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6">
         <div className="flex items-center justify-between h-16 sm:h-18 gap-2">
-          {/* Logo & Brand */}
-          <div className="flex items-center gap-2 sm:gap-3 cursor-pointer min-w-0 shrink" onClick={() => onNavigateTab('home')}>
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white shadow-sm shadow-teal-500/20 overflow-hidden shrink-0">
-              {clinicSettings.logoUrl ? (
-                <img src={clinicSettings.logoUrl} alt="logo" className="w-full h-full object-cover" />
-              ) : (
-                <svg className="w-5 h-5 sm:w-6 sm:h-6 fill-current" viewBox="0 0 24 24">
-                  <path d="M12 2C8.5 2 5.5 4.5 5.5 8c0 2.5 1 4.5 2 7 1 2.5 2.5 7 4.5 7s3.5-4.5 4.5-7c1-2.5 2-4.5 2-7 0-3.5-3-6-6.5-6zm0 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
-                </svg>
-              )}
+          {/* Logo & Brand Lockup */}
+          <div className="flex flex-col items-start justify-center cursor-pointer min-w-0 shrink group py-1" onClick={() => onNavigateTab('home')}>
+            <div className="flex items-center">
+              <img 
+                src="/logo.png" 
+                alt="Lavanya Dental Clinic" 
+                className="h-8 sm:h-9 w-auto object-contain transition-transform duration-200 group-hover:scale-105" 
+              />
             </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm sm:text-xl font-bold tracking-tight text-slate-900 font-display truncate">
-                  {clinicSettings.clinicName}
-                </span>
-                <span className="hidden md:inline-block px-2 py-0.5 text-[10px] font-semibold bg-teal-50 text-teal-700 rounded-md border border-teal-200 shrink-0">
-                  CLINIC &amp; SURGERY
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 hidden sm:block truncate">{clinicSettings.tagline}</p>
-            </div>
+            <span className="text-[9.5px] sm:text-[11px] font-black tracking-[0.22em] text-[#0f2d59] uppercase -mt-0.5 ml-0.5 font-sans select-none">
+              DENTAL CLINIC
+            </span>
           </div>
 
           {/* Desktop Nav links */}

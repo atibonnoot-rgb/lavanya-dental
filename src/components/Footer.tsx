@@ -32,16 +32,18 @@ export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onN
           
           {/* Col 1: Brand & Credentials (4 cols) */}
           <div className="lg:col-span-4 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white font-bold">
-                <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
-                  <path d="M12 2C8.5 2 5.5 4.5 5.5 8c0 2.5 1 4.5 2 7 1 2.5 2.5 7 4.5 7s3.5-4.5 4.5-7c1-2.5 2-4.5 2-7 0-3.5-3-6-6.5-6zm0 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
-                </svg>
+            <div className="flex flex-col items-start gap-1 cursor-pointer" onClick={() => onNavigateTab('home')}>
+              <div className="bg-white px-3 py-1.5 rounded-xl shadow-sm inline-block">
+                <img 
+                  src="/logo.png" 
+                  alt="Lavanya Dental Clinic" 
+                  className="h-8 w-auto object-contain" 
+                />
               </div>
-              <div>
-              <span className="text-lg font-bold text-white font-display">{clinicSettings.clinicName}</span>
-                <p className="text-[11px] text-slate-500">Comprehensive Dental Surgery & Aesthetics</p>
-              </div>
+              <span className="text-[11px] font-black tracking-[0.22em] text-sky-400 uppercase font-sans select-none">
+                DENTAL CLINIC
+              </span>
+              <p className="text-[11px] text-slate-400 mt-1">Comprehensive Dental Surgery & Aesthetics</p>
             </div>
 
             <p className="text-slate-400 leading-relaxed">

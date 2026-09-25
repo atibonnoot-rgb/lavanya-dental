@@ -34,13 +34,13 @@ export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onN
           {/* Col 1: Brand & Credentials (4 cols) */}
           <div className="lg:col-span-4 space-y-4">
             <div className="flex flex-col items-start gap-1 cursor-pointer" onClick={() => onNavigateTab('home')}>
-              <div className="bg-white px-3.5 py-2 rounded-xl shadow-sm inline-flex flex-col items-center">
+              <div className="bg-white px-4 py-2.5 rounded-xl shadow-sm inline-flex flex-col items-center border border-slate-200/60 select-none">
                 <img 
                   src={clinicLogo} 
                   alt="Lavanya Dental Clinic" 
-                  className="h-9 w-auto object-contain" 
+                  className="h-8 sm:h-9 w-auto object-contain" 
                 />
-                <span className="text-[10px] font-black tracking-[0.22em] text-[#0f2d59] uppercase font-sans select-none mt-0.5">
+                <span className="text-[9.5px] sm:text-[10.5px] font-black tracking-[0.24em] text-[#0f2d59] uppercase font-sans text-center mt-1 leading-tight">
                   DENTAL CLINIC
                 </span>
               </div>

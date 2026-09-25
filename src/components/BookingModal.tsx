@@ -233,15 +233,22 @@ export const BookingModal: React.FC = () => {
                       <p className="text-[11px] text-teal-700 font-medium">Fastest appointment</p>
                     </div>
                   </div>
-                  {doctors.filter(doc => doc.isAvailableToday).map((doc) => (
+                  {doctors.map((doc) => (
                     <div
                       key={doc.id}
                       onClick={() => setSelectedDoctorId(doc.id)}
                       className={`p-3 rounded-2xl border cursor-pointer flex items-center gap-3 transition-all ${selectedDoctorId === doc.id ? 'border-teal-500 bg-teal-50/50 ring-2 ring-teal-500/20' : 'border-slate-200 hover:border-slate-300'}`}
                     >
                       <img src={doc.photoUrl} alt={doc.name} className="w-10 h-10 rounded-full object-cover shrink-0" />
-                      <div className="min-w-0">
-                        <h4 className="text-xs font-bold text-slate-900 truncate">{doc.name.split(',')[0]}</h4>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <h4 className="text-xs font-bold text-slate-900 truncate">{doc.name.split(',')[0]}</h4>
+                          {doc.isAvailableToday ? (
+                            <span className="text-[9px] bg-emerald-100 text-emerald-800 font-semibold px-1.5 py-0.2 rounded-full shrink-0">Available</span>
+                          ) : (
+                            <span className="text-[9px] bg-slate-100 text-slate-600 font-medium px-1.5 py-0.2 rounded-full shrink-0">On Duty</span>
+                          )}
+                        </div>
                         <p className="text-[11px] text-slate-500 truncate">{doc.specialty}</p>
                         <p className="text-[10px] text-amber-600 font-semibold">★ {doc.rating} ({doc.reviewsCount})</p>
                       </div>

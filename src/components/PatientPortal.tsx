@@ -29,10 +29,16 @@ export const PatientPortal: React.FC = () => {
     setShowBookingModal 
   } = useClinic();
 
-  const [searchQuery, setSearchQuery] = useState<string>('AD-8921');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(() => {
     return appointments[0] || null;
   });
+
+  React.useEffect(() => {
+    if (!selectedAppointment && appointments.length > 0) {
+      setSelectedAppointment(appointments[0]);
+    }
+  }, [appointments, selectedAppointment]);
 
   const [selectedCareGuideId, setSelectedCareGuideId] = useState<string>('guide-extraction');
 
@@ -110,21 +116,43 @@ export const PatientPortal: React.FC = () => {
           </button>
         </form>
 
-        {/* Quick chip demo shortcuts */}
-        <div className="flex items-center gap-2 flex-wrap pt-1 text-xs text-slate-500">
-          <span>Demo Codes:</span>
-          {appointments.slice(0, 3).map(a => (
-            <button
-              key={a.id}
-              onClick={() => {
-                setSearchQuery(a.confirmationCode);
-                setSelectedAppointment(a);
-              }}
-              className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-teal-50 text-slate-700 font-mono text-xs border border-slate-200 hover:border-teal-300"
-            >
-              {a.confirmationCode} ({a.patientName.split(' ')[0]})
-            </button>
-          ))}
+        {/* Booked Appointments List */}
+        <div className="pt-2 border-t border-slate-100">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold text-slate-700">All Scheduled Visits ({appointments.length}):</span>
+            {appointments.length === 0 && (
+              <span className="text-xs text-slate-400">No appointments scheduled yet</span>
+            )}
+          </div>
+          {appointments.length > 0 && (
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+              {appointments.map(a => {
+                const isSelected = selectedAppointment?.id === a.id;
+                return (
+                  <button
+                    key={a.id}
+                    onClick={() => {
+                      setSearchQuery(a.confirmationCode);
+                      setSelectedAppointment(a);
+                    }}
+                    className={`shrink-0 px-3 py-1.5 rounded-xl font-medium text-xs border transition-all text-left flex items-center gap-2 ${
+                      isSelected 
+                        ? 'bg-teal-600 text-white border-teal-600 shadow-sm' 
+                        : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                    }`}
+                  >
+                    <span className="font-mono font-bold">{a.confirmationCode}</span>
+                    <span className="truncate max-w-[120px]">{a.patientName}</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${
+                      isSelected ? 'bg-teal-700 text-teal-100' : 'bg-slate-200 text-slate-600'
+                    }`}>
+                      {a.status}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 

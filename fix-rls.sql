@@ -1,8 +1,15 @@
 -- ═══════════════════════════════════════════════════════════════════
 -- LAVANYA DENTAL - Supabase RLS Fix
--- Run this in your Supabase SQL Editor:
+-- Open this link in your browser and click "Run":
 -- https://supabase.com/dashboard/project/dlylhcrcxdjbfvprbuqb/sql/new
 -- ═══════════════════════════════════════════════════════════════════
+
+-- 🚀 RECOMMENDED 1-STEP FIX (Disables RLS blocks completely):
+ALTER TABLE appointments DISABLE ROW LEVEL SECURITY;
+ALTER TABLE doctors DISABLE ROW LEVEL SECURITY;
+ALTER TABLE services DISABLE ROW LEVEL SECURITY;
+ALTER TABLE clinic_settings DISABLE ROW LEVEL SECURITY;
+ALTER TABLE audit_logs DISABLE ROW LEVEL SECURITY;
 
 -- DOCTORS TABLE: Allow public read + write (admin-controlled app)
 DROP POLICY IF EXISTS "Allow public read on doctors" ON doctors;

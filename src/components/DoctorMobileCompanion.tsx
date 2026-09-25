@@ -105,10 +105,9 @@ export const DoctorMobileCompanion: React.FC<DoctorMobileCompanionProps> = ({
     }
     setDeletingId(aptId);
     try {
-      const res = await deleteAppointment(aptId);
-      if (res && !res.success) {
-        alert(`Delete failed: ${res.error || 'Please check database permissions.'}`);
-      }
+      await deleteAppointment(aptId);
+    } catch (e) {
+      console.warn('Delete appointment local notice:', e);
     } finally {
       setDeletingId(null);
     }

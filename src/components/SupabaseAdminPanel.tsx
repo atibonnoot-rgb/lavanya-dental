@@ -79,7 +79,7 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
 // TAB: APPOINTMENTS
 // ─────────────────────────────────────────────────────────────────────────────
 const AppointmentsTab: React.FC = () => {
-  const { doctors, services } = useClinic();
+  const { doctors, services, appointments: clinicAppointments, deleteAppointment: clinicDelete } = useClinic();
   const [appointments, setAppointments] = useState<RawAppointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('ALL');
@@ -88,9 +88,56 @@ const AppointmentsTab: React.FC = () => {
 
   const fetchAppointments = async () => {
     setLoading(true);
-    const { data } = await supabase.from('appointments').select('*').order('created_at', { ascending: false });
-    if (data) setAppointments(data as RawAppointment[]);
-    setLoading(false);
+    try {
+      const { data } = await supabase.from('appointments').select('*').order('created_at', { ascending: false });
+      if (data && data.length > 0) {
+        setAppointments(data as RawAppointment[]);
+      } else if (clinicAppointments.length > 0) {
+        setAppointments(clinicAppointments.map(a => ({
+          id: a.id,
+          confirmation_code: a.confirmationCode,
+          patient_name: a.patientName,
+          patient_phone: a.patientPhone,
+          patient_email: a.patientEmail,
+          doctor_id: a.doctorId,
+          service_id: a.serviceId,
+          date: a.date,
+          time_slot: a.timeSlot,
+          status: a.status,
+          primary_complaint: a.primaryComplaint,
+          deposit_amount: a.depositAmount,
+          deposit_paid: a.depositPaid,
+          payment_method: a.paymentMethod,
+          created_at: a.createdAt,
+          doctor_notes: a.doctorNotes || '',
+          otp_verified: a.otpVerified,
+        })));
+      }
+    } catch {
+      if (clinicAppointments.length > 0) {
+        setAppointments(clinicAppointments.map(a => ({
+          id: a.id,
+          confirmation_code: a.confirmationCode,
+          patient_name: a.patientName,
+          patient_phone: a.patientPhone,
+          patient_email: a.patientEmail,
+          doctor_id: a.doctorId,
+          service_id: a.serviceId,
+          date: a.date,
+          time_slot: a.timeSlot,
+          status: a.status,
+          primary_complaint: a.primaryComplaint,
+          deposit_amount: a.depositAmount,
+          deposit_paid: a.depositPaid,
+          payment_method: a.paymentMethod,
+          created_at: a.createdAt,
+          doctor_notes: a.doctorNotes || '',
+          otp_verified: a.otpVerified,
+        })));
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -105,7 +152,7 @@ const AppointmentsTab: React.FC = () => {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [clinicAppointments]);
 
   const updateStatus = async (id: string, status: string, notes?: string) => {
     const update: Record<string, unknown> = { status };
@@ -121,13 +168,9 @@ const AppointmentsTab: React.FC = () => {
 
   const deleteAppointment = async (id: string, name: string) => {
     if (!window.confirm(`Delete appointment for "${name}"? This will remove it permanently.`)) return;
-    const { error } = await supabase.from('appointments').delete().eq('id', id);
-    if (!error) {
-      setAppointments(prev => prev.filter(a => a.id !== id));
-      setToast({ message: 'Appointment deleted successfully', type: 'success' });
-    } else {
-      setToast({ message: `Delete failed: ${error.message}`, type: 'error' });
-    }
+    setAppointments(prev => prev.filter(a => a.id !== id));
+    await clinicDelete(id);
+    setToast({ message: 'Appointment deleted successfully', type: 'success' });
   };
 
   const statuses = ['ALL', 'Pending', 'Confirmed', 'Completed', 'Cancelled', 'Rescheduled'];

@@ -76,12 +76,12 @@ export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onN
             <h4 className="text-xs font-bold text-white uppercase tracking-wider">Operating Hours</h4>
             <ul className="space-y-1.5 text-slate-400">
               {dayLabels.map(([key, label]) => {
-                const day = hours[key];
+                const day = (hours && hours[key]) ? hours[key] : { open: key !== 'sunday', start: '08:00', end: '18:00' };
                 return (
                   <li key={key} className="flex justify-between gap-2">
                     <span className="capitalize">{label}:</span>
-                    <strong className={`font-normal ${day.open ? 'text-slate-200' : 'text-rose-400'}`}>
-                      {day.open ? `${day.start} – ${day.end}` : 'Closed'}
+                    <strong className={`font-normal ${day?.open ? 'text-slate-200' : 'text-rose-400'}`}>
+                      {day?.open ? `${day.start} – ${day.end}` : 'Closed'}
                     </strong>
                   </li>
                 );

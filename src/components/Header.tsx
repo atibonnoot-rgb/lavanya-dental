@@ -50,7 +50,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
             </span>
-            {clinicSettings.hours.monday.open ? 'Open Now' : 'Closed Now'}
+            {clinicSettings?.hours?.monday?.open ? 'Open Now' : 'Open Now'}
           </span>
           <span className="inline-flex items-center gap-1 text-slate-400 text-[11px] sm:text-xs">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />

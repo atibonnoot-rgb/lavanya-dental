@@ -93,7 +93,7 @@ export const Hero: React.FC<{ onExploreServices: () => void }> = ({ onExploreSer
                   >
                     {services.map(s => (
                       <option key={s.id} value={s.id}>
-                        {s.name} (${s.priceEstimate})
+                        {s.name}
                       </option>
                     ))}
                   </select>

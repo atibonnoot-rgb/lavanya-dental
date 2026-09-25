@@ -567,6 +567,7 @@ const ServicesTab: React.FC = () => {
     setServices(nextServices);
     try {
       localStorage.setItem('auradental_services_v1', JSON.stringify(nextServices));
+      localStorage.setItem('auradental_timestamp_v1', String(Date.now()));
     } catch {}
 
     // Persist to Cloud Storage & Realtime broadcast immediately
@@ -594,6 +595,7 @@ const ServicesTab: React.FC = () => {
     setServices(nextServices);
     try {
       localStorage.setItem('auradental_services_v1', JSON.stringify(nextServices));
+      localStorage.setItem('auradental_timestamp_v1', String(Date.now()));
     } catch {}
 
     saveCloudClinicState(doctors, nextServices);
@@ -889,6 +891,7 @@ const DoctorsTab: React.FC = () => {
     setDoctors(nextDoctors);
     try {
       localStorage.setItem('auradental_doctors_v1', JSON.stringify(nextDoctors));
+      localStorage.setItem('auradental_timestamp_v1', String(Date.now()));
     } catch (err) {
       console.warn('LocalStorage error:', err);
     }
@@ -995,6 +998,10 @@ const DoctorsTab: React.FC = () => {
     // Optimistic update
     const updated = doctors.map(d => d.id === doctorId ? { ...d, [field]: newVal } : d);
     setDoctors(updated);
+    try {
+      localStorage.setItem('auradental_doctors_v1', JSON.stringify(updated));
+      localStorage.setItem('auradental_timestamp_v1', String(Date.now()));
+    } catch {}
     saveCloudClinicState(updated, services);
     broadcastLiveSync(updated, services);
 
@@ -1012,6 +1019,7 @@ const DoctorsTab: React.FC = () => {
     setDoctors(updated);
     try {
       localStorage.setItem('auradental_doctors_v1', JSON.stringify(updated));
+      localStorage.setItem('auradental_timestamp_v1', String(Date.now()));
     } catch (err) {
       console.warn('LocalStorage error:', err);
     }

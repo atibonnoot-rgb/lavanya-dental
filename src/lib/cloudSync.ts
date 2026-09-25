@@ -15,7 +15,7 @@ let activeLiveChannel: ReturnType<typeof supabase.channel> | null = null;
 /**
  * Fetch latest global doctors & services state from cloud storage with strict fast timeout
  */
-export async function fetchCloudClinicState(): Promise<{ doctors?: Doctor[]; services?: DentalService[] } | null> {
+export async function fetchCloudClinicState(): Promise<{ doctors?: Doctor[]; services?: DentalService[]; timestamp?: number } | null> {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s max timeout so UI never lags
@@ -33,12 +33,14 @@ export async function fetchCloudClinicState(): Promise<{ doctors?: Doctor[]; ser
         return {
           doctors: Array.isArray(parsed.doctors) && parsed.doctors.length > 0 ? parsed.doctors : undefined,
           services: Array.isArray(parsed.services) && parsed.services.length > 0 ? parsed.services : undefined,
+          timestamp: typeof parsed.timestamp === 'number' ? parsed.timestamp : undefined,
         };
       }
       if (json.data.doctors || json.data.services) {
         return {
           doctors: Array.isArray(json.data.doctors) && json.data.doctors.length > 0 ? json.data.doctors : undefined,
           services: Array.isArray(json.data.services) && json.data.services.length > 0 ? json.data.services : undefined,
+          timestamp: typeof json.data.timestamp === 'number' ? json.data.timestamp : undefined,
         };
       }
     }

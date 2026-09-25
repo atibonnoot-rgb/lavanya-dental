@@ -86,6 +86,7 @@ const LOCAL_STORAGE_KEY_APPOINTMENTS = 'auradental_appointments_v1';
 const LOCAL_STORAGE_KEY_DOCTORS = 'auradental_doctors_v1';
 const LOCAL_STORAGE_KEY_SERVICES = 'auradental_services_v1';
 const LOCAL_STORAGE_KEY_AUDIT = 'auradental_audit_v1';
+const LOCAL_STORAGE_KEY_TIMESTAMP = 'auradental_timestamp_v1';
 
 // Helper: convert Supabase snake_case row → camelCase DentalService
 const mapServiceRow = (row: Record<string, unknown>): DentalService => ({
@@ -226,13 +227,14 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       let hasCloudDocs = false;
       let hasCloudSvcs = false;
 
+      const localTimestamp = Number(localStorage.getItem(LOCAL_STORAGE_KEY_TIMESTAMP) || '0');
       const hasLocalDoctors = !!localStorage.getItem(LOCAL_STORAGE_KEY_DOCTORS);
       const hasLocalServices = !!localStorage.getItem(LOCAL_STORAGE_KEY_SERVICES);
 
-      // 1. Fetch persistent cloud clinic state (shared across all devices) in background
+      // 1. Fetch persistent cloud clinic state — ONLY accept if cloud timestamp is NEWER than local
       try {
         const cloudData = await fetchCloudClinicState();
-        if (cloudData) {
+        if (cloudData && (!hasLocalDoctors || (cloudData.timestamp || 0) > localTimestamp)) {
           if (cloudData.doctors && cloudData.doctors.length > 0) {
             hasCloudDocs = true;
             setDoctors(cloudData.doctors);
@@ -245,6 +247,11 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             setServices(cloudData.services);
             try {
               localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(cloudData.services));
+            } catch {}
+          }
+          if (cloudData.timestamp) {
+            try {
+              localStorage.setItem(LOCAL_STORAGE_KEY_TIMESTAMP, String(cloudData.timestamp));
             } catch {}
           }
         }
@@ -332,47 +339,28 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       syncChannel = supabase.channel('auradental-cross-device-sync');
       syncChannel
         .on('broadcast', { event: 'CLINIC_SYNC_STATE' }, ({ payload }) => {
-          if (payload) {
-            if (Array.isArray(payload.doctors) && payload.doctors.length > 0) {
-              setDoctors(payload.doctors);
+          if (payload && payload.timestamp) {
+            const currentLocalTs = Number(localStorage.getItem(LOCAL_STORAGE_KEY_TIMESTAMP) || '0');
+            if (payload.timestamp >= currentLocalTs) {
+              if (Array.isArray(payload.doctors) && payload.doctors.length > 0) {
+                setDoctors(payload.doctors);
+                try {
+                  localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(payload.doctors));
+                } catch {}
+              }
+              if (Array.isArray(payload.services) && payload.services.length > 0) {
+                setServices(payload.services);
+                try {
+                  localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(payload.services));
+                } catch {}
+              }
               try {
-                localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(payload.doctors));
-              } catch {}
-            }
-            if (Array.isArray(payload.services) && payload.services.length > 0) {
-              setServices(payload.services);
-              try {
-                localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(payload.services));
+                localStorage.setItem(LOCAL_STORAGE_KEY_TIMESTAMP, String(payload.timestamp));
               } catch {}
             }
           }
         })
-        .on('broadcast', { event: 'REQUEST_CLINIC_STATE' }, () => {
-          try {
-            const savedDocs = localStorage.getItem(LOCAL_STORAGE_KEY_DOCTORS);
-            const savedSvcs = localStorage.getItem(LOCAL_STORAGE_KEY_SERVICES);
-            if (savedDocs || savedSvcs) {
-              syncChannel?.send({
-                type: 'broadcast',
-                event: 'CLINIC_SYNC_STATE',
-                payload: {
-                  doctors: savedDocs ? JSON.parse(savedDocs) : doctors,
-                  services: savedSvcs ? JSON.parse(savedSvcs) : services,
-                  timestamp: Date.now(),
-                }
-              });
-            }
-          } catch {}
-        })
-        .subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
-            syncChannel?.send({
-              type: 'broadcast',
-              event: 'REQUEST_CLINIC_STATE',
-              payload: { timestamp: Date.now() }
-            });
-          }
-        });
+        .subscribe();
     } catch {}
 
     // ─── Realtime: Postgres Changes ─────────────────────────────────────────

@@ -70,7 +70,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
               <img 
                 src={clinicLogo} 
                 alt="Lavanya Dental Clinic" 
-                className="h-10 sm:h-12 md:h-13 w-auto object-contain transition-transform duration-200 group-hover:scale-105" 
+                className="h-14 sm:h-16 md:h-20 w-auto object-contain transition-transform duration-200 group-hover:scale-105" 
               />
             </div>
             <span className="text-[10px] sm:text-[11.5px] md:text-[12px] font-black tracking-[0.25em] text-[#0f2d59] uppercase font-sans text-center leading-tight mt-0.5">

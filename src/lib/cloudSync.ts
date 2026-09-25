@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 import { Doctor, DentalService } from '../types';
 
 const CLOUD_SYNC_ENDPOINT = 'https://api.restful-api.dev/objects/ff808181a09d98f701a0d88f309e1337';
-const SYNC_CHANNEL_NAME = 'auradental-cross-device-sync';
+export const SYNC_CHANNEL_NAME = 'auradental-cross-device-sync';
 
 export interface CloudClinicPayload {
   doctors: Doctor[];
@@ -10,12 +10,21 @@ export interface CloudClinicPayload {
   timestamp: number;
 }
 
+let activeLiveChannel: ReturnType<typeof supabase.channel> | null = null;
+
 /**
- * Fetch latest global doctors & services state from cloud storage
+ * Fetch latest global doctors & services state from cloud storage with strict fast timeout
  */
 export async function fetchCloudClinicState(): Promise<{ doctors?: Doctor[]; services?: DentalService[] } | null> {
   try {
-    const res = await fetch(CLOUD_SYNC_ENDPOINT, { cache: 'no-store' });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s max timeout so UI never lags
+    const res = await fetch(CLOUD_SYNC_ENDPOINT, { 
+      cache: 'no-store',
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
     if (!res.ok) return null;
     const json = await res.json();
     if (json && json.data) {
@@ -34,7 +43,7 @@ export async function fetchCloudClinicState(): Promise<{ doctors?: Doctor[]; ser
       }
     }
   } catch (err) {
-    console.warn('Cloud sync fetch error:', err);
+    // Silent failover to local data so user never experiences lag
   }
   return null;
 }
@@ -50,6 +59,9 @@ export async function saveCloudClinicState(doctors: Doctor[], services: DentalSe
       timestamp: Date.now(),
     };
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
     const res = await fetch(CLOUD_SYNC_ENDPOINT, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -59,35 +71,41 @@ export async function saveCloudClinicState(doctors: Doctor[], services: DentalSe
           state_json: JSON.stringify(payload),
         },
       }),
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
 
     return res.ok;
   } catch (err) {
-    console.warn('Cloud sync save error:', err);
     return false;
   }
 }
 
 /**
- * Broadcast clinic state to all connected devices via Supabase WebSockets
+ * Broadcast clinic state to all connected devices via Supabase WebSockets using a single persistent channel
  */
 export function broadcastLiveSync(doctors: Doctor[], services: DentalService[]) {
   try {
-    const ch = supabase.channel(SYNC_CHANNEL_NAME);
-    ch.subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        ch.send({
-          type: 'broadcast',
-          event: 'CLINIC_SYNC_STATE',
-          payload: {
-            doctors,
-            services,
-            timestamp: Date.now(),
-          },
-        });
-      }
-    });
+    if (!activeLiveChannel) {
+      activeLiveChannel = supabase.channel(SYNC_CHANNEL_NAME);
+      activeLiveChannel.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          activeLiveChannel?.send({
+            type: 'broadcast',
+            event: 'CLINIC_SYNC_STATE',
+            payload: { doctors, services, timestamp: Date.now() },
+          });
+        }
+      });
+    } else {
+      activeLiveChannel.send({
+        type: 'broadcast',
+        event: 'CLINIC_SYNC_STATE',
+        payload: { doctors, services, timestamp: Date.now() },
+      });
+    }
   } catch (err) {
     console.warn('Live broadcast error:', err);
   }
 }
+

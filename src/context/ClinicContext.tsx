@@ -226,7 +226,10 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       let hasCloudDocs = false;
       let hasCloudSvcs = false;
 
-      // 1. Fetch persistent cloud clinic state (shared across all devices)
+      const hasLocalDoctors = !!localStorage.getItem(LOCAL_STORAGE_KEY_DOCTORS);
+      const hasLocalServices = !!localStorage.getItem(LOCAL_STORAGE_KEY_SERVICES);
+
+      // 1. Fetch persistent cloud clinic state (shared across all devices) in background
       try {
         const cloudData = await fetchCloudClinicState();
         if (cloudData) {
@@ -260,41 +263,33 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setClinicSettings(mapClinicSettingsRow(settingsData as Record<string, unknown>));
         }
 
-        // 3. Services — only fallback to Supabase seed if cloud state was missing
-        if (!hasCloudSvcs) {
+        // 3. Services — only seed from Supabase if the user has NEVER stored any services
+        if (!hasLocalServices && !hasCloudSvcs) {
           const { data: servicesData } = await supabase
             .from('services')
             .select('*')
             .order('id');
           if (servicesData && servicesData.length > 0) {
             const mappedServices = servicesData.map((r) => mapServiceRow(r as Record<string, unknown>));
-            setServices(prev => {
-              const customServices = prev.filter(s => !mappedServices.some(ms => ms.id === s.id));
-              const merged = [...mappedServices, ...customServices];
-              try {
-                localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(merged));
-              } catch {}
-              return merged;
-            });
+            setServices(mappedServices);
+            try {
+              localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(mappedServices));
+            } catch {}
           }
         }
 
-        // 4. Doctors — only fallback to Supabase seed if cloud state was missing
-        if (!hasCloudDocs) {
+        // 4. Doctors — only seed from Supabase if the user has NEVER stored any doctors
+        if (!hasLocalDoctors && !hasCloudDocs) {
           const { data: doctorsData } = await supabase
             .from('doctors')
             .select('*')
             .order('display_order');
           if (doctorsData && doctorsData.length > 0) {
             const mappedDoctors = doctorsData.map((r) => mapDoctorRow(r as Record<string, unknown>));
-            setDoctors(prev => {
-              const customDoctors = prev.filter(d => !mappedDoctors.some(md => md.id === d.id));
-              const merged = [...mappedDoctors, ...customDoctors];
-              try {
-                localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(merged));
-              } catch {}
-              return merged;
-            });
+            setDoctors(mappedDoctors);
+            try {
+              localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(mappedDoctors));
+            } catch {}
           }
         }
 
@@ -516,7 +511,7 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } catch {}
   }, [auditLogs]);
 
-  // Listen for storage events, same-origin broadcast channel events, and tab focus/visibility
+  // Listen for storage events and same-origin broadcast channel events (instant & 0ms lag)
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       if (e.key === LOCAL_STORAGE_KEY_DOCTORS && e.newValue) {
@@ -525,22 +520,6 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (e.key === LOCAL_STORAGE_KEY_SERVICES && e.newValue) {
         try { setServices(JSON.parse(e.newValue)); } catch {}
       }
-    };
-
-    const handleTabFocus = async () => {
-      try {
-        const cloudData = await fetchCloudClinicState();
-        if (cloudData) {
-          if (cloudData.doctors && cloudData.doctors.length > 0) {
-            setDoctors(cloudData.doctors);
-            try { localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(cloudData.doctors)); } catch {}
-          }
-          if (cloudData.services && cloudData.services.length > 0) {
-            setServices(cloudData.services);
-            try { localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(cloudData.services)); } catch {}
-          }
-        }
-      } catch {}
     };
 
     let bc: BroadcastChannel | null = null;
@@ -557,18 +536,9 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } catch {}
 
     window.addEventListener('storage', handleStorage);
-    window.addEventListener('focus', handleTabFocus);
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        handleTabFocus();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
       window.removeEventListener('storage', handleStorage);
-      window.removeEventListener('focus', handleTabFocus);
-      document.removeEventListener('visibilitychange', handleVisibility);
       if (bc) bc.close();
     };
   }, []);

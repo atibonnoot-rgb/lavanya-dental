@@ -64,6 +64,7 @@ const DEFAULT_CLINIC_CONFIG = {
   pricingPolicy: 'Treatment costs and procedure plans are provided in person after clinical examination and diagnostics by our doctors during your visit. NEVER quote exact prices or fee numbers over chat.',
   customNotes: 'Parking: Available in front of the clinic. Payment options: Cash, UPI, Credit/Debit cards accepted. Walk-ins welcome for dental emergencies.',
   behavioralDirectives: '',
+  notificationPhone: '',
   customFields: [
     { title: 'Languages Spoken', value: 'English, Telugu, Hindi' },
     { title: 'Payment Options', value: 'Google Pay, PhonePe, Paytm, All Credit/Debit Cards, Cash' },
@@ -162,15 +163,19 @@ CRITICAL RULES:
 2. Always be polite, warm, and helpful. Answer in the same language the patient speaks (English, Hindi, Hinglish, Telugu, etc.).
 3. Strictly follow any custom instructions & response style directives provided above.
 4. Answer questions about procedures, pain management, doctor specializations, clinic location, directions, timings, and any custom clinic topics accurately based on the clinic details above.
-5. If a patient wants to book an appointment, gather these 4 details:
+5. APPOINTMENT BOOKING DETAILS:
+   If a patient wants to book an appointment, gather these details:
    - Patient Full Name
-   - Preferred Date (YYYY-MM-DD or say tomorrow/Monday)
-   - Preferred Time Slot (e.g. 10:00, 11:30, 14:00, 16:30)
-   - Treatment / Service needed
-6. CRITICAL RULE FOR BOOKING: Once you have the Patient's Name, Date, Time Slot, and Service/Complaint, finalize the booking by appending this exact JSON tag at the VERY END of your message:
-[BOOKING_READY: {"patient_name": "...", "date": "YYYY-MM-DD", "time_slot": "HH:MM", "service_id": "serv-1", "primary_complaint": "..."}]
-Use today's year: 2026. If service matches, use serv-1 to serv-7, otherwise default to serv-1.
-Keep your messages concise and WhatsApp-friendly (use line breaks and emojis).`;
+   - Contact Phone Number (verify or confirm the number they wish to be contacted on)
+   - Preferred Date (YYYY-MM-DD or e.g. tomorrow/Monday)
+   - Preferred Time Slot (e.g. 10:00 AM, 11:30 AM, 2:00 PM, 4:30 PM)
+   - Dental Concern or Treatment needed
+6. CRITICAL RULE FOR BOOKING CONFIRMATION & CLINIC SELF-ALERT:
+   Once the patient provides their Name, Phone Number, Date, and Time Slot (whether given in a single message or gathered step-by-step), you MUST confirm their appointment warmly and append this exact JSON tag at the VERY END of your message:
+[BOOKING_READY: {"patient_name": "...", "patient_phone": "...", "date": "YYYY-MM-DD", "time_slot": "HH:MM", "service_id": "serv-1", "primary_complaint": "..."}]
+   Note: This tag automatically triggers the system to send an instant summary message with the client's complete details to the clinic's WhatsApp chat ('Message Yourself') and records the appointment in the database.
+   Use today's year: 2026. If service matches, use serv-1 to serv-7, otherwise default to serv-1.
+   Keep your messages concise and WhatsApp-friendly (use line breaks and emojis).`;
 }
 
 const CANDIDATE_MODELS = [
@@ -451,8 +456,8 @@ async function startWhatsAppBot() {
 
       if (!userText.trim()) continue;
 
-      // Prevent infinite loop if text has bot prefix or signature
-      if (userText.includes('Lavanya Dental Assistant')) continue;
+      // Prevent infinite loop if text has bot prefix, signature, or alert
+      if (userText.includes('Lavanya Dental Assistant') || userText.includes('NEW APPOINTMENT ALERT') || userText.includes('[BOOKING_READY')) continue;
 
       const myRawId = sock.user?.id || '';
       const myNumber = myRawId.split(':')[0].replace(/[^0-9]/g, '');
@@ -480,20 +485,25 @@ async function startWhatsAppBot() {
         try {
           const bookingData = JSON.parse(match[1]);
           const confirmationCode = `AD-${Math.floor(1000 + Math.random() * 9000)}`;
+          const patientPhone = bookingData.patient_phone || bookingData.phone || `+${senderPhone}`;
+          const patientDisplayName = bookingData.patient_name || patientName;
+          const bookingDate = bookingData.date || new Date().toISOString().split('T')[0];
+          const bookingTime = bookingData.time_slot || '10:00 AM';
+          const bookingService = bookingData.primary_complaint || 'Dental Consultation / Checkup';
 
           // Insert into Supabase
           const { error } = await supabase.from('appointments').insert({
             id: `apt-${Date.now()}`,
             confirmation_code: confirmationCode,
-            patient_name: bookingData.patient_name || patientName,
-            patient_phone: `+${senderPhone}`,
+            patient_name: patientDisplayName,
+            patient_phone: patientPhone,
             patient_email: 'whatsapp-patient@lavanyadental.com',
             doctor_id: 'doc-1',
             service_id: bookingData.service_id || 'serv-1',
-            date: bookingData.date || new Date().toISOString().split('T')[0],
-            time_slot: bookingData.time_slot || '10:00',
+            date: bookingDate,
+            time_slot: bookingTime,
             status: 'Pending',
-            primary_complaint: bookingData.primary_complaint || 'Booked via WhatsApp AI Assistant',
+            primary_complaint: bookingService,
             deposit_amount: 0,
             deposit_paid: false,
             payment_method: 'Clinic',
@@ -502,7 +512,52 @@ async function startWhatsAppBot() {
 
           if (!error) {
             bookedId = confirmationCode;
-            console.log(`>>> AUTO-BOOKED APPOINTMENT: ${confirmationCode} for ${bookingData.patient_name} in Supabase!`);
+            console.log(`>>> AUTO-BOOKED APPOINTMENT: ${confirmationCode} for ${patientDisplayName} in Supabase!`);
+
+            // Send instant alert message to self (Message Yourself)
+            const selfAlertText = `🦷 *Lavanya Dental Assistant*\n` +
+              `🔔 *NEW APPOINTMENT ALERT* 🔔\n` +
+              `━━━━━━━━━━━━━━━━━━━━━\n` +
+              `👤 *Patient Name:* ${patientDisplayName}\n` +
+              `📞 *Contact Number:* ${patientPhone}\n` +
+              `📅 *Appointment Date:* ${bookingDate}\n` +
+              `⏰ *Time Slot:* ${bookingTime}\n` +
+              `🦷 *Treatment / Service:* ${bookingService}\n` +
+              `🔖 *Booking ID:* #${confirmationCode}\n` +
+              `⏱ *Booked At:* ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}\n` +
+              `━━━━━━━━━━━━━━━━━━━━━\n` +
+              `💾 *Auto-saved to Lavanya Dental Database*`;
+
+            const selfJid = myNumber ? `${myNumber}@s.whatsapp.net` : null;
+            if (selfJid) {
+              try {
+                const selfMsg = await sock.sendMessage(selfJid, { text: selfAlertText });
+                if (selfMsg?.key?.id) {
+                  sentBotMessageIds.add(selfMsg.key.id);
+                }
+                console.log(`>>> Sent booking alert to self (${selfJid}) for patient ${patientDisplayName}`);
+              } catch (alertErr) {
+                console.warn('Failed to send booking alert to self:', alertErr.message);
+              }
+            }
+
+            // Also send to configured admin notification phone if different from selfJid
+            const adminPhoneRaw = clinicConfig.notificationPhone;
+            if (adminPhoneRaw) {
+              const cleanAdmin = adminPhoneRaw.replace(/[^0-9]/g, '');
+              if (cleanAdmin && cleanAdmin !== myNumber) {
+                const adminJid = `${cleanAdmin}@s.whatsapp.net`;
+                try {
+                  const adminMsg = await sock.sendMessage(adminJid, { text: selfAlertText });
+                  if (adminMsg?.key?.id) {
+                    sentBotMessageIds.add(adminMsg.key.id);
+                  }
+                  console.log(`>>> Also sent booking alert to admin number (${adminJid})`);
+                } catch (adminErr) {
+                  console.warn('Failed to send booking alert to admin:', adminErr.message);
+                }
+              }
+            }
           } else {
             console.warn('Supabase booking insert warning:', error);
           }
@@ -605,8 +660,17 @@ const server = http.createServer(async (req, res) => {
           return res.end(JSON.stringify({ error: 'Please enter a message to test.' }));
         }
         const reply = await callGeminiAI(`test-user-${Date.now()}`, query.trim());
+        let bookingDetails = null;
+        let cleanReply = reply;
+        const match = reply.match(/\[BOOKING_READY:\s*(\{.*?\})\]/s);
+        if (match) {
+          try {
+            bookingDetails = JSON.parse(match[1]);
+          } catch (e) {}
+          cleanReply = reply.replace(/\[BOOKING_READY:\s*\{.*?\}\]/s, '').trim();
+        }
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ reply }));
+        res.end(JSON.stringify({ reply: cleanReply, bookingDetails }));
       } catch (err) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: err.message }));
@@ -778,6 +842,16 @@ const server = http.createServer(async (req, res) => {
             </div>
           </div>
 
+          <!-- Doctor / Staff Alert Notification Phone (Optional) -->
+          <div class="space-y-2">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center justify-between">
+              <span>Doctor / Staff Notification WhatsApp Number (Optional)</span>
+              <span class="text-[10px] text-emerald-400 font-mono font-normal">Auto-Alerts to Self Enabled 🔔</span>
+            </label>
+            <input type="text" name="notificationPhone" id="notificationPhone" value="${escapeHtml(clinicConfig.notificationPhone || '')}" placeholder="e.g. +91 8555052843 (or leave blank to alert linked bot WhatsApp)" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700/80 text-white text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" />
+            <p class="text-[11px] text-slate-500">Whenever a patient provides their name, phone number, and timeslot to book, Aura sends an instant notification message with all client details to herself (linked WhatsApp). If you'd like alerts sent to a second doctor/staff number as well, enter it here.</p>
+          </div>
+
           <!-- Address & Location -->
           <div class="space-y-2">
             <label class="block text-xs font-bold uppercase tracking-wider text-slate-300">Clinic Full Address &amp; Landmark Directions</label>
@@ -894,6 +968,7 @@ const server = http.createServer(async (req, res) => {
         <!-- Quick Question Chips -->
         <div class="flex flex-wrap gap-2">
           <span class="text-xs text-slate-400 self-center">Try asking:</span>
+          <button type="button" onclick="setTestQuery('I want to book an appointment for root canal tomorrow at 10:30 AM. My name is Saakib and my phone number is 9876543210.')" class="px-3 py-1.5 rounded-lg bg-emerald-950/70 hover:bg-emerald-900/70 text-xs text-emerald-300 border border-emerald-700/50 transition-colors font-semibold">📅 Test Instant Booking (Name + Phone + Time)</button>
           <button type="button" onclick="setTestQuery(this.innerText)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-teal-300 border border-slate-700 transition-colors">Where is your clinic located?</button>
           <button type="button" onclick="setTestQuery(this.innerText)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-teal-300 border border-slate-700 transition-colors">What are your working hours?</button>
           <button type="button" onclick="setTestQuery(this.innerText)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-teal-300 border border-slate-700 transition-colors">Who is the chief doctor?</button>
@@ -923,6 +998,15 @@ const server = http.createServer(async (req, res) => {
               <span class="text-[10px] text-slate-500 font-mono">Gemini Flash Live</span>
             </div>
             <div id="aiReplyContent" class="text-xs sm:text-sm text-slate-200 whitespace-pre-line leading-relaxed font-sans bg-slate-900 p-4 rounded-xl border-l-2 border-emerald-500"></div>
+
+            <!-- Self-Notification Simulation Box -->
+            <div id="aiSelfAlertPreview" class="hidden mt-3 p-4 rounded-2xl bg-emerald-950/60 border border-emerald-500/40 text-xs space-y-2">
+              <div class="font-bold flex items-center gap-2 text-emerald-300">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Self-Alert Message Sent to WhatsApp ('Message Yourself'):</span>
+              </div>
+              <pre id="aiSelfAlertContent" class="font-mono text-[11px] text-slate-200 bg-slate-950 p-3 rounded-xl border border-slate-800 whitespace-pre-line leading-relaxed"></pre>
+            </div>
           </div>
         </div>
       </div>
@@ -1175,6 +1259,31 @@ const server = http.createServer(async (req, res) => {
             replyEl.innerText = data.reply;
           } else {
             replyEl.innerText = 'Error: ' + (data.error || 'Failed to get response');
+          }
+        }
+
+        const alertBox = document.getElementById('aiSelfAlertPreview');
+        const alertContent = document.getElementById('aiSelfAlertContent');
+        if (alertBox && alertContent) {
+          if (data.bookingDetails) {
+            const bd = data.bookingDetails;
+            alertBox.classList.remove('hidden');
+            var nl = String.fromCharCode(10);
+            alertContent.innerText = [
+              '🦷 Lavanya Dental Assistant',
+              '🔔 NEW APPOINTMENT ALERT 🔔',
+              '━━━━━━━━━━━━━━━━━━━━━',
+              '👤 Patient Name: ' + (bd.patient_name || 'Patient'),
+              '📞 Contact Number: ' + (bd.patient_phone || bd.phone || '9876543210'),
+              '📅 Appointment Date: ' + (bd.date || '2026-09-28'),
+              '⏰ Time Slot: ' + (bd.time_slot || '10:00 AM'),
+              '🦷 Treatment / Concern: ' + (bd.primary_complaint || 'Dental Consultation'),
+              '🔖 Booking ID: #AD-SIMULATED',
+              '━━━━━━━━━━━━━━━━━━━━━',
+              '💾 Auto-saved to Database & Alert dispatched to linked WhatsApp!'
+            ].join(nl);
+          } else {
+            alertBox.classList.add('hidden');
           }
         }
       } catch (err) {

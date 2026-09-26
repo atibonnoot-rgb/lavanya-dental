@@ -731,13 +731,13 @@ const server = http.createServer(async (req, res) => {
 
     <!-- Navigation Tabs -->
     <div class="flex items-center gap-2 p-1.5 bg-slate-900/80 rounded-2xl border border-slate-800">
-      <button onclick="switchTab('tab-knowledge')" id="btn-tab-knowledge" class="tab-active flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold border transition-all flex items-center justify-center gap-2">
-        <span>🏥</span> Clinic Knowledge & Details
+      <button type="button" onclick="switchTab('tab-knowledge')" id="btn-tab-knowledge" class="tab-active flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold border transition-all flex items-center justify-center gap-2">
+        <span>🏥</span> Clinic Knowledge &amp; Details
       </button>
-      <button onclick="switchTab('tab-simulator')" id="btn-tab-simulator" class="tab-inactive flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold border transition-all flex items-center justify-center gap-2">
+      <button type="button" onclick="switchTab('tab-simulator')" id="btn-tab-simulator" class="tab-inactive flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold border transition-all flex items-center justify-center gap-2">
         <span>🧪</span> Test AI Playground
       </button>
-      <button onclick="switchTab('tab-logs')" id="btn-tab-logs" class="tab-inactive flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold border transition-all flex items-center justify-center gap-2">
+      <button type="button" onclick="switchTab('tab-logs')" id="btn-tab-logs" class="tab-inactive flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold border transition-all flex items-center justify-center gap-2">
         <span>💬</span> WhatsApp Activity Logs
       </button>
     </div>
@@ -755,11 +755,13 @@ const server = http.createServer(async (req, res) => {
             </p>
           </div>
           <div id="saveToast" class="hidden text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-            ✓ Saved & Updated Live!
+            ✓ Saved &amp; Updated Live!
           </div>
         </div>
 
         <form id="clinicSettingsForm" onsubmit="handleSaveSettings(event)" class="space-y-5">
+          <input type="hidden" name="customFields" id="hiddenCustomFields" />
+
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <!-- Clinic Name -->
             <div class="space-y-2">
@@ -778,42 +780,42 @@ const server = http.createServer(async (req, res) => {
 
           <!-- Address & Location -->
           <div class="space-y-2">
-            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300">Clinic Full Address & Landmark Directions</label>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300">Clinic Full Address &amp; Landmark Directions</label>
             <input type="text" name="address" id="address" value="${escapeHtml(clinicConfig.address)}" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700/80 text-white text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" required />
             <p class="text-[11px] text-slate-500">Include floor, building, nearby landmark, or road name so Aura can guide patients.</p>
           </div>
 
           <!-- Working Hours -->
           <div class="space-y-2">
-            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300">Clinic Working Hours & Days</label>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300">Clinic Working Hours &amp; Days</label>
             <input type="text" name="hours" id="hours" value="${escapeHtml(clinicConfig.hours)}" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700/80 text-white text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" required />
             <p class="text-[11px] text-slate-500">E.g., Mon-Sat: 8:00 AM – 6:00 PM (Sunday Closed).</p>
           </div>
 
           <!-- Doctors & Clinicians -->
           <div class="space-y-2">
-            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300">Doctors, Clinicians & Specialties</label>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300">Doctors, Clinicians &amp; Specialties</label>
             <input type="text" name="doctors" id="doctors" value="${escapeHtml(clinicConfig.doctors)}" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700/80 text-white text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" required />
             <p class="text-[11px] text-slate-500">List doctors with qualifications (e.g. Dr. Saakib - Chief Implantologist, Dr. Lavanya - Orthodontist).</p>
           </div>
 
           <!-- Treatments & Services -->
           <div class="space-y-2">
-            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300">Available Dental Treatments & Services</label>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300">Available Dental Treatments &amp; Services</label>
             <textarea name="services" id="services" rows="5" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700/80 text-white text-xs sm:text-sm font-mono focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" required>${escapeHtml(clinicConfig.services)}</textarea>
             <p class="text-[11px] text-slate-500">List of services offered. Aura uses this to recommend procedures and match booking IDs (serv-1 to serv-7).</p>
           </div>
 
           <!-- Strict Pricing Policy -->
           <div class="space-y-2">
-            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300">Pricing & Fee Quotation Policy</label>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300">Pricing &amp; Fee Quotation Policy</label>
             <textarea name="pricingPolicy" id="pricingPolicy" rows="2" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700/80 text-white text-xs sm:text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">${escapeHtml(clinicConfig.pricingPolicy)}</textarea>
             <p class="text-[11px] text-slate-500">How Aura should handle price questions. By clinic policy, exact treatment costs are assessed in-person after clinical diagnostics.</p>
           </div>
 
           <!-- Additional Notes / FAQs / Patient Guidelines -->
           <div class="space-y-2">
-            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300">Special Instructions, Parking & FAQs for AI</label>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300">Special Instructions, Parking &amp; FAQs for AI</label>
             <textarea name="customNotes" id="customNotes" rows="3" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700/80 text-white text-xs sm:text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">${escapeHtml(clinicConfig.customNotes)}</textarea>
             <p class="text-[11px] text-slate-500">Add any extra details: parking availability, payment modes (UPI, cards), emergency walk-in instructions, etc.</p>
           </div>
@@ -823,7 +825,7 @@ const server = http.createServer(async (req, res) => {
             <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-950/70 p-4 rounded-2xl border border-slate-800">
               <div>
                 <label class="text-sm font-bold text-white flex items-center gap-2">
-                  <span class="text-emerald-400 text-base">✨</span> Custom Knowledge Options & Topics
+                  <span class="text-emerald-400 text-base">✨</span> Custom Knowledge Options &amp; Topics
                 </label>
                 <p class="text-[11px] text-slate-400 mt-0.5">
                   Create your own custom fields with any topic name and details (e.g. <i>Languages Spoken</i>, <i>Accepted Insurance</i>, <i>Nearest Metro</i>, <i>Consultation Fees</i>, <i>Special Discounts</i>).
@@ -845,7 +847,7 @@ const server = http.createServer(async (req, res) => {
             <div class="flex items-center justify-between">
               <div>
                 <label class="text-sm font-bold text-white flex items-center gap-2">
-                  <span class="text-purple-400 text-base">🎯</span> Custom AI Behavior & Response Directives (Freeform)
+                  <span class="text-purple-400 text-base">🎯</span> Custom AI Behavior &amp; Response Directives (Freeform)
                 </label>
                 <p class="text-[11px] text-slate-400 mt-0.5">
                   Direct the AI on exactly how you want it to answer, talk, tone of voice, format replies, or any special rules in your own words.
@@ -870,7 +872,7 @@ const server = http.createServer(async (req, res) => {
           <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
             <button type="submit" id="saveBtn" class="px-6 py-3.5 rounded-xl font-bold text-sm bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2">
               <span id="saveBtnIcon">💾</span>
-              <span id="saveBtnText">Save & Update AI Knowledge</span>
+              <span id="saveBtnText">Save &amp; Update AI Knowledge</span>
             </button>
           </div>
         </form>
@@ -885,35 +887,43 @@ const server = http.createServer(async (req, res) => {
             <span>🧪</span> Live AI Chat Simulator
           </h2>
           <p class="text-xs text-slate-400 mt-1">
-            Test how Aura answers questions using your customized clinic details before testing on WhatsApp.
+            Test how Aura answers questions using your customized clinic details and directives before testing on WhatsApp.
           </p>
         </div>
 
         <!-- Quick Question Chips -->
         <div class="flex flex-wrap gap-2">
           <span class="text-xs text-slate-400 self-center">Try asking:</span>
-          <button onclick="setTestQuery(this.innerText)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-teal-300 border border-slate-700 transition-colors">Where is your clinic located?</button>
-          <button onclick="setTestQuery(this.innerText)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-teal-300 border border-slate-700 transition-colors">What are your working hours?</button>
-          <button onclick="setTestQuery(this.innerText)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-teal-300 border border-slate-700 transition-colors">Who is the chief doctor?</button>
-          <button onclick="setTestQuery(this.innerText)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-teal-300 border border-slate-700 transition-colors">How much does a root canal cost?</button>
-          <button onclick="setTestQuery(this.innerText)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-teal-300 border border-slate-700 transition-colors">Can I park my car at the clinic?</button>
+          <button type="button" onclick="setTestQuery(this.innerText)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-teal-300 border border-slate-700 transition-colors">Where is your clinic located?</button>
+          <button type="button" onclick="setTestQuery(this.innerText)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-teal-300 border border-slate-700 transition-colors">What are your working hours?</button>
+          <button type="button" onclick="setTestQuery(this.innerText)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-teal-300 border border-slate-700 transition-colors">Who is the chief doctor?</button>
+          <button type="button" onclick="setTestQuery(this.innerText)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-teal-300 border border-slate-700 transition-colors">How much does a root canal cost?</button>
+          <button type="button" onclick="setTestQuery(this.innerText)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-teal-300 border border-slate-700 transition-colors">Can I park my car at the clinic?</button>
         </div>
 
         <!-- Input Box -->
         <div class="flex gap-2">
           <input type="text" id="testQueryInput" placeholder="Type any question for Aura..." class="flex-1 px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" onkeydown="if(event.key==='Enter') runAITest();" />
-          <button onclick="runAITest()" id="testAIBtn" class="px-6 py-3 rounded-xl font-bold text-sm bg-teal-500 hover:bg-teal-400 text-slate-950 transition-colors flex items-center gap-2 shrink-0">
+          <button type="button" onclick="runAITest()" id="testAIBtn" class="px-6 py-3 rounded-xl font-bold text-sm bg-teal-500 hover:bg-teal-400 text-slate-950 transition-colors flex items-center gap-2 shrink-0">
             <span>Send</span>
           </button>
         </div>
 
         <!-- Chat Conversation Output -->
         <div id="aiTestResult" class="hidden p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-          <div class="flex items-center justify-between text-xs text-slate-400">
-            <span class="font-bold text-emerald-400">Aura AI Response:</span>
-            <span class="text-[10px] text-slate-500">Live Gemini Flash</span>
+          <div class="space-y-1">
+            <span class="text-[11px] font-bold text-slate-400">You asked:</span>
+            <p id="aiTestUserPrompt" class="text-xs text-slate-300 bg-slate-900/80 p-3 rounded-xl border border-slate-800 font-sans"></p>
           </div>
-          <div id="aiReplyContent" class="text-sm text-slate-200 whitespace-pre-line leading-relaxed font-sans"></div>
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-xs text-slate-400">
+              <span class="font-bold text-emerald-400 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Aura AI Response:
+              </span>
+              <span class="text-[10px] text-slate-500 font-mono">Gemini Flash Live</span>
+            </div>
+            <div id="aiReplyContent" class="text-xs sm:text-sm text-slate-200 whitespace-pre-line leading-relaxed font-sans bg-slate-900 p-4 rounded-xl border-l-2 border-emerald-500"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -981,29 +991,34 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      container.innerHTML = currentCustomFields.map((field, idx) => \`
-        <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3 relative group">
-          <div class="flex items-center justify-between gap-3">
-            <div class="flex-1">
-              <label class="block text-[10px] font-bold uppercase tracking-wider text-emerald-400 mb-1">Option / Topic Name</label>
-              <input type="text" placeholder="e.g. Languages Spoken, Accepted Insurance, Nearest Landmark, Consultation Fees..." value="\${escapeJsHtml(field.title || '')}" oninput="updateCustomField(\${idx}, 'title', this.value)" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700/80 text-white text-xs font-semibold focus:outline-none focus:border-emerald-500" required />
-            </div>
-            <button type="button" onclick="removeCustomField(\${idx})" class="text-rose-400 hover:text-rose-300 hover:bg-rose-950/60 px-3 py-2 rounded-xl border border-rose-800/40 transition-all text-xs font-bold shrink-0 self-end mb-0.5 flex items-center gap-1" title="Remove this option">
-              <span>✕</span> Remove
-            </button>
-          </div>
-          <div>
-            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Information / Details for Aura AI</label>
-            <textarea rows="2" placeholder="Write the accurate information Aura should share with patients..." oninput="updateCustomField(\${idx}, 'value', this.value)" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700/80 text-white text-xs focus:outline-none focus:border-emerald-500" required>\${escapeJsHtml(field.value || '')}</textarea>
-          </div>
-        </div>
-      \`).join('');
+      var html = '';
+      for (var idx = 0; idx < currentCustomFields.length; idx++) {
+        var field = currentCustomFields[idx] || {};
+        var titleVal = escapeJsHtml(field.title || '');
+        var textVal = escapeJsHtml(field.value || '');
+        html += '<div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3 relative group">' +
+          '<div class="flex items-center justify-between gap-3">' +
+            '<div class="flex-1">' +
+              '<label class="block text-[10px] font-bold uppercase tracking-wider text-emerald-400 mb-1">Option / Topic Name</label>' +
+              '<input type="text" placeholder="e.g. Languages Spoken, Accepted Insurance, Nearest Landmark, Consultation Fees..." value="' + titleVal + '" oninput="updateCustomField(' + idx + ', \\'title\\', this.value)" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700/80 text-white text-xs font-semibold focus:outline-none focus:border-emerald-500" />' +
+            '</div>' +
+            '<button type="button" onclick="removeCustomField(' + idx + ')" class="text-rose-400 hover:text-rose-300 hover:bg-rose-950/60 px-3 py-2 rounded-xl border border-rose-800/40 transition-all text-xs font-bold shrink-0 self-end mb-0.5 flex items-center gap-1" title="Remove this option">' +
+              '<span>✕</span> Remove' +
+            '</button>' +
+          '</div>' +
+          '<div>' +
+            '<label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Information / Details for Aura AI</label>' +
+            '<textarea rows="2" placeholder="Write the accurate information Aura should share with patients..." oninput="updateCustomField(' + idx + ', \\'value\\', this.value)" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700/80 text-white text-xs focus:outline-none focus:border-emerald-500">' + textVal + '</textarea>' +
+          '</div>' +
+        '</div>';
+      }
+      container.innerHTML = html;
     }
 
     function addCustomField() {
       currentCustomFields.push({ title: '', value: '' });
       renderCustomFields();
-      setTimeout(() => {
+      setTimeout(function() {
         const inputs = document.querySelectorAll('#customFieldsContainer input');
         if (inputs.length) inputs[inputs.length - 1].focus();
       }, 50);
@@ -1023,8 +1038,9 @@ const server = http.createServer(async (req, res) => {
     function appendDirective(text) {
       const el = document.getElementById('behavioralDirectives');
       if (el) {
-        if (el.value.trim().length > 0) {
-          el.value = el.value.trim() + '\n' + text;
+        var current = el.value.trim();
+        if (current.length > 0) {
+          el.value = current + String.fromCharCode(10) + text;
         } else {
           el.value = text;
         }
@@ -1034,34 +1050,54 @@ const server = http.createServer(async (req, res) => {
 
     // Tab Switching
     function switchTab(tabId) {
-      ['tab-knowledge', 'tab-simulator', 'tab-logs'].forEach(id => {
-        const el = document.getElementById(id);
-        const btn = document.getElementById('btn-' + id);
+      var tabIds = ['tab-knowledge', 'tab-simulator', 'tab-logs'];
+      for (var i = 0; i < tabIds.length; i++) {
+        var id = tabIds[i];
+        var el = document.getElementById(id);
+        var btn = document.getElementById('btn-' + id);
         if (id === tabId) {
-          el.classList.remove('hidden');
-          btn.className = 'tab-active flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold border transition-all flex items-center justify-center gap-2';
+          if (el) el.classList.remove('hidden');
+          if (btn) {
+            btn.className = 'tab-active flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold border transition-all flex items-center justify-center gap-2';
+          }
         } else {
-          el.classList.add('hidden');
-          btn.className = 'tab-inactive flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold border transition-all flex items-center justify-center gap-2';
+          if (el) el.classList.add('hidden');
+          if (btn) {
+            btn.className = 'tab-inactive flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold border transition-all flex items-center justify-center gap-2';
+          }
         }
-      });
+      }
     }
 
     // Save Clinic Settings
     async function handleSaveSettings(e) {
-      e.preventDefault();
+      if (e && e.preventDefault) e.preventDefault();
       const saveBtn = document.getElementById('saveBtn');
       const saveBtnText = document.getElementById('saveBtnText');
       const saveToast = document.getElementById('saveToast');
 
-      saveBtnText.innerText = 'Saving to Supabase Cloud...';
-      saveBtn.disabled = true;
+      if (saveBtnText) saveBtnText.innerText = 'Saving to Supabase Cloud...';
+      if (saveBtn) saveBtn.disabled = true;
 
       const formData = new FormData(document.getElementById('clinicSettingsForm'));
       const payload = Object.fromEntries(formData.entries());
 
+      // Explicitly capture freeform behavioral directives
+      const dirEl = document.getElementById('behavioralDirectives');
+      if (dirEl) {
+        payload.behavioralDirectives = dirEl.value;
+      }
+
       // Attach sanitized custom fields
-      payload.customFields = currentCustomFields.filter(f => f && f.title?.trim() && f.value?.trim());
+      payload.customFields = currentCustomFields.filter(function(f) {
+        return f && f.title && f.title.trim() && f.value && f.value.trim();
+      });
+
+      // Keep hidden field in sync
+      const hiddenFields = document.getElementById('hiddenCustomFields');
+      if (hiddenFields) {
+        hiddenFields.value = JSON.stringify(payload.customFields);
+      }
 
       try {
         const res = await fetch('/api/save-settings', {
@@ -1071,62 +1107,83 @@ const server = http.createServer(async (req, res) => {
         });
         const data = await res.json();
         if (data.success) {
-          saveToast.classList.remove('hidden');
-          saveBtnText.innerText = '✓ Saved & Updated Live!';
-          setTimeout(() => {
-            saveBtnText.innerText = 'Save & Update AI Knowledge';
-            saveBtn.disabled = false;
-            saveToast.classList.add('hidden');
+          if (saveToast) {
+            saveToast.classList.remove('hidden');
+            saveToast.innerText = '✓ Saved to Supabase Cloud & Active Live!';
+          }
+          if (saveBtnText) saveBtnText.innerText = '✓ Saved to Supabase Cloud!';
+          if (data.settings && Array.isArray(data.settings.customFields)) {
+            currentCustomFields = data.settings.customFields;
+            renderCustomFields();
+          }
+          setTimeout(function() {
+            if (saveBtnText) saveBtnText.innerText = 'Save & Update AI Knowledge';
+            if (saveBtn) saveBtn.disabled = false;
+            if (saveToast) saveToast.classList.add('hidden');
           }, 3500);
         } else {
           alert('Could not save settings: ' + (data.error || 'Unknown error'));
-          saveBtnText.innerText = 'Save & Update AI Knowledge';
-          saveBtn.disabled = false;
+          if (saveBtnText) saveBtnText.innerText = 'Save & Update AI Knowledge';
+          if (saveBtn) saveBtn.disabled = false;
         }
       } catch (err) {
         alert('Network error saving settings: ' + err.message);
-        saveBtnText.innerText = 'Save & Update AI Knowledge';
-        saveBtn.disabled = false;
+        if (saveBtnText) saveBtnText.innerText = 'Save & Update AI Knowledge';
+        if (saveBtn) saveBtn.disabled = false;
       }
     }
 
     // Test AI Playground
     function setTestQuery(q) {
-      document.getElementById('testQueryInput').value = q;
+      var input = document.getElementById('testQueryInput');
+      if (input) input.value = q;
       runAITest();
     }
 
     async function runAITest() {
       const input = document.getElementById('testQueryInput');
+      if (!input) return;
       const query = input.value.trim();
-      if (!query) return;
+      if (!query) {
+        alert('Please type a question to test Aura AI.');
+        return;
+      }
 
       const btn = document.getElementById('testAIBtn');
       const resBox = document.getElementById('aiTestResult');
+      const userPromptEl = document.getElementById('aiTestUserPrompt');
       const replyEl = document.getElementById('aiReplyContent');
 
-      btn.innerText = 'Thinking...';
-      btn.disabled = true;
+      if (userPromptEl) userPromptEl.innerText = query;
+      if (resBox) resBox.classList.remove('hidden');
+      if (replyEl) replyEl.innerText = 'Thinking... (consulting clinic knowledge & directives)';
+
+      if (btn) {
+        btn.innerText = 'Thinking...';
+        btn.disabled = true;
+      }
 
       try {
         const res = await fetch('/api/test-ai', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query })
+          body: JSON.stringify({ query: query })
         });
         const data = await res.json();
-        resBox.classList.remove('hidden');
-        if (data.reply) {
-          replyEl.innerText = data.reply;
-        } else {
-          replyEl.innerText = 'Error: ' + (data.error || 'Failed to get response');
+        if (replyEl) {
+          if (data.reply) {
+            replyEl.innerText = data.reply;
+          } else {
+            replyEl.innerText = 'Error: ' + (data.error || 'Failed to get response');
+          }
         }
       } catch (err) {
-        resBox.classList.remove('hidden');
-        replyEl.innerText = 'Error: ' + err.message;
+        if (replyEl) replyEl.innerText = 'Error: ' + err.message;
       } finally {
-        btn.innerText = 'Send';
-        btn.disabled = false;
+        if (btn) {
+          btn.innerText = 'Send';
+          btn.disabled = false;
+        }
       }
     }
 
@@ -1139,35 +1196,75 @@ const server = http.createServer(async (req, res) => {
 
         // Update status badge
         const badge = document.getElementById('botStatusBadge');
+        const dot = document.getElementById('statusDot');
         if (badge) {
           badge.innerText = data.botStatus;
-          if (data.botStatus.includes('Active')) {
+          if (data.botStatus && data.botStatus.indexOf('Active') !== -1) {
             badge.className = 'px-4 py-2 text-xs font-bold rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
-            document.getElementById('statusDot').className = 'w-3.5 h-3.5 rounded-full bg-emerald-400 animate-pulse';
+            if (dot) dot.className = 'w-3.5 h-3.5 rounded-full bg-emerald-400 animate-pulse';
           } else {
             badge.className = 'px-4 py-2 text-xs font-bold rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40';
-            document.getElementById('statusDot').className = 'w-3.5 h-3.5 rounded-full bg-amber-400';
+            if (dot) dot.className = 'w-3.5 h-3.5 rounded-full bg-amber-400';
           }
         }
 
         // Update connected number
-        if (data.connectedNumber) {
-          document.getElementById('connectedNumberDisplay').innerText = data.connectedNumber;
+        const numEl = document.getElementById('connectedNumberDisplay');
+        if (numEl && data.connectedNumber) {
+          numEl.innerText = '+' + data.connectedNumber;
         }
 
         // Update QR code container
         const qrContainer = document.getElementById('qrCodeContainer');
-        if (data.currentQRDataUrl) {
-          qrContainer.classList.remove('hidden');
-          document.getElementById('qrImage').src = data.currentQRDataUrl;
-        } else {
-          qrContainer.classList.add('hidden');
+        const qrImg = document.getElementById('qrImage');
+        if (qrContainer && qrImg) {
+          if (data.currentQRDataUrl) {
+            qrContainer.classList.remove('hidden');
+            qrImg.src = data.currentQRDataUrl;
+          } else {
+            qrContainer.classList.add('hidden');
+          }
         }
 
         // Update message logs count
-        document.getElementById('logsCountBadge').innerText = data.messageLogs.length + ' messages';
+        const logsBadge = document.getElementById('logsCountBadge');
+        if (logsBadge && data.messageLogs) {
+          logsBadge.innerText = data.messageLogs.length + ' messages';
+        }
+
+        // Dynamically update message logs list
+        const logsContainer = document.getElementById('logsContainer');
+        if (logsContainer && data.messageLogs && data.messageLogs.length > 0) {
+          var logsHtml = '';
+          for (var i = 0; i < data.messageLogs.length; i++) {
+            var log = data.messageLogs[i];
+            logsHtml += '<div class="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 text-xs space-y-2">' +
+              '<div class="flex items-center justify-between text-slate-400">' +
+                '<span class="font-semibold text-teal-300">' + escapeJsHtml(log.sender) + '</span>' +
+                '<span class="text-[10px] font-mono text-slate-500">' + escapeJsHtml(log.time) + '</span>' +
+              '</div>' +
+              '<p class="text-slate-200 bg-slate-900/70 p-2.5 rounded-xl">"' + escapeJsHtml(log.message) + '"</p>' +
+              '<div class="bg-slate-900 p-3 rounded-xl border-l-2 border-emerald-500 text-slate-300 mt-1">' +
+                '<span class="text-[10px] text-emerald-400 font-bold block mb-1">AI Response:</span>' +
+                '<p class="whitespace-pre-line">' + escapeJsHtml(log.reply) + '</p>' +
+              '</div>' +
+              (log.bookedId ? '<div class="mt-1 flex items-center gap-1.5 text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-lg border border-emerald-700/40"><span>✓ Synced to Supabase: Confirmation #' + escapeJsHtml(String(log.bookedId)) + '</span></div>' : '') +
+            '</div>';
+          }
+          logsContainer.innerHTML = logsHtml;
+        }
       } catch (err) {}
     }
+
+    // Attach all handlers to window for global access
+    window.switchTab = switchTab;
+    window.addCustomField = addCustomField;
+    window.removeCustomField = removeCustomField;
+    window.updateCustomField = updateCustomField;
+    window.appendDirective = appendDirective;
+    window.handleSaveSettings = handleSaveSettings;
+    window.setTestQuery = setTestQuery;
+    window.runAITest = runAITest;
 
     // Initialize custom options & real-time polling
     renderCustomFields();
@@ -1178,8 +1275,11 @@ const server = http.createServer(async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3005;
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Web Dashboard running at: http://localhost:${PORT}`);
-  startKeepAlive();
-  startWhatsAppBot();
-});
+(async () => {
+  await loadClinicSettings();
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Web Dashboard running at: http://localhost:${PORT}`);
+    startKeepAlive();
+    startWhatsAppBot();
+  });
+})();

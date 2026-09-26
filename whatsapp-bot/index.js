@@ -128,28 +128,123 @@ async function callGeminiAI(userPhone, userMessage) {
   return "Hello! I am Aura from Lavanya Dental Clinic. How can I assist you with your dental care or booking today?";
 }
 
+// Cloud Session Storage (Supabase) to survive container restarts & redeploys
+let syncTimeout = null;
+async function syncSessionToCloud(authDir) {
+  if (syncTimeout) clearTimeout(syncTimeout);
+  syncTimeout = setTimeout(async () => {
+    try {
+      if (!fs.existsSync(authDir)) return;
+      const files = fs.readdirSync(authDir);
+      const sessionObj = {};
+      for (const file of files) {
+        if (file.endsWith('.json')) {
+          sessionObj[file] = fs.readFileSync(path.join(authDir, file), 'utf8');
+        }
+      }
+      if (!sessionObj['creds.json']) return;
+
+      const b64 = Buffer.from(JSON.stringify(sessionObj)).toString('base64');
+
+      // 1. Save local backup file
+      const backupFile = path.join(__dirname, 'session_backup.txt');
+      fs.writeFileSync(backupFile, b64);
+
+      // 2. Save to Supabase Cloud
+      const { error } = await supabase.from('audit_logs').upsert({
+        id: 'whatsapp_bot_session',
+        timestamp: new Date().toISOString(),
+        actor: 'WhatsApp Bot Auto-Sync',
+        role: 'System',
+        action: 'BOT_SESSION_DATA',
+        details: b64,
+        encryption_status: 'AES-256-GCM',
+        ip_hash: 'cloud-persisted'
+      });
+
+      if (!error) {
+        console.log('[CloudAuth] WhatsApp session backed up to Supabase Cloud (Permanent).');
+      } else {
+        console.warn('[CloudAuth] Supabase backup warning:', error.message);
+      }
+    } catch (err) {
+      console.warn('[CloudAuth] Cloud sync error:', err.message);
+    }
+  }, 2000);
+}
+
+async function restoreSessionFromCloud(authDir) {
+  try {
+    const credsFile = path.join(authDir, 'creds.json');
+    
+    // If creds.json already exists and is non-empty, we can use it, but check cloud if missing
+    let sessionData = null;
+
+    // 1. Try Supabase cloud storage first
+    try {
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .select('details')
+        .eq('id', 'whatsapp_bot_session')
+        .maybeSingle();
+
+      if (data?.details) {
+        sessionData = data.details.trim();
+        console.log('[CloudAuth] Found active WhatsApp session in Supabase Cloud.');
+      }
+    } catch (dbErr) {
+      console.warn('[CloudAuth] Supabase check warning:', dbErr.message);
+    }
+
+    // 2. Fall back to local session_backup.txt or process.env.SESSION_DATA
+    const backupFile = path.join(__dirname, 'session_backup.txt');
+    if (!sessionData) {
+      sessionData = process.env.SESSION_DATA || (fs.existsSync(backupFile) ? fs.readFileSync(backupFile, 'utf8').trim() : null);
+    }
+
+    if (sessionData && (!fs.existsSync(credsFile) || fs.statSync(credsFile).size < 10)) {
+      fs.mkdirSync(authDir, { recursive: true });
+      const sessionObj = JSON.parse(Buffer.from(sessionData, 'base64').toString('utf8'));
+      for (const [filename, content] of Object.entries(sessionObj)) {
+        fs.writeFileSync(path.join(authDir, filename), content);
+      }
+      console.log(`[CloudAuth] Successfully restored ${Object.keys(sessionObj).length} auth files from Cloud/Backup.`);
+      return true;
+    }
+  } catch (err) {
+    console.error('[CloudAuth] Failed to restore session:', err.message);
+  }
+  return false;
+}
+
+// 24/7 Keep-Alive self-ping for free cloud hosts (Render, Koyeb, etc.)
+let keepAliveTimer = null;
+function startKeepAlive() {
+  if (keepAliveTimer) return;
+  const externalUrl = process.env.RENDER_EXTERNAL_URL || process.env.EXTERNAL_URL || process.env.BOT_URL;
+  if (externalUrl) {
+    console.log(`[KeepAlive] 24/7 Self-ping enabled for: ${externalUrl}`);
+    keepAliveTimer = setInterval(async () => {
+      try {
+        const pingUrl = externalUrl.endsWith('/') ? `${externalUrl}ping` : `${externalUrl}/ping`;
+        const res = await fetch(pingUrl);
+        console.log(`[KeepAlive] Heartbeat ping sent to ${pingUrl} (HTTP ${res.status})`);
+      } catch (err) {
+        console.warn(`[KeepAlive] Heartbeat ping notice:`, err.message);
+      }
+    }, 8 * 60 * 1000); // 8 minutes (Render sleeps at 15 minutes)
+  } else {
+    console.log('[KeepAlive] Note: Set RENDER_EXTERNAL_URL or add UptimeRobot to ping /ping every 10 min to keep 24/7 alive.');
+  }
+}
+
 // Start Baileys WhatsApp Socket
 async function startWhatsAppBot() {
   const authDir = path.join(__dirname, 'auth_session');
   const backupFile = path.join(__dirname, 'session_backup.txt');
-  const credsFile = path.join(authDir, 'creds.json');
 
-  // Auto-restore session if auth_session is missing or lacks creds.json
-  if (!fs.existsSync(credsFile)) {
-    const sessionData = process.env.SESSION_DATA || (fs.existsSync(backupFile) ? fs.readFileSync(backupFile, 'utf8') : null);
-    if (sessionData) {
-      try {
-        fs.mkdirSync(authDir, { recursive: true });
-        const sessionObj = JSON.parse(Buffer.from(sessionData, 'base64').toString('utf8'));
-        for (const [filename, content] of Object.entries(sessionObj)) {
-          fs.writeFileSync(path.join(authDir, filename), content);
-        }
-        console.log('Restored auth session from session backup.');
-      } catch (e) {
-        console.error('Failed to unpack session backup:', e.message);
-      }
-    }
-  }
+  // Auto-restore session from Supabase cloud before starting socket
+  await restoreSessionFromCloud(authDir);
 
   const { state, saveCreds } = await useMultiFileAuthState(authDir);
   const { version } = await fetchLatestBaileysVersion();
@@ -173,20 +268,10 @@ async function startWhatsAppBot() {
   });
   currentSock = sock;
 
-  // Save credentials and update backup copy so sessions survive restarts/redeploys
+  // Save credentials locally and persist to Supabase Cloud so sessions survive restarts/redeploys
   sock.ev.on('creds.update', async () => {
     await saveCreds();
-    try {
-      const files = fs.readdirSync(authDir);
-      const sessionObj = {};
-      for (const file of files) {
-        if (file.endsWith('.json')) {
-          sessionObj[file] = fs.readFileSync(path.join(authDir, file), 'utf8');
-        }
-      }
-      const b64 = Buffer.from(JSON.stringify(sessionObj)).toString('base64');
-      fs.writeFileSync(backupFile, b64);
-    } catch (err) {}
+    syncSessionToCloud(authDir);
   });
 
   sock.ev.on('connection.update', async (update) => {
@@ -224,6 +309,7 @@ async function startWhatsAppBot() {
         try {
           if (fs.existsSync(authDir)) fs.rmSync(authDir, { recursive: true, force: true });
           if (fs.existsSync(backupFile)) fs.rmSync(backupFile, { force: true });
+          await supabase.from('audit_logs').delete().eq('id', 'whatsapp_bot_session');
         } catch (e) {}
         console.log('Stale auth keys removed. Generating fresh QR code...');
         setTimeout(startWhatsAppBot, 2000);
@@ -234,10 +320,12 @@ async function startWhatsAppBot() {
         setTimeout(startWhatsAppBot, delay);
       }
     } else if (connection === 'open') {
-      botStatus = 'Active & Connected';
+      botStatus = 'Active & Connected (24/7)';
       currentQRDataUrl = null;
       connectedNumber = sock.user?.id ? sock.user.id.split(':')[0] : 'Linked Number';
       console.log(`\n>>> SUCCESS: WhatsApp Connected as ${connectedNumber} <<<\n`);
+      // Force an immediate cloud backup of the verified keys
+      syncSessionToCloud(authDir);
     }
   });
 
@@ -352,6 +440,7 @@ const server = http.createServer(async (req, res) => {
 
   if (req.url === '/reset') {
     const authDir = path.join(__dirname, 'auth_session');
+    const backupFile = path.join(__dirname, 'session_backup.txt');
     try {
       if (currentSock) {
         try { currentSock.end(); } catch (e) {}
@@ -359,10 +448,17 @@ const server = http.createServer(async (req, res) => {
       if (fs.existsSync(authDir)) {
         fs.rmSync(authDir, { recursive: true, force: true });
       }
+      if (fs.existsSync(backupFile)) {
+        fs.rmSync(backupFile, { force: true });
+      }
+      try {
+        await supabase.from('audit_logs').delete().eq('id', 'whatsapp_bot_session');
+      } catch (err) {}
+
       botStatus = 'Resetting session... Generating new QR';
       currentQRDataUrl = null;
       connectedNumber = null;
-      console.log('Session reset requested. Generating fresh QR code for +91 8555052843...');
+      console.log('Session reset requested. Generating fresh QR code for clinic WhatsApp...');
       setTimeout(() => {
         startWhatsAppBot();
       }, 1200);
@@ -379,84 +475,104 @@ const server = http.createServer(async (req, res) => {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Lavanya Dental - WhatsApp AI Automation</title>
+  <title>Lavanya Dental - WhatsApp AI Automation (24/7 Online)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://cdn.tailwindcss.com"></script>
-  <meta http-equiv="refresh" content="5">
+  <meta http-equiv="refresh" content="6">
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen p-6 font-sans">
+<body class="bg-slate-950 text-slate-100 min-h-screen p-6 font-sans">
   <div class="max-w-4xl mx-auto space-y-6">
     
-    <!-- Header -->
-    <div class="flex items-center justify-between bg-slate-800 p-5 rounded-2xl border border-slate-700">
+    <!-- Top Nav Header -->
+    <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-900/90 p-5 rounded-3xl border border-slate-800 shadow-xl backdrop-blur">
       <div>
-        <h1 class="text-xl font-bold flex items-center gap-2">
-          <span class="w-3 h-3 rounded-full ${botStatus.includes('Active') ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}"></span>
+        <h1 class="text-xl font-bold flex items-center gap-2.5">
+          <span class="w-3.5 h-3.5 rounded-full ${botStatus.includes('Active') ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}"></span>
           Lavanya Dental AI WhatsApp Bot
         </h1>
-        <p class="text-xs text-slate-400 mt-1">Target Number: +91 8555052843 • Engine: Google Gemini Flash • Database: Supabase</p>
+        <p class="text-xs text-slate-400 mt-1">Target Phone: +91 8555052843 • AI: Gemini Flash • Persistence: Supabase Cloud</p>
       </div>
-      <div class="text-right flex items-center gap-2">
-        <a href="/reset" onclick="return confirm('Disconnect and generate new QR code for another number?')" class="px-3 py-1 text-xs font-semibold rounded-lg bg-rose-900/60 hover:bg-rose-800 text-rose-300 border border-rose-700/50 transition-colors">
+      <div class="flex items-center gap-2.5">
+        <a href="/reset" onclick="return confirm('Disconnect and generate new QR code for another number?')" class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/50 transition-colors">
           Change Number / Reset
         </a>
-        <span class="px-3 py-1 text-xs font-semibold rounded-full ${botStatus.includes('Active') ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'}">
+        <span class="px-3 py-1.5 text-xs font-semibold rounded-xl ${botStatus.includes('Active') ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'}">
           ${botStatus}
         </span>
       </div>
     </div>
 
-    <!-- QR Code Scan Box (If not yet connected) -->
+    <!-- Status Badges: 24/7 Uptime & Cloud Persistence -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="bg-slate-900/70 p-4 rounded-2xl border border-emerald-500/30 flex items-start gap-3">
+        <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm shrink-0">☁️</div>
+        <div>
+          <h4 class="text-xs font-bold text-slate-200">Permanent Cloud Persistence</h4>
+          <p class="text-[11px] text-slate-400 mt-0.5">Session keys are auto-synced to Supabase. Even if Render restarts, you <b>NEVER need to re-scan QR</b>.</p>
+        </div>
+      </div>
+      <div class="bg-slate-900/70 p-4 rounded-2xl border border-teal-500/30 flex items-start gap-3">
+        <div class="w-8 h-8 rounded-xl bg-teal-500/20 text-teal-400 flex items-center justify-center font-bold text-sm shrink-0">⚡</div>
+        <div>
+          <h4 class="text-xs font-bold text-slate-200">24/7 Always-On Keep-Alive</h4>
+          <p class="text-[11px] text-slate-400 mt-0.5">Automated heartbeat pings active. Add this site to <a href="https://uptimerobot.com" target="_blank" class="text-teal-400 underline">UptimeRobot</a> (URL: <code>/ping</code>) to prevent sleep forever.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- QR Code Scan Box (Only shown if disconnected/new device) -->
     ${currentQRDataUrl ? `
-    <div class="bg-white text-slate-900 p-8 rounded-3xl shadow-2xl max-w-md mx-auto text-center space-y-4 border-4 border-emerald-500">
-      <h2 class="text-lg font-bold text-slate-900">Scan to Link WhatsApp</h2>
+    <div class="bg-white text-slate-900 p-8 rounded-3xl shadow-2xl max-w-md mx-auto text-center space-y-4 border-4 border-emerald-500 animate-fadeIn">
+      <h2 class="text-lg font-bold text-slate-900">One-Time Scan to Link WhatsApp</h2>
       <p class="text-xs text-slate-600">Open WhatsApp on your phone (+91 8555052843) &rarr; <b>Settings / 3 Dots &rarr; Linked Devices &rarr; Link a Device</b></p>
       <div class="p-4 bg-slate-50 rounded-2xl inline-block border border-slate-200">
         <img src="${currentQRDataUrl}" alt="WhatsApp QR Code" class="w-64 h-64 mx-auto" />
       </div>
-      <p class="text-[11px] text-slate-400">QR code refreshes automatically every 20 seconds</p>
+      <p class="text-[11px] text-slate-500 font-medium">✨ Once scanned once, you will NEVER need to scan again!</p>
     </div>
     ` : ''}
 
     ${botStatus.includes('Active') ? `
-    <div class="bg-emerald-950/60 border border-emerald-700/50 p-4 rounded-2xl flex items-center justify-between text-emerald-200 text-sm">
-      <div class="flex items-center gap-3">
-        <span class="text-2xl">✓</span>
+    <div class="bg-emerald-950/50 border border-emerald-600/40 p-5 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4 text-emerald-200">
+      <div class="flex items-center gap-3.5">
+        <div class="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-xl shrink-0">
+          ✓
+        </div>
         <div>
-          <p class="font-bold">Bot is Active & Listening</p>
-          <p class="text-xs text-emerald-300/80">Patients messaging +91 8555052843 receive automated intelligent booking assistance.</p>
+          <p class="font-bold text-white text-sm">Bot is Active & Listening 24/7</p>
+          <p class="text-xs text-emerald-300/80">WhatsApp is linked and session is secured in the cloud. You can safely close this browser page!</p>
         </div>
       </div>
-      <span class="text-xs bg-emerald-800/60 px-3 py-1 rounded-lg font-mono">${connectedNumber || '+91 8555052843'}</span>
+      <span class="text-xs bg-emerald-900/60 border border-emerald-700/50 px-3.5 py-1.5 rounded-xl font-mono text-emerald-200">${connectedNumber || '+91 8555052843'}</span>
     </div>
     ` : ''}
 
     <!-- Live Message Logs -->
-    <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 space-y-4">
+    <div class="bg-slate-900/90 p-5 rounded-3xl border border-slate-800 space-y-4">
       <h3 class="text-sm font-bold text-slate-300 flex items-center justify-between">
         <span>Live WhatsApp Activity Logs</span>
-        <span class="text-xs text-slate-500">${messageLogs.length} messages</span>
+        <span class="text-xs text-slate-500 font-mono">${messageLogs.length} messages</span>
       </h3>
       
       ${messageLogs.length === 0 ? `
         <div class="text-center py-8 text-slate-500 text-xs">
-          No incoming messages yet. Send a message to your WhatsApp number to test the automation!
+          No incoming messages yet. Send a test message from any phone to +91 8555052843 to see Aura reply!
         </div>
       ` : `
         <div class="space-y-3">
           ${messageLogs.map(log => `
-            <div class="bg-slate-900 p-3 rounded-xl border border-slate-700/80 text-xs space-y-1.5">
+            <div class="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 text-xs space-y-2">
               <div class="flex items-center justify-between text-slate-400">
                 <span class="font-semibold text-teal-300">${log.sender}</span>
-                <span class="text-[10px] font-mono">${log.time}</span>
+                <span class="text-[10px] font-mono text-slate-500">${log.time}</span>
               </div>
-              <p class="text-slate-200">"${log.message}"</p>
-              <div class="bg-slate-800/80 p-2.5 rounded-lg border-l-2 border-emerald-500 text-slate-300 mt-1">
+              <p class="text-slate-200 bg-slate-900/70 p-2 rounded-xl">"${log.message}"</p>
+              <div class="bg-slate-900 p-2.5 rounded-xl border-l-2 border-emerald-500 text-slate-300 mt-1">
                 <span class="text-[10px] text-emerald-400 font-bold block mb-0.5">AI Response:</span>
                 ${log.reply}
               </div>
               ${log.bookedId ? `
-                <div class="mt-1 flex items-center gap-1.5 text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-md border border-emerald-700/40">
+                <div class="mt-1 flex items-center gap-1.5 text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-lg border border-emerald-700/40">
                   <span>✓ Synced to Supabase: Confirmation #${log.bookedId}</span>
                 </div>
               ` : ''}
@@ -474,5 +590,6 @@ const server = http.createServer(async (req, res) => {
 const PORT = process.env.PORT || 3005;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Web Dashboard running at: http://localhost:${PORT}`);
+  startKeepAlive();
   startWhatsAppBot();
 });

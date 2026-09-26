@@ -57,18 +57,17 @@ function escapeHtml(str) {
 const DEFAULT_CLINIC_CONFIG = {
   clinicName: 'Lavanya Dental Clinic',
   phone: '+91 8555052843',
-  address: 'Lavanya Dental Clinic, PG Road, Innovation Colony, Jogani, Ramgopalpet, Hyderabad, Telangana 500003',
+  address: 'PG Road, Innovation Colony, Jogani, Ramgopalpet, Hyderabad, Telangana 500003',
   hours: 'Mon-Sat: 8:00 AM – 6:00 PM (Sunday Closed)',
-  doctors: 'Dr. Saakib (Chief Dental Surgeon & Implantologist), Dr. Lavanya (Orthodontist & Smile Design Specialist)',
-  services: `serv-1: Comprehensive Dental Examination & 3D Diagnostics
-serv-2: Ultrasonic Scaling & Deep Plaque Polish
-serv-3: Microscope-Assisted Single-Visit Root Canal
-serv-4: Digital Smile Design & Ceramic Porcelain Veneers
-serv-5: Computer-Navigated Titanium Dental Implant
-serv-6: ClearAligner Pro Invisible Orthodontics
-serv-7: 24/7 Acute Dental Trauma & Emergency Care`,
+  doctors: 'Dr. V. Vijai Rajasekhar M.D.S. FRSH. (London) FAGE (Manipal), Oral & Maxilofacial Surgeon',
+  services: `Root Canal Treatment, Ultrasonic Scaling & Cleaning, Dental Implants, Ceramic Veneers, Clear Aligners (Invisalign), Teeth Whitening, Emergency Dental Care`,
   pricingPolicy: 'Treatment costs and procedure plans are provided in person after clinical examination and diagnostics by our doctors during your visit. NEVER quote exact prices or fee numbers over chat.',
-  customNotes: 'Parking: Available in front of the clinic. Payment options: Cash, UPI, Credit/Debit cards accepted. Walk-ins welcome for dental emergencies.'
+  customNotes: 'Parking: Available in front of the clinic. Payment options: Cash, UPI, Credit/Debit cards accepted. Walk-ins welcome for dental emergencies.',
+  customFields: [
+    { title: 'Languages Spoken', value: 'English, Telugu, Hindi' },
+    { title: 'Payment Options', value: 'Google Pay, PhonePe, Paytm, All Credit/Debit Cards, Cash' },
+    { title: 'Insurance Support', value: 'Assistance available for cashless and dental reimbursement claims' }
+  ]
 };
 
 let clinicConfig = { ...DEFAULT_CLINIC_CONFIG };
@@ -84,6 +83,9 @@ async function loadClinicSettings() {
     if (data?.details) {
       const parsed = JSON.parse(data.details);
       clinicConfig = { ...DEFAULT_CLINIC_CONFIG, ...parsed };
+      if (!Array.isArray(clinicConfig.customFields)) {
+        clinicConfig.customFields = DEFAULT_CLINIC_CONFIG.customFields;
+      }
       console.log('[Settings] Loaded customized clinic knowledge from Supabase.');
     }
   } catch (err) {
@@ -92,7 +94,18 @@ async function loadClinicSettings() {
 }
 
 async function saveClinicSettings(newSettings) {
+  if (typeof newSettings.customFields === 'string') {
+    try {
+      newSettings.customFields = JSON.parse(newSettings.customFields);
+    } catch (e) {
+      newSettings.customFields = [];
+    }
+  }
   clinicConfig = { ...clinicConfig, ...newSettings };
+  if (!Array.isArray(clinicConfig.customFields)) {
+    clinicConfig.customFields = [];
+  }
+
   try {
     const { error } = await supabase.from('audit_logs').upsert({
       id: 'whatsapp_bot_settings',
@@ -118,6 +131,13 @@ async function saveClinicSettings(newSettings) {
 }
 
 function getSystemPrompt() {
+  const customFieldsText = Array.isArray(clinicConfig.customFields)
+    ? clinicConfig.customFields
+        .filter(f => f && f.title?.trim() && f.value?.trim())
+        .map(f => `- ${f.title.trim()}: ${f.value.trim()}`)
+        .join('\n')
+    : '';
+
   return `You are "Aura", the smart, warm, friendly AI receptionist for ${clinicConfig.clinicName} (${clinicConfig.phone}).
 
 Clinic Details & Knowledge Base:
@@ -130,11 +150,12 @@ Clinic Details & Knowledge Base:
 ${clinicConfig.services}
 - Additional Clinic Info / FAQ:
 ${clinicConfig.customNotes}
+${customFieldsText ? `\nAdditional Custom Topics & Options:\n${customFieldsText}` : ''}
 
 CRITICAL RULES:
 1. STRICT PRICING POLICY: ${clinicConfig.pricingPolicy}
 2. Always be polite, warm, and helpful. Answer in the same language the patient speaks (English, Hindi, Hinglish, Telugu, etc.).
-3. Answer questions about procedures, pain management, doctor specializations, clinic location, directions, and timings accurately based on the clinic details above.
+3. Answer questions about procedures, pain management, doctor specializations, clinic location, directions, timings, and any custom clinic topics accurately based on the clinic details above.
 4. If a patient wants to book an appointment, gather these 4 details:
    - Patient Full Name
    - Preferred Date (YYYY-MM-DD or say tomorrow/Monday)
@@ -791,6 +812,28 @@ const server = http.createServer(async (req, res) => {
             <p class="text-[11px] text-slate-500">Add any extra details: parking availability, payment modes (UPI, cards), emergency walk-in instructions, etc.</p>
           </div>
 
+          <!-- Custom Options & Topics Builder -->
+          <div class="space-y-4 pt-6 border-t border-slate-800">
+            <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-950/70 p-4 rounded-2xl border border-slate-800">
+              <div>
+                <label class="text-sm font-bold text-white flex items-center gap-2">
+                  <span class="text-emerald-400 text-base">✨</span> Custom Knowledge Options & Topics
+                </label>
+                <p class="text-[11px] text-slate-400 mt-0.5">
+                  Create your own custom fields with any topic name and details (e.g. <i>Languages Spoken</i>, <i>Accepted Insurance</i>, <i>Nearest Metro</i>, <i>Consultation Fees</i>, <i>Special Discounts</i>).
+                </p>
+              </div>
+              <button type="button" onclick="addCustomField()" class="px-4 py-2.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold flex items-center gap-2 transition-all shadow-sm">
+                <span>➕</span> Add Custom Option
+              </button>
+            </div>
+
+            <!-- Custom Fields Container -->
+            <div id="customFieldsContainer" class="space-y-3">
+              <!-- Dynamically populated by JavaScript -->
+            </div>
+          </div>
+
           <!-- Action Buttons -->
           <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
             <button type="submit" id="saveBtn" class="px-6 py-3.5 rounded-xl font-bold text-sm bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2">
@@ -885,6 +928,66 @@ const server = http.createServer(async (req, res) => {
   </div>
 
   <script>
+    // Custom Fields Management
+    let currentCustomFields = ${JSON.stringify(clinicConfig.customFields || [])};
+
+    function escapeJsHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function renderCustomFields() {
+      const container = document.getElementById('customFieldsContainer');
+      if (!container) return;
+      if (!currentCustomFields || currentCustomFields.length === 0) {
+        container.innerHTML = '<div class="text-center py-6 border border-dashed border-slate-800 rounded-2xl text-xs text-slate-500">No custom options added yet. Click <b class="text-emerald-400 cursor-pointer" onclick="addCustomField()">"+ Add Custom Option"</b> above to create your own custom topics!</div>';
+        return;
+      }
+
+      container.innerHTML = currentCustomFields.map((field, idx) => \`
+        <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3 relative group">
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex-1">
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-emerald-400 mb-1">Option / Topic Name</label>
+              <input type="text" placeholder="e.g. Languages Spoken, Accepted Insurance, Nearest Landmark, Consultation Fees..." value="\${escapeJsHtml(field.title || '')}" oninput="updateCustomField(\${idx}, 'title', this.value)" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700/80 text-white text-xs font-semibold focus:outline-none focus:border-emerald-500" required />
+            </div>
+            <button type="button" onclick="removeCustomField(\${idx})" class="text-rose-400 hover:text-rose-300 hover:bg-rose-950/60 px-3 py-2 rounded-xl border border-rose-800/40 transition-all text-xs font-bold shrink-0 self-end mb-0.5 flex items-center gap-1" title="Remove this option">
+              <span>✕</span> Remove
+            </button>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Information / Details for Aura AI</label>
+            <textarea rows="2" placeholder="Write the accurate information Aura should share with patients..." oninput="updateCustomField(\${idx}, 'value', this.value)" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700/80 text-white text-xs focus:outline-none focus:border-emerald-500" required>\${escapeJsHtml(field.value || '')}</textarea>
+          </div>
+        </div>
+      \`).join('');
+    }
+
+    function addCustomField() {
+      currentCustomFields.push({ title: '', value: '' });
+      renderCustomFields();
+      setTimeout(() => {
+        const inputs = document.querySelectorAll('#customFieldsContainer input');
+        if (inputs.length) inputs[inputs.length - 1].focus();
+      }, 50);
+    }
+
+    function removeCustomField(idx) {
+      currentCustomFields.splice(idx, 1);
+      renderCustomFields();
+    }
+
+    function updateCustomField(idx, prop, val) {
+      if (currentCustomFields[idx]) {
+        currentCustomFields[idx][prop] = val;
+      }
+    }
+
     // Tab Switching
     function switchTab(tabId) {
       ['tab-knowledge', 'tab-simulator', 'tab-logs'].forEach(id => {
@@ -912,6 +1015,9 @@ const server = http.createServer(async (req, res) => {
 
       const formData = new FormData(document.getElementById('clinicSettingsForm'));
       const payload = Object.fromEntries(formData.entries());
+
+      // Attach sanitized custom fields
+      payload.customFields = currentCustomFields.filter(f => f && f.title?.trim() && f.value?.trim());
 
       try {
         const res = await fetch('/api/save-settings', {
@@ -1019,6 +1125,8 @@ const server = http.createServer(async (req, res) => {
       } catch (err) {}
     }
 
+    // Initialize custom options & real-time polling
+    renderCustomFields();
     setInterval(pollStatus, 4000);
   </script>
 </body>

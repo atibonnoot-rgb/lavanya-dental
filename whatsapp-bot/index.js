@@ -63,6 +63,7 @@ const DEFAULT_CLINIC_CONFIG = {
   services: `Root Canal Treatment, Ultrasonic Scaling & Cleaning, Dental Implants, Ceramic Veneers, Clear Aligners (Invisalign), Teeth Whitening, Emergency Dental Care`,
   pricingPolicy: 'Treatment costs and procedure plans are provided in person after clinical examination and diagnostics by our doctors during your visit. NEVER quote exact prices or fee numbers over chat.',
   customNotes: 'Parking: Available in front of the clinic. Payment options: Cash, UPI, Credit/Debit cards accepted. Walk-ins welcome for dental emergencies.',
+  behavioralDirectives: '',
   customFields: [
     { title: 'Languages Spoken', value: 'English, Telugu, Hindi' },
     { title: 'Payment Options', value: 'Google Pay, PhonePe, Paytm, All Credit/Debit Cards, Cash' },
@@ -138,6 +139,10 @@ function getSystemPrompt() {
         .join('\n')
     : '';
 
+  const directivesText = clinicConfig.behavioralDirectives?.trim()
+    ? `\nDIRECT CUSTOM INSTRUCTIONS & RESPONSE STYLE (HIGHEST PRIORITY):\n${clinicConfig.behavioralDirectives.trim()}\n`
+    : '';
+
   return `You are "Aura", the smart, warm, friendly AI receptionist for ${clinicConfig.clinicName} (${clinicConfig.phone}).
 
 Clinic Details & Knowledge Base:
@@ -151,17 +156,18 @@ ${clinicConfig.services}
 - Additional Clinic Info / FAQ:
 ${clinicConfig.customNotes}
 ${customFieldsText ? `\nAdditional Custom Topics & Options:\n${customFieldsText}` : ''}
-
+${directivesText}
 CRITICAL RULES:
 1. STRICT PRICING POLICY: ${clinicConfig.pricingPolicy}
 2. Always be polite, warm, and helpful. Answer in the same language the patient speaks (English, Hindi, Hinglish, Telugu, etc.).
-3. Answer questions about procedures, pain management, doctor specializations, clinic location, directions, timings, and any custom clinic topics accurately based on the clinic details above.
-4. If a patient wants to book an appointment, gather these 4 details:
+3. Strictly follow any custom instructions & response style directives provided above.
+4. Answer questions about procedures, pain management, doctor specializations, clinic location, directions, timings, and any custom clinic topics accurately based on the clinic details above.
+5. If a patient wants to book an appointment, gather these 4 details:
    - Patient Full Name
    - Preferred Date (YYYY-MM-DD or say tomorrow/Monday)
    - Preferred Time Slot (e.g. 10:00, 11:30, 14:00, 16:30)
    - Treatment / Service needed
-5. CRITICAL RULE FOR BOOKING: Once you have the Patient's Name, Date, Time Slot, and Service/Complaint, finalize the booking by appending this exact JSON tag at the VERY END of your message:
+6. CRITICAL RULE FOR BOOKING: Once you have the Patient's Name, Date, Time Slot, and Service/Complaint, finalize the booking by appending this exact JSON tag at the VERY END of your message:
 [BOOKING_READY: {"patient_name": "...", "date": "YYYY-MM-DD", "time_slot": "HH:MM", "service_id": "serv-1", "primary_complaint": "..."}]
 Use today's year: 2026. If service matches, use serv-1 to serv-7, otherwise default to serv-1.
 Keep your messages concise and WhatsApp-friendly (use line breaks and emojis).`;
@@ -834,6 +840,32 @@ const server = http.createServer(async (req, res) => {
             </div>
           </div>
 
+          <!-- Blank Custom AI Directives / Freeform Instructions Box -->
+          <div class="space-y-3 pt-6 border-t border-slate-800">
+            <div class="flex items-center justify-between">
+              <div>
+                <label class="text-sm font-bold text-white flex items-center gap-2">
+                  <span class="text-purple-400 text-base">🎯</span> Custom AI Behavior & Response Directives (Freeform)
+                </label>
+                <p class="text-[11px] text-slate-400 mt-0.5">
+                  Direct the AI on exactly how you want it to answer, talk, tone of voice, format replies, or any special rules in your own words.
+                </p>
+              </div>
+            </div>
+
+            <!-- Quick Template Inspiration Buttons -->
+            <div class="flex flex-wrap gap-2 pt-1">
+              <span class="text-[11px] text-slate-500 self-center">Insert quick directive:</span>
+              <button type="button" onclick="appendDirective('- Keep all responses very short, concise, and under 3 lines with neat bullet points.')" class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-[11px] text-purple-300 border border-slate-800 transition-colors">+ Short &amp; Concise</button>
+              <button type="button" onclick="appendDirective('- Always be warm, deeply empathetic, and reassuring when patients are in pain.')" class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-[11px] text-purple-300 border border-slate-800 transition-colors">+ Extra Empathetic</button>
+              <button type="button" onclick="appendDirective('- Answer in friendly Hinglish (Hindi + English) if the patient speaks Hindi.')" class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-[11px] text-purple-300 border border-slate-800 transition-colors">+ Hinglish Friendly</button>
+              <button type="button" onclick="appendDirective('- Always suggest morning 10:00 AM - 1:00 PM slots first for root canals and implants.')" class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-[11px] text-purple-300 border border-slate-800 transition-colors">+ Morning Slots First</button>
+            </div>
+
+            <textarea name="behavioralDirectives" id="behavioralDirectives" rows="4" placeholder="Type your custom instructions here. For example:&#10;- Always greet patients warmly&#10;- Keep messages brief and formatted with neat emojis&#10;- Always urge patients with swelling to visit immediately&#10;- Answer in polite English or Telugu" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-purple-500/30 text-white text-xs sm:text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 leading-relaxed font-sans">${escapeHtml(clinicConfig.behavioralDirectives || '')}</textarea>
+            <p class="text-[11px] text-slate-500">Whatever you write here will be followed strictly as the highest priority instructions for Aura's conversational personality.</p>
+          </div>
+
           <!-- Action Buttons -->
           <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
             <button type="submit" id="saveBtn" class="px-6 py-3.5 rounded-xl font-bold text-sm bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2">
@@ -985,6 +1017,18 @@ const server = http.createServer(async (req, res) => {
     function updateCustomField(idx, prop, val) {
       if (currentCustomFields[idx]) {
         currentCustomFields[idx][prop] = val;
+      }
+    }
+
+    function appendDirective(text) {
+      const el = document.getElementById('behavioralDirectives');
+      if (el) {
+        if (el.value.trim().length > 0) {
+          el.value = el.value.trim() + '\n' + text;
+        } else {
+          el.value = text;
+        }
+        el.focus();
       }
     }
 

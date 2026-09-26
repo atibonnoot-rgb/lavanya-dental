@@ -43,24 +43,98 @@ let botStatus = 'Initializing...';
 let connectedNumber = null;
 let currentSock = null;
 
-// Clinic System Prompt
-const SYSTEM_PROMPT = `You are "Aura", the smart, friendly AI front-desk receptionist for Lavanya Dental Clinic (+91 8555052843).
-Clinic Details:
-- Address: Lavanya Dental Care Pavilion, Main Road
-- Hours: Mon-Sat: 8:00 AM – 6:00 PM (Sunday Closed)
-- Treatments Available:
-  * serv-1: Comprehensive Dental Examination & 3D Diagnostics
-  * serv-2: Ultrasonic Scaling & Deep Plaque Polish
-  * serv-3: Microscope-Assisted Single-Visit Root Canal
-  * serv-4: Digital Smile Design & Ceramic Porcelain Veneers
-  * serv-5: Computer-Navigated Titanium Dental Implant
-  * serv-6: ClearAligner Pro Invisible Orthodontics
-  * serv-7: 24/7 Acute Dental Trauma & Emergency Care
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Configurable Clinic Details & Knowledge Base
+const DEFAULT_CLINIC_CONFIG = {
+  clinicName: 'Lavanya Dental Clinic',
+  phone: '+91 8555052843',
+  address: 'Lavanya Dental Clinic, PG Road, Innovation Colony, Jogani, Ramgopalpet, Hyderabad, Telangana 500003',
+  hours: 'Mon-Sat: 8:00 AM – 6:00 PM (Sunday Closed)',
+  doctors: 'Dr. Saakib (Chief Dental Surgeon & Implantologist), Dr. Lavanya (Orthodontist & Smile Design Specialist)',
+  services: `serv-1: Comprehensive Dental Examination & 3D Diagnostics
+serv-2: Ultrasonic Scaling & Deep Plaque Polish
+serv-3: Microscope-Assisted Single-Visit Root Canal
+serv-4: Digital Smile Design & Ceramic Porcelain Veneers
+serv-5: Computer-Navigated Titanium Dental Implant
+serv-6: ClearAligner Pro Invisible Orthodontics
+serv-7: 24/7 Acute Dental Trauma & Emergency Care`,
+  pricingPolicy: 'Treatment costs and procedure plans are provided in person after clinical examination and diagnostics by our doctors during your visit. NEVER quote exact prices or fee numbers over chat.',
+  customNotes: 'Parking: Available in front of the clinic. Payment options: Cash, UPI, Credit/Debit cards accepted. Walk-ins welcome for dental emergencies.'
+};
+
+let clinicConfig = { ...DEFAULT_CLINIC_CONFIG };
+
+async function loadClinicSettings() {
+  try {
+    const { data, error } = await supabase
+      .from('audit_logs')
+      .select('details')
+      .eq('id', 'whatsapp_bot_settings')
+      .maybeSingle();
+
+    if (data?.details) {
+      const parsed = JSON.parse(data.details);
+      clinicConfig = { ...DEFAULT_CLINIC_CONFIG, ...parsed };
+      console.log('[Settings] Loaded customized clinic knowledge from Supabase.');
+    }
+  } catch (err) {
+    console.warn('[Settings] Could not load clinic settings from Supabase:', err.message);
+  }
+}
+
+async function saveClinicSettings(newSettings) {
+  clinicConfig = { ...clinicConfig, ...newSettings };
+  try {
+    const { error } = await supabase.from('audit_logs').upsert({
+      id: 'whatsapp_bot_settings',
+      timestamp: new Date().toISOString(),
+      actor: 'Clinic Admin (Web Dashboard)',
+      role: 'Admin',
+      action: 'CLINIC_AI_SETTINGS',
+      details: JSON.stringify(clinicConfig),
+      encryption_status: 'AES-256-GCM',
+      ip_hash: 'dashboard-update'
+    });
+
+    if (error) {
+      console.warn('[Settings] Supabase save error:', error.message);
+      return false;
+    }
+    console.log('[Settings] Saved customized clinic knowledge to Supabase Cloud.');
+    return true;
+  } catch (err) {
+    console.error('[Settings] Failed to save clinic settings:', err);
+    return false;
+  }
+}
+
+function getSystemPrompt() {
+  return `You are "Aura", the smart, warm, friendly AI receptionist for ${clinicConfig.clinicName} (${clinicConfig.phone}).
+
+Clinic Details & Knowledge Base:
+- Clinic Name: ${clinicConfig.clinicName}
+- Address / Location: ${clinicConfig.address}
+- Working Hours: ${clinicConfig.hours}
+- Clinic Phone / Helpline: ${clinicConfig.phone}
+- Doctors / Clinicians: ${clinicConfig.doctors}
+- Treatments & Services:
+${clinicConfig.services}
+- Additional Clinic Info / FAQ:
+${clinicConfig.customNotes}
 
 CRITICAL RULES:
-1. STRICT PRICING POLICY: NEVER state, quote, estimate, or reveal prices or fees for any treatment or appointment. If a patient asks about price, cost, or charges, politely tell them: "Treatment costs and procedure plans are provided in person after a clinical examination and diagnostics by our doctors during your visit."
+1. STRICT PRICING POLICY: ${clinicConfig.pricingPolicy}
 2. Always be polite, warm, and helpful. Answer in the same language the patient speaks (English, Hindi, Hinglish, Telugu, etc.).
-3. Answer questions about procedures, pain management, and clinic hours accurately.
+3. Answer questions about procedures, pain management, doctor specializations, clinic location, directions, and timings accurately based on the clinic details above.
 4. If a patient wants to book an appointment, gather these 4 details:
    - Patient Full Name
    - Preferred Date (YYYY-MM-DD or say tomorrow/Monday)
@@ -70,6 +144,7 @@ CRITICAL RULES:
 [BOOKING_READY: {"patient_name": "...", "date": "YYYY-MM-DD", "time_slot": "HH:MM", "service_id": "serv-1", "primary_complaint": "..."}]
 Use today's year: 2026. If service matches, use serv-1 to serv-7, otherwise default to serv-1.
 Keep your messages concise and WhatsApp-friendly (use line breaks and emojis).`;
+}
 
 const CANDIDATE_MODELS = [
   'models/gemini-flash-lite-latest',
@@ -85,7 +160,7 @@ async function callGeminiAI(userPhone, userMessage) {
   conversationHistory.set(userPhone, history);
 
   const payload = {
-    system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+    system_instruction: { parts: [{ text: getSystemPrompt() }] },
     contents: history,
     generationConfig: {
       temperature: 0.7,
@@ -122,10 +197,10 @@ async function callGeminiAI(userPhone, userMessage) {
   // Contextual fallback if all AI models are temporarily unavailable
   const lower = userMessage.toLowerCase();
   if (lower.includes('book') || lower.includes('appointment')) {
-    return "I would be delighted to assist you with booking an appointment at Lavanya Dental! 😊\n\nCould you please share:\n1. Your Full Name\n2. Preferred Date & Time\n3. Treatment or Dental Concern (e.g., Checkup, Root Canal, Cleaning)?";
+    return `I would be delighted to assist you with booking an appointment at ${clinicConfig.clinicName}! 😊\n\nCould you please share:\n1. Your Full Name\n2. Preferred Date & Time\n3. Treatment or Dental Concern (e.g., Checkup, Root Canal, Cleaning)?`;
   }
 
-  return "Hello! I am Aura from Lavanya Dental Clinic. How can I assist you with your dental care or booking today?";
+  return `Hello! I am Aura from ${clinicConfig.clinicName}. How can I assist you with your dental care or booking today?`;
 }
 
 // Cloud Session Storage (Supabase) to survive container restarts & redeploys
@@ -242,6 +317,9 @@ function startKeepAlive() {
 async function startWhatsAppBot() {
   const authDir = path.join(__dirname, 'auth_session');
   const backupFile = path.join(__dirname, 'session_backup.txt');
+
+  // Load customized clinic knowledge from Supabase Cloud
+  await loadClinicSettings();
 
   // Auto-restore session from Supabase cloud before starting socket
   await restoreSessionFromCloud(authDir);
@@ -430,15 +508,88 @@ async function startWhatsAppBot() {
   });
 }
 
-// Simple Web Dashboard for Easy QR Scanning & Monitoring
+// Simple Web Dashboard for Clinic Knowledge Management, QR Scanning & Monitoring
 const server = http.createServer(async (req, res) => {
-  if (req.url === '/ping' || req.url === '/health') {
+  const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const pathname = urlObj.pathname;
+
+  // 1. Health Ping for 24/7 Keep-Alive
+  if (pathname === '/ping' || pathname === '/health') {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('OK');
     return;
   }
 
-  if (req.url === '/reset') {
+  // 2. Real-Time Status & Logs API (Used by client-side polling so page never needs to reload)
+  if (pathname === '/api/status') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      botStatus,
+      connectedNumber,
+      currentQRDataUrl,
+      messageLogs,
+      clinicConfig
+    }));
+    return;
+  }
+
+  // 3. Save Clinic Details & Knowledge Base
+  if (req.method === 'POST' && (pathname === '/save-settings' || pathname === '/api/save-settings')) {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        let parsed = {};
+        if (req.headers['content-type']?.includes('application/json')) {
+          parsed = JSON.parse(body);
+        } else {
+          const params = new URLSearchParams(body);
+          for (const [key, val] of params.entries()) {
+            parsed[key] = val;
+          }
+        }
+
+        const success = await saveClinicSettings(parsed);
+
+        if (pathname === '/api/save-settings') {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success, settings: clinicConfig }));
+        } else {
+          res.writeHead(302, { Location: '/?saved=true' });
+          res.end();
+        }
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
+  // 4. Test AI Playground API (Test custom clinic prompt instantly in browser)
+  if (req.method === 'POST' && pathname === '/api/test-ai') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const { query } = JSON.parse(body);
+        if (!query || !query.trim()) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ error: 'Please enter a message to test.' }));
+        }
+        const reply = await callGeminiAI(`test-user-${Date.now()}`, query.trim());
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ reply }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // 5. Change Number / Reset Session
+  if (pathname === '/reset') {
     const authDir = path.join(__dirname, 'auth_session');
     const backupFile = path.join(__dirname, 'session_backup.txt');
     try {
@@ -470,119 +621,406 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // 6. Main Dashboard UI
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end(`<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Lavanya Dental - WhatsApp AI Automation (24/7 Online)</title>
+  <title>Lavanya Dental - Clinic AI Knowledge & Automation Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://cdn.tailwindcss.com"></script>
-  <meta http-equiv="refresh" content="6">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    code, pre { font-family: 'JetBrains Mono', monospace; }
+    .tab-active { background-color: rgb(15 23 42); border-color: rgb(16 185 129); color: rgb(248 250 252); }
+    .tab-inactive { background-color: transparent; border-color: transparent; color: rgb(148 163 184); }
+    .tab-inactive:hover { color: rgb(226 232 240); background-color: rgba(30, 41, 59, 0.5); }
+  </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen p-6 font-sans">
-  <div class="max-w-4xl mx-auto space-y-6">
+<body class="bg-slate-950 text-slate-100 min-h-screen p-4 sm:p-6 lg:p-8">
+  <div class="max-w-5xl mx-auto space-y-6">
     
     <!-- Top Nav Header -->
-    <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-900/90 p-5 rounded-3xl border border-slate-800 shadow-xl backdrop-blur">
+    <header class="flex flex-wrap items-center justify-between gap-4 bg-slate-900/90 p-5 sm:p-6 rounded-3xl border border-slate-800 shadow-2xl backdrop-blur">
       <div>
-        <h1 class="text-xl font-bold flex items-center gap-2.5">
-          <span class="w-3.5 h-3.5 rounded-full ${botStatus.includes('Active') ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}"></span>
-          Lavanya Dental AI WhatsApp Bot
-        </h1>
-        <p class="text-xs text-slate-400 mt-1">Target Phone: +91 8555052843 • AI: Gemini Flash • Persistence: Supabase Cloud</p>
+        <div class="flex items-center gap-3">
+          <span class="w-3.5 h-3.5 rounded-full ${botStatus.includes('Active') ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}" id="statusDot"></span>
+          <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-white">
+            Lavanya Dental <span class="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">AI Assistant</span>
+          </h1>
+        </div>
+        <p class="text-xs text-slate-400 mt-1.5 flex items-center gap-2">
+          <span>Active Number: <b class="text-slate-200" id="connectedNumberDisplay">${connectedNumber || '+91 8555052843'}</b></span>
+          <span>•</span>
+          <span>Engine: <b class="text-teal-300">Gemini Flash</b></span>
+          <span>•</span>
+          <span>Cloud Storage: <b class="text-emerald-400">Supabase</b></span>
+        </p>
       </div>
-      <div class="flex items-center gap-2.5">
-        <a href="/reset" onclick="return confirm('Disconnect and generate new QR code for another number?')" class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/50 transition-colors">
+
+      <div class="flex items-center gap-3">
+        <a href="/reset" onclick="return confirm('Disconnect and generate a new QR code? (Only do this if switching numbers)')" class="px-3.5 py-2 text-xs font-semibold rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/40 transition-all">
           Change Number / Reset
         </a>
-        <span class="px-3 py-1.5 text-xs font-semibold rounded-xl ${botStatus.includes('Active') ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'}">
+        <span id="botStatusBadge" class="px-4 py-2 text-xs font-bold rounded-xl ${botStatus.includes('Active') ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'}">
           ${botStatus}
         </span>
       </div>
-    </div>
+    </header>
 
     <!-- Status Badges: 24/7 Uptime & Cloud Persistence -->
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div class="bg-slate-900/70 p-4 rounded-2xl border border-emerald-500/30 flex items-start gap-3">
-        <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm shrink-0">☁️</div>
+      <div class="bg-slate-900/60 p-4 rounded-2xl border border-emerald-500/25 flex items-start gap-3.5 shadow-lg">
+        <div class="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center font-bold text-base shrink-0">☁️</div>
         <div>
-          <h4 class="text-xs font-bold text-slate-200">Permanent Cloud Persistence</h4>
-          <p class="text-[11px] text-slate-400 mt-0.5">Session keys are auto-synced to Supabase. Even if Render restarts, you <b>NEVER need to re-scan QR</b>.</p>
+          <h4 class="text-xs font-bold text-slate-200">Supabase Cloud Persistence (Zero Re-scans)</h4>
+          <p class="text-[11px] text-slate-400 mt-0.5">Session & clinic details are permanently saved in Supabase. You never have to re-scan the QR code.</p>
         </div>
       </div>
-      <div class="bg-slate-900/70 p-4 rounded-2xl border border-teal-500/30 flex items-start gap-3">
-        <div class="w-8 h-8 rounded-xl bg-teal-500/20 text-teal-400 flex items-center justify-center font-bold text-sm shrink-0">⚡</div>
+      <div class="bg-slate-900/60 p-4 rounded-2xl border border-teal-500/25 flex items-start gap-3.5 shadow-lg">
+        <div class="w-9 h-9 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-400 flex items-center justify-center font-bold text-base shrink-0">⚡</div>
         <div>
           <h4 class="text-xs font-bold text-slate-200">24/7 Always-On Keep-Alive</h4>
-          <p class="text-[11px] text-slate-400 mt-0.5">Automated heartbeat pings active. Add this site to <a href="https://uptimerobot.com" target="_blank" class="text-teal-400 underline">UptimeRobot</a> (URL: <code>/ping</code>) to prevent sleep forever.</p>
+          <p class="text-[11px] text-slate-400 mt-0.5">Self-ping active. UptimeRobot monitor URL: <code class="text-teal-300 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">/ping</code> (Checks every 5 mins).</p>
         </div>
       </div>
     </div>
 
-    <!-- QR Code Scan Box (Only shown if disconnected/new device) -->
-    ${currentQRDataUrl ? `
-    <div class="bg-white text-slate-900 p-8 rounded-3xl shadow-2xl max-w-md mx-auto text-center space-y-4 border-4 border-emerald-500 animate-fadeIn">
-      <h2 class="text-lg font-bold text-slate-900">One-Time Scan to Link WhatsApp</h2>
-      <p class="text-xs text-slate-600">Open WhatsApp on your phone (+91 8555052843) &rarr; <b>Settings / 3 Dots &rarr; Linked Devices &rarr; Link a Device</b></p>
-      <div class="p-4 bg-slate-50 rounded-2xl inline-block border border-slate-200">
-        <img src="${currentQRDataUrl}" alt="WhatsApp QR Code" class="w-64 h-64 mx-auto" />
-      </div>
-      <p class="text-[11px] text-slate-500 font-medium">✨ Once scanned once, you will NEVER need to scan again!</p>
-    </div>
-    ` : ''}
-
-    ${botStatus.includes('Active') ? `
-    <div class="bg-emerald-950/50 border border-emerald-600/40 p-5 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4 text-emerald-200">
-      <div class="flex items-center gap-3.5">
-        <div class="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-xl shrink-0">
-          ✓
+    <!-- QR Code Scan Box (Only shown if unlinked) -->
+    <div id="qrCodeContainer" class="${currentQRDataUrl ? 'block' : 'hidden'}">
+      <div class="bg-white text-slate-900 p-8 rounded-3xl shadow-2xl max-w-md mx-auto text-center space-y-4 border-4 border-emerald-500">
+        <h2 class="text-lg font-bold text-slate-900">One-Time Scan to Link WhatsApp</h2>
+        <p class="text-xs text-slate-600">Open WhatsApp on your phone &rarr; <b>Linked Devices &rarr; Link a Device</b></p>
+        <div class="p-4 bg-slate-50 rounded-2xl inline-block border border-slate-200">
+          <img id="qrImage" src="${currentQRDataUrl || ''}" alt="WhatsApp QR Code" class="w-64 h-64 mx-auto" />
         </div>
+        <p class="text-[11px] text-slate-500 font-medium">✨ Once linked once, it is saved in Supabase forever.</p>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="flex items-center gap-2 p-1.5 bg-slate-900/80 rounded-2xl border border-slate-800">
+      <button onclick="switchTab('tab-knowledge')" id="btn-tab-knowledge" class="tab-active flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold border transition-all flex items-center justify-center gap-2">
+        <span>🏥</span> Clinic Knowledge & Details
+      </button>
+      <button onclick="switchTab('tab-simulator')" id="btn-tab-simulator" class="tab-inactive flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold border transition-all flex items-center justify-center gap-2">
+        <span>🧪</span> Test AI Playground
+      </button>
+      <button onclick="switchTab('tab-logs')" id="btn-tab-logs" class="tab-inactive flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold border transition-all flex items-center justify-center gap-2">
+        <span>💬</span> WhatsApp Activity Logs
+      </button>
+    </div>
+
+    <!-- TAB 1: Clinic Knowledge & Custom Details Form -->
+    <div id="tab-knowledge" class="space-y-6">
+      <div class="bg-slate-900/90 p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-xl space-y-6">
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-5">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+              <span>🏥</span> Clinic Knowledge Base Configuration
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">
+              Give Aura your exact clinic details so she can answer patient inquiries accurately on WhatsApp.
+            </p>
+          </div>
+          <div id="saveToast" class="hidden text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+            ✓ Saved & Updated Live!
+          </div>
+        </div>
+
+        <form id="clinicSettingsForm" onsubmit="handleSaveSettings(event)" class="space-y-5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <!-- Clinic Name -->
+            <div class="space-y-2">
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-300">Clinic Name</label>
+              <input type="text" name="clinicName" id="clinicName" value="${escapeHtml(clinicConfig.clinicName)}" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700/80 text-white text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" required />
+              <p class="text-[11px] text-slate-500">Official name the AI will use to introduce itself.</p>
+            </div>
+
+            <!-- Clinic Phone / WhatsApp -->
+            <div class="space-y-2">
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-300">Clinic Helpline Phone / WhatsApp</label>
+              <input type="text" name="phone" id="phone" value="${escapeHtml(clinicConfig.phone)}" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700/80 text-white text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" required />
+              <p class="text-[11px] text-slate-500">Phone number patients can call or reach out to.</p>
+            </div>
+          </div>
+
+          <!-- Address & Location -->
+          <div class="space-y-2">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300">Clinic Full Address & Landmark Directions</label>
+            <input type="text" name="address" id="address" value="${escapeHtml(clinicConfig.address)}" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700/80 text-white text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" required />
+            <p class="text-[11px] text-slate-500">Include floor, building, nearby landmark, or road name so Aura can guide patients.</p>
+          </div>
+
+          <!-- Working Hours -->
+          <div class="space-y-2">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300">Clinic Working Hours & Days</label>
+            <input type="text" name="hours" id="hours" value="${escapeHtml(clinicConfig.hours)}" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700/80 text-white text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" required />
+            <p class="text-[11px] text-slate-500">E.g., Mon-Sat: 8:00 AM – 6:00 PM (Sunday Closed).</p>
+          </div>
+
+          <!-- Doctors & Clinicians -->
+          <div class="space-y-2">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300">Doctors, Clinicians & Specialties</label>
+            <input type="text" name="doctors" id="doctors" value="${escapeHtml(clinicConfig.doctors)}" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700/80 text-white text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" required />
+            <p class="text-[11px] text-slate-500">List doctors with qualifications (e.g. Dr. Saakib - Chief Implantologist, Dr. Lavanya - Orthodontist).</p>
+          </div>
+
+          <!-- Treatments & Services -->
+          <div class="space-y-2">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300">Available Dental Treatments & Services</label>
+            <textarea name="services" id="services" rows="5" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700/80 text-white text-xs sm:text-sm font-mono focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" required>${escapeHtml(clinicConfig.services)}</textarea>
+            <p class="text-[11px] text-slate-500">List of services offered. Aura uses this to recommend procedures and match booking IDs (serv-1 to serv-7).</p>
+          </div>
+
+          <!-- Strict Pricing Policy -->
+          <div class="space-y-2">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300">Pricing & Fee Quotation Policy</label>
+            <textarea name="pricingPolicy" id="pricingPolicy" rows="2" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700/80 text-white text-xs sm:text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">${escapeHtml(clinicConfig.pricingPolicy)}</textarea>
+            <p class="text-[11px] text-slate-500">How Aura should handle price questions. By clinic policy, exact treatment costs are assessed in-person after clinical diagnostics.</p>
+          </div>
+
+          <!-- Additional Notes / FAQs / Patient Guidelines -->
+          <div class="space-y-2">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300">Special Instructions, Parking & FAQs for AI</label>
+            <textarea name="customNotes" id="customNotes" rows="3" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700/80 text-white text-xs sm:text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">${escapeHtml(clinicConfig.customNotes)}</textarea>
+            <p class="text-[11px] text-slate-500">Add any extra details: parking availability, payment modes (UPI, cards), emergency walk-in instructions, etc.</p>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+            <button type="submit" id="saveBtn" class="px-6 py-3.5 rounded-xl font-bold text-sm bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2">
+              <span id="saveBtnIcon">💾</span>
+              <span id="saveBtnText">Save & Update AI Knowledge</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- TAB 2: Live AI Test Playground -->
+    <div id="tab-simulator" class="hidden space-y-6">
+      <div class="bg-slate-900/90 p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-xl space-y-6">
         <div>
-          <p class="font-bold text-white text-sm">Bot is Active & Listening 24/7</p>
-          <p class="text-xs text-emerald-300/80">WhatsApp is linked and session is secured in the cloud. You can safely close this browser page!</p>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>🧪</span> Live AI Chat Simulator
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">
+            Test how Aura answers questions using your customized clinic details before testing on WhatsApp.
+          </p>
+        </div>
+
+        <!-- Quick Question Chips -->
+        <div class="flex flex-wrap gap-2">
+          <span class="text-xs text-slate-400 self-center">Try asking:</span>
+          <button onclick="setTestQuery(this.innerText)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-teal-300 border border-slate-700 transition-colors">Where is your clinic located?</button>
+          <button onclick="setTestQuery(this.innerText)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-teal-300 border border-slate-700 transition-colors">What are your working hours?</button>
+          <button onclick="setTestQuery(this.innerText)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-teal-300 border border-slate-700 transition-colors">Who is the chief doctor?</button>
+          <button onclick="setTestQuery(this.innerText)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-teal-300 border border-slate-700 transition-colors">How much does a root canal cost?</button>
+          <button onclick="setTestQuery(this.innerText)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-teal-300 border border-slate-700 transition-colors">Can I park my car at the clinic?</button>
+        </div>
+
+        <!-- Input Box -->
+        <div class="flex gap-2">
+          <input type="text" id="testQueryInput" placeholder="Type any question for Aura..." class="flex-1 px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" onkeydown="if(event.key==='Enter') runAITest();" />
+          <button onclick="runAITest()" id="testAIBtn" class="px-6 py-3 rounded-xl font-bold text-sm bg-teal-500 hover:bg-teal-400 text-slate-950 transition-colors flex items-center gap-2 shrink-0">
+            <span>Send</span>
+          </button>
+        </div>
+
+        <!-- Chat Conversation Output -->
+        <div id="aiTestResult" class="hidden p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span class="font-bold text-emerald-400">Aura AI Response:</span>
+            <span class="text-[10px] text-slate-500">Live Gemini Flash</span>
+          </div>
+          <div id="aiReplyContent" class="text-sm text-slate-200 whitespace-pre-line leading-relaxed font-sans"></div>
         </div>
       </div>
-      <span class="text-xs bg-emerald-900/60 border border-emerald-700/50 px-3.5 py-1.5 rounded-xl font-mono text-emerald-200">${connectedNumber || '+91 8555052843'}</span>
     </div>
-    ` : ''}
 
-    <!-- Live Message Logs -->
-    <div class="bg-slate-900/90 p-5 rounded-3xl border border-slate-800 space-y-4">
-      <h3 class="text-sm font-bold text-slate-300 flex items-center justify-between">
-        <span>Live WhatsApp Activity Logs</span>
-        <span class="text-xs text-slate-500 font-mono">${messageLogs.length} messages</span>
-      </h3>
-      
-      ${messageLogs.length === 0 ? `
-        <div class="text-center py-8 text-slate-500 text-xs">
-          No incoming messages yet. Send a test message from any phone to +91 8555052843 to see Aura reply!
+    <!-- TAB 3: Live WhatsApp Activity Logs -->
+    <div id="tab-logs" class="hidden space-y-6">
+      <div class="bg-slate-900/90 p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-xl space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+          <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+            <span>💬</span> Live WhatsApp Activity Stream
+          </h3>
+          <span id="logsCountBadge" class="text-xs text-slate-400 font-mono bg-slate-800 px-2.5 py-1 rounded-lg">
+            ${messageLogs.length} messages
+          </span>
         </div>
-      ` : `
-        <div class="space-y-3">
-          ${messageLogs.map(log => `
-            <div class="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 text-xs space-y-2">
+
+        <div id="logsContainer" class="space-y-3 max-h-[600px] overflow-y-auto pr-1">
+          ${messageLogs.length === 0 ? `
+            <div class="text-center py-12 text-slate-500 text-xs">
+              No incoming messages yet. Send a test WhatsApp message to ${connectedNumber || '+91 8555052843'} to see it appear here!
+            </div>
+          ` : messageLogs.map(log => `
+            <div class="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 text-xs space-y-2">
               <div class="flex items-center justify-between text-slate-400">
-                <span class="font-semibold text-teal-300">${log.sender}</span>
-                <span class="text-[10px] font-mono text-slate-500">${log.time}</span>
+                <span class="font-semibold text-teal-300">${escapeHtml(log.sender)}</span>
+                <span class="text-[10px] font-mono text-slate-500">${escapeHtml(log.time)}</span>
               </div>
-              <p class="text-slate-200 bg-slate-900/70 p-2 rounded-xl">"${log.message}"</p>
-              <div class="bg-slate-900 p-2.5 rounded-xl border-l-2 border-emerald-500 text-slate-300 mt-1">
-                <span class="text-[10px] text-emerald-400 font-bold block mb-0.5">AI Response:</span>
-                ${log.reply}
+              <p class="text-slate-200 bg-slate-900/70 p-2.5 rounded-xl">"${escapeHtml(log.message)}"</p>
+              <div class="bg-slate-900 p-3 rounded-xl border-l-2 border-emerald-500 text-slate-300 mt-1">
+                <span class="text-[10px] text-emerald-400 font-bold block mb-1">AI Response:</span>
+                <p class="whitespace-pre-line">${escapeHtml(log.reply)}</p>
               </div>
               ${log.bookedId ? `
                 <div class="mt-1 flex items-center gap-1.5 text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-lg border border-emerald-700/40">
-                  <span>✓ Synced to Supabase: Confirmation #${log.bookedId}</span>
+                  <span>✓ Synced to Supabase: Confirmation #${escapeHtml(String(log.bookedId))}</span>
                 </div>
               ` : ''}
             </div>
           `).join('')}
         </div>
-      `}
+      </div>
     </div>
 
   </div>
+
+  <script>
+    // Tab Switching
+    function switchTab(tabId) {
+      ['tab-knowledge', 'tab-simulator', 'tab-logs'].forEach(id => {
+        const el = document.getElementById(id);
+        const btn = document.getElementById('btn-' + id);
+        if (id === tabId) {
+          el.classList.remove('hidden');
+          btn.className = 'tab-active flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold border transition-all flex items-center justify-center gap-2';
+        } else {
+          el.classList.add('hidden');
+          btn.className = 'tab-inactive flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold border transition-all flex items-center justify-center gap-2';
+        }
+      });
+    }
+
+    // Save Clinic Settings
+    async function handleSaveSettings(e) {
+      e.preventDefault();
+      const saveBtn = document.getElementById('saveBtn');
+      const saveBtnText = document.getElementById('saveBtnText');
+      const saveToast = document.getElementById('saveToast');
+
+      saveBtnText.innerText = 'Saving to Supabase Cloud...';
+      saveBtn.disabled = true;
+
+      const formData = new FormData(document.getElementById('clinicSettingsForm'));
+      const payload = Object.fromEntries(formData.entries());
+
+      try {
+        const res = await fetch('/api/save-settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          saveToast.classList.remove('hidden');
+          saveBtnText.innerText = '✓ Saved & Updated Live!';
+          setTimeout(() => {
+            saveBtnText.innerText = 'Save & Update AI Knowledge';
+            saveBtn.disabled = false;
+            saveToast.classList.add('hidden');
+          }, 3500);
+        } else {
+          alert('Could not save settings: ' + (data.error || 'Unknown error'));
+          saveBtnText.innerText = 'Save & Update AI Knowledge';
+          saveBtn.disabled = false;
+        }
+      } catch (err) {
+        alert('Network error saving settings: ' + err.message);
+        saveBtnText.innerText = 'Save & Update AI Knowledge';
+        saveBtn.disabled = false;
+      }
+    }
+
+    // Test AI Playground
+    function setTestQuery(q) {
+      document.getElementById('testQueryInput').value = q;
+      runAITest();
+    }
+
+    async function runAITest() {
+      const input = document.getElementById('testQueryInput');
+      const query = input.value.trim();
+      if (!query) return;
+
+      const btn = document.getElementById('testAIBtn');
+      const resBox = document.getElementById('aiTestResult');
+      const replyEl = document.getElementById('aiReplyContent');
+
+      btn.innerText = 'Thinking...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/test-ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query })
+        });
+        const data = await res.json();
+        resBox.classList.remove('hidden');
+        if (data.reply) {
+          replyEl.innerText = data.reply;
+        } else {
+          replyEl.innerText = 'Error: ' + (data.error || 'Failed to get response');
+        }
+      } catch (err) {
+        resBox.classList.remove('hidden');
+        replyEl.innerText = 'Error: ' + err.message;
+      } finally {
+        btn.innerText = 'Send';
+        btn.disabled = false;
+      }
+    }
+
+    // Smooth Client-Side Polling (Updates logs & status every 4 seconds without reloading page)
+    async function pollStatus() {
+      try {
+        const res = await fetch('/api/status');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // Update status badge
+        const badge = document.getElementById('botStatusBadge');
+        if (badge) {
+          badge.innerText = data.botStatus;
+          if (data.botStatus.includes('Active')) {
+            badge.className = 'px-4 py-2 text-xs font-bold rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+            document.getElementById('statusDot').className = 'w-3.5 h-3.5 rounded-full bg-emerald-400 animate-pulse';
+          } else {
+            badge.className = 'px-4 py-2 text-xs font-bold rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40';
+            document.getElementById('statusDot').className = 'w-3.5 h-3.5 rounded-full bg-amber-400';
+          }
+        }
+
+        // Update connected number
+        if (data.connectedNumber) {
+          document.getElementById('connectedNumberDisplay').innerText = data.connectedNumber;
+        }
+
+        // Update QR code container
+        const qrContainer = document.getElementById('qrCodeContainer');
+        if (data.currentQRDataUrl) {
+          qrContainer.classList.remove('hidden');
+          document.getElementById('qrImage').src = data.currentQRDataUrl;
+        } else {
+          qrContainer.classList.add('hidden');
+        }
+
+        // Update message logs count
+        document.getElementById('logsCountBadge').innerText = data.messageLogs.length + ' messages';
+      } catch (err) {}
+    }
+
+    setInterval(pollStatus, 4000);
+  </script>
 </body>
 </html>`);
 });

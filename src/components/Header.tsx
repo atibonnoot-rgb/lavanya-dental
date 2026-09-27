@@ -6,9 +6,7 @@ import {
   Menu,
   X,
   Phone,
-  Lock,
-  LayoutDashboard,
-  AlertCircle
+  LayoutDashboard
 } from 'lucide-react';
 import { useClinic } from '../context/ClinicContext';
 import clinicLogo from '../assets/logo.png';
@@ -27,30 +25,6 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
   } = useClinic();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showAdminPrompt, setShowAdminPrompt] = useState(false);
-  const [adminPin, setAdminPin] = useState('');
-  const [adminPinError, setAdminPinError] = useState('');
-
-  // Admin password — matches the full login page
-  const ADMIN_PASSWORD = '112233';
-
-  const handleAdminLogin = () => {
-    const sqlInjectionPattern = /('|--|;|\/\*|\*\/|union\s+select|select\s+\*|drop\s+table|delete\s+from)/i;
-    if (sqlInjectionPattern.test(adminPin)) {
-      setAdminPinError('Invalid input detected.');
-      return;
-    }
-    if (adminPin === ADMIN_PASSWORD) {
-      setAdminPinError('');
-      setAdminPin('');
-      setShowAdminPrompt(false);
-      setMobileMenuOpen(false);
-      setCurrentRole('admin');
-    } else {
-      setAdminPinError('Incorrect password. Access denied.');
-      setAdminPin('');
-    }
-  };
 
   const navLinks = [
     { id: 'home', label: 'Home' },
@@ -143,12 +117,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
 
             {/* Hamburger */}
             <button
-              onClick={() => {
-                setMobileMenuOpen(prev => !prev);
-                setShowAdminPrompt(false);
-                setAdminPin('');
-                setAdminPinError('');
-              }}
+              onClick={() => setMobileMenuOpen(prev => !prev)}
               className="p-2 text-slate-600 hover:text-slate-900 rounded-xl hover:bg-slate-100 border border-slate-200/80 transition-colors shrink-0 flex items-center justify-center"
               aria-label="Toggle Menu"
             >
@@ -173,7 +142,6 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
               onClick={() => {
                 setCurrentRole('patient');
                 setMobileMenuOpen(false);
-                setShowAdminPrompt(false);
               }}
               className={`w-full flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-semibold border transition-all ${
                 currentRole === 'patient'
@@ -185,61 +153,17 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
               <span>Patient Portal</span>
             </button>
 
-            {/* Admin Panel — shows password prompt inline */}
-            {!showAdminPrompt ? (
-              <button
-                onClick={() => {
-                  setShowAdminPrompt(true);
-                  setAdminPin('');
-                  setAdminPinError('');
-                }}
-                className="w-full flex items-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-semibold border bg-white text-slate-600 border-slate-200 hover:border-slate-800 hover:bg-slate-900 hover:text-white transition-all group"
-              >
-                <LayoutDashboard className="w-4 h-4 shrink-0" />
-                <span>Admin Panel</span>
-                <Lock className="w-3 h-3 ml-auto text-slate-400 group-hover:text-slate-300" />
-              </button>
-            ) : (
-              <div className="bg-slate-900 rounded-xl p-3 space-y-2.5 border border-slate-700">
-                <p className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
-                  <Lock className="w-3 h-3 text-teal-400" />
-                  Enter Admin Password
-                </p>
-
-                {adminPinError && (
-                  <div className="flex items-center gap-1.5 text-rose-400 text-[11px]">
-                    <AlertCircle className="w-3 h-3 shrink-0" />
-                    <span>{adminPinError}</span>
-                  </div>
-                )}
-
-                <input
-                  id="header-admin-password"
-                  type="password"
-                  value={adminPin}
-                  onChange={e => { setAdminPin(e.target.value); setAdminPinError(''); }}
-                  onKeyDown={e => e.key === 'Enter' && handleAdminLogin()}
-                  placeholder="••••••••••"
-                  autoFocus
-                  className="w-full bg-slate-800 border border-slate-600 text-white placeholder-slate-500 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all"
-                />
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleAdminLogin}
-                    className="flex-1 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold py-2 rounded-lg transition-colors"
-                  >
-                    Sign In
-                  </button>
-                  <button
-                    onClick={() => { setShowAdminPrompt(false); setAdminPin(''); setAdminPinError(''); }}
-                    className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-semibold py-2 rounded-lg transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
+            {/* Admin Panel — directly opens login page */}
+            <button
+              onClick={() => {
+                setCurrentRole('admin');
+                setMobileMenuOpen(false);
+              }}
+              className="w-full flex items-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-semibold border bg-white text-slate-600 border-slate-200 hover:border-slate-800 hover:bg-slate-900 hover:text-white transition-all group"
+            >
+              <LayoutDashboard className="w-4 h-4 shrink-0" />
+              <span>Admin Panel</span>
+            </button>
           </div>
 
           {/* Navigation Links */}

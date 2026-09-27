@@ -142,8 +142,18 @@ export const ReviewsSection: React.FC = () => {
             </p>
           </div>
 
-          {/* Rating Pill + Rate Now Button */}
+          {/* Rate Now Button + 4.96 Rating Pill */}
           <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+            {/* Rate Now Button to the left of the 4.96 badge */}
+            <button
+              onClick={handleOpenRateModal}
+              className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-5 py-4 rounded-2xl font-bold text-sm shadow-md hover:shadow-lg hover:shadow-emerald-900/10 transition-all active:scale-95 cursor-pointer whitespace-nowrap group"
+            >
+              <Star className="w-4 h-4 fill-amber-300 text-amber-300 group-hover:scale-110 transition-transform" />
+              <span>Rate Now</span>
+              <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+            </button>
+
             {/* 4.96 Badge */}
             <div className="flex items-center gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs shrink-0">
               <div className="text-3xl font-extrabold font-display text-slate-900">4.96</div>
@@ -156,16 +166,6 @@ export const ReviewsSection: React.FC = () => {
                 <p className="text-xs text-slate-500 font-medium mt-0.5">Based on 1,508 verified reviews</p>
               </div>
             </div>
-
-            {/* Rate Now Button directly beside the 4.96 button */}
-            <button
-              onClick={handleOpenRateModal}
-              className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-5 py-4 rounded-2xl font-bold text-sm shadow-md hover:shadow-lg hover:shadow-emerald-900/10 transition-all active:scale-95 cursor-pointer whitespace-nowrap group"
-            >
-              <Star className="w-4 h-4 fill-amber-300 text-amber-300 group-hover:scale-110 transition-transform" />
-              <span>Rate Now</span>
-              <ExternalLink className="w-3.5 h-3.5 opacity-80" />
-            </button>
           </div>
         </div>
 

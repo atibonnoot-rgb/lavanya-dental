@@ -35,7 +35,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
 
   const navLinks = [
     { id: 'home', label: 'Home' },
-    { id: 'services', label: 'Services & Pricing' },
+    { id: 'services', label: 'Treatments & Services' },
     { id: 'doctors', label: 'Dental Specialists' },
     { id: 'gallery', label: 'Before & After' },
     { id: 'patient-portal', label: 'My Appointments' },

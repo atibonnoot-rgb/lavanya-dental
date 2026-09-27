@@ -241,9 +241,7 @@ export const ServicesSection: React.FC = () => {
                   <div className="pt-6 mt-6 border-t border-slate-200/80 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-1.5 text-xs text-emerald-800 font-semibold bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 rounded-xl">
                       <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>
-                        {service.priceEstimate > 0 ? `Est. ₹${service.priceEstimate.toLocaleString('en-IN')}` : 'Pay at Clinic'}
-                      </span>
+                      <span>Consultation at Clinic</span>
                     </div>
 
                     <button

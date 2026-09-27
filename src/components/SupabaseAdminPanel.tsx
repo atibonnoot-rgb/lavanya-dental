@@ -323,7 +323,7 @@ export const SupabaseAdminPanel: React.FC<SupabaseAdminPanelProps> = ({ onLogout
     const cleanPhone = phone.startsWith('91') ? phone : `91${phone}`;
 
     // WhatsApp Bot message giving the doctor's phone number as requested
-    const message = `Hello ${patientName},\n\nThis is an automated update from Lavanya Dental Clinic.\n\nYour appointment scheduled for ${cancelTarget.date} at ${cancelTarget.timeSlot} has been cancelled by the doctor.\nReason: ${cancellationReason}\n\nPlease contact Dr. Lavanya directly at +91 9885611128 to reschedule your visit or for any clinical questions.\n\nLavanya Dental Clinic\nContact: 9885611128\nAddress: Kukatpally, Hyderabad`;
+    const message = `Hello ${patientName},\n\nThis is an automated update from Lavanya Dental Clinic.\n\nYour appointment scheduled for ${cancelTarget.date} at ${cancelTarget.timeSlot} has been cancelled by the doctor.\nReason: ${cancellationReason}\n\nPlease contact Dr. Lavanya directly at +91 9885611128 to reschedule your visit or for any clinical questions.\n\nLavanya Dental Clinic\nContact: 9885611128\nAddress: PG Road, Hyderabad`;
 
     const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
 

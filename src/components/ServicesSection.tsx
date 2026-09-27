@@ -39,6 +39,10 @@ export const ServicesSection: React.FC = () => {
     { id: 'serv-complete-dentures', name: 'Complete Dentures' },
     { id: 'serv-dental-cleaning', name: 'Dental Cleaning and scaling' },
     { id: 'serv-dental-veneers', name: 'Dental Veneers' },
+    { id: 'serv-oral-maxillofacial', name: 'Oral & Maxillofacial Surgeries' },
+    { id: 'serv-fractures-jaw', name: 'Fractures of Jaw' },
+    { id: 'serv-tumors-jaw', name: 'Tumors of Jaw' },
+    { id: 'serv-jaw-defects', name: 'Jaw Defects' },
   ];
 
   const filteredServices = services.filter(s => {

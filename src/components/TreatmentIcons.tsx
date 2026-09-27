@@ -227,7 +227,94 @@ export const DentalVeneersIcon: React.FC<IconProps> = ({ className = "w-12 h-12"
   </svg>
 );
 
-// Map of all 12 treatments to their corresponding SVG icon component
+export const OralMaxillofacialIcon: React.FC<IconProps> = ({ className = "w-12 h-12" }) => (
+  <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <rect width="64" height="64" rx="14" fill="#047857" />
+    {/* Facial/Jaw anatomy contour */}
+    <path 
+      d="M20 18 C 20 14, 34 14, 40 20 C 44 24, 44 32, 40 38 C 38 42, 34 46, 28 48 C 22 50, 18 46, 18 42 L 18 32 C 18 28, 20 22, 20 18 Z" 
+      stroke="white" 
+      strokeWidth="2.5" 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      fill="none" 
+    />
+    {/* Surgical cross / focus ring */}
+    <circle cx="34" cy="34" r="8" stroke="#6EE7B7" strokeWidth="2" strokeDasharray="3 3" fill="#065F46" />
+    <line x1="34" y1="23" x2="34" y2="45" stroke="#6EE7B7" strokeWidth="1.5" />
+    <line x1="23" y1="34" x2="45" y2="34" stroke="#6EE7B7" strokeWidth="1.5" />
+    {/* Scalpel / Precision instrument */}
+    <path d="M48 14 L 38 24 L 35 22 L 45 12 Z" fill="#E2E8F0" />
+    <path d="M48 14 L 52 10" stroke="#CBD5E1" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
+export const FracturesJawIcon: React.FC<IconProps> = ({ className = "w-12 h-12" }) => (
+  <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <rect width="64" height="64" rx="14" fill="#047857" />
+    {/* Mandible jawbone silhouette */}
+    <path 
+      d="M16 26 C 16 22, 22 22, 24 26 L 25 38 C 26 44, 36 46, 44 42 C 48 40, 50 36, 50 30 L 50 22" 
+      stroke="white" 
+      strokeWidth="4" 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      fill="none" 
+    />
+    {/* Fracture line */}
+    <path d="M30 40 L 33 44 L 31 47 L 34 50" stroke="#FBBF24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    {/* Titanium Fixation Plate */}
+    <rect x="26" y="42" width="16" height="5" rx="2.5" fill="#E2E8F0" stroke="#047857" strokeWidth="1" />
+    <circle cx="29" cy="44.5" r="1.2" fill="#047857" />
+    <circle cx="34" cy="44.5" r="1.2" fill="#047857" />
+    <circle cx="39" cy="44.5" r="1.2" fill="#047857" />
+  </svg>
+);
+
+export const TumorsJawIcon: React.FC<IconProps> = ({ className = "w-12 h-12" }) => (
+  <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <rect width="64" height="64" rx="14" fill="#047857" />
+    {/* Jaw bone contour */}
+    <path 
+      d="M16 30 C 16 24, 22 24, 25 30 L 26 38 C 28 46, 38 46, 48 40 L 48 24" 
+      stroke="white" 
+      strokeWidth="3.5" 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      fill="none" 
+    />
+    {/* Tumor lesion circle in bone */}
+    <circle cx="35" cy="38" r="7" fill="#065F46" stroke="#FDE047" strokeWidth="2" />
+    <circle cx="35" cy="38" r="4" fill="#FBBF24" opacity="0.8" />
+    {/* Diagnostic scan radar ring */}
+    <circle cx="35" cy="38" r="11" stroke="#6EE7B7" strokeWidth="1.5" strokeDasharray="3 3" fill="none" />
+  </svg>
+);
+
+export const JawDefectsIcon: React.FC<IconProps> = ({ className = "w-12 h-12" }) => (
+  <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <rect width="64" height="64" rx="14" fill="#047857" />
+    {/* Reconstructed Mandible contour */}
+    <path 
+      d="M16 26 C 16 22, 22 22, 24 26 L 25 36 C 26 44, 38 46, 48 40 L 48 24" 
+      stroke="white" 
+      strokeWidth="3.5" 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      fill="none" 
+    />
+    {/* Reconstruction Scaffold / Bone Graft Matrix */}
+    <rect x="28" y="38" width="12" height="8" rx="2" fill="#065F46" stroke="#6EE7B7" strokeWidth="1.5" strokeDasharray="2 2" />
+    {/* Regeneration sparkle */}
+    <path d="M34 32 L 35 34 L 37 35 L 35 36 L 34 38 L 33 36 L 31 35 L 33 34 Z" fill="#6EE7B7" />
+    {/* Dots representing osteo-integration */}
+    <circle cx="31" cy="42" r="1" fill="#E2E8F0" />
+    <circle cx="34" cy="42" r="1" fill="#E2E8F0" />
+    <circle cx="37" cy="42" r="1" fill="#E2E8F0" />
+  </svg>
+);
+
+// Map of all treatments to their corresponding SVG icon component
 export const TREATMENT_ICON_MAP: Record<string, React.FC<IconProps>> = {
   'serv-aligner': AlignerIcon,
   'serv-dental-implants': DentalImplantsIcon,
@@ -241,4 +328,8 @@ export const TREATMENT_ICON_MAP: Record<string, React.FC<IconProps>> = {
   'serv-complete-dentures': CompleteDenturesIcon,
   'serv-dental-cleaning': DentalCleaningIcon,
   'serv-dental-veneers': DentalVeneersIcon,
+  'serv-oral-maxillofacial': OralMaxillofacialIcon,
+  'serv-fractures-jaw': FracturesJawIcon,
+  'serv-tumors-jaw': TumorsJawIcon,
+  'serv-jaw-defects': JawDefectsIcon,
 };

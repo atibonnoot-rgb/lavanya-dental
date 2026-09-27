@@ -295,6 +295,74 @@ export const DENTAL_SERVICES: DentalService[] = [
     ],
     popular: true,
     insuranceCovered: 'Cosmetic/Elective'
+  },
+  {
+    id: 'serv-oral-maxillofacial',
+    name: 'Oral & Maxillofacial Surgeries',
+    category: 'Surgical & Implants',
+    description: 'Specialized surgical interventions treating diseases, injuries, and defects in the head, neck, face, jaws, and hard & soft oral tissues.',
+    durationMinutes: 60,
+    priceEstimate: 0,
+    depositRequired: 0,
+    recommendedFor: [
+      'Complex wisdom tooth impactions & surgical extractions',
+      'Facial trauma, lacerations, and corrective jaw alignment',
+      'Cysts, lesions, and salivary gland disorders',
+      'Reconstructive oral and maxillofacial surgery'
+    ],
+    popular: true,
+    insuranceCovered: 'Full'
+  },
+  {
+    id: 'serv-fractures-jaw',
+    name: 'Fractures of Jaw',
+    category: 'Surgical & Implants',
+    description: 'Emergency and elective surgical reduction, rigid titanium mini-plate fixation, and stabilization for mandibular and maxillary jaw fractures.',
+    durationMinutes: 60,
+    priceEstimate: 0,
+    depositRequired: 0,
+    recommendedFor: [
+      'Facial trauma from road accidents, sports, or physical injury',
+      'Pain, swelling, or inability to close bite properly',
+      'Displaced lower or upper jawbone fractures',
+      'Post-traumatic occlusion correction'
+    ],
+    popular: false,
+    insuranceCovered: 'Full'
+  },
+  {
+    id: 'serv-tumors-jaw',
+    name: 'Tumors of Jaw',
+    category: 'Surgical & Implants',
+    description: 'Specialist clinical diagnosis, radiographic 3D evaluation, histological biopsy, and micro-surgical excision of benign and aggressive jaw lesions and cysts.',
+    durationMinutes: 60,
+    priceEstimate: 0,
+    depositRequired: 0,
+    recommendedFor: [
+      'Persistent unexplained jawbone swelling or facial fullness',
+      'Painless hard lumps or bone expansion identified on X-rays',
+      'Odontogenic cysts and benign jawbone lesions',
+      'Microscopic biopsy and complete surgical excision'
+    ],
+    popular: false,
+    insuranceCovered: 'Full'
+  },
+  {
+    id: 'serv-jaw-defects',
+    name: 'Jaw Defects',
+    category: 'Surgical & Implants',
+    description: 'Comprehensive functional and aesthetic jawbone reconstruction utilizing autogenous bone grafting, titanium mesh, and guided tissue regeneration.',
+    durationMinutes: 60,
+    priceEstimate: 0,
+    depositRequired: 0,
+    recommendedFor: [
+      'Severe jawbone deficiency from long-term tooth loss or trauma',
+      'Structural defects following cyst or tumor resection',
+      'Congenital or developmental jaw deformities',
+      'Bone restoration preparing for dental implant stability'
+    ],
+    popular: false,
+    insuranceCovered: 'Partial'
   }
 ];
 

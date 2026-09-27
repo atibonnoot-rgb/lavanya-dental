@@ -1,4 +1,4 @@
-import React, { useState, useId } from 'react';
+import React, { useState, useEffect, useRef, useId } from 'react';
 import { 
   X, 
   Clock, 
@@ -41,6 +41,38 @@ export const BookingModal: React.FC = () => {
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>(
     bookingPreselectedDoctorId || ''
   );
+
+  const selectedServiceRef = useRef<HTMLDivElement | null>(null);
+
+  // Synchronize preselected service whenever booking modal opens or service changes
+  useEffect(() => {
+    if (bookingPreselectedServiceId) {
+      setSelectedServiceId(bookingPreselectedServiceId);
+      setStep(1);
+    }
+  }, [bookingPreselectedServiceId, showBookingModal]);
+
+  // Synchronize preselected doctor whenever booking modal opens or doctor changes
+  useEffect(() => {
+    if (bookingPreselectedDoctorId) {
+      setSelectedDoctorId(bookingPreselectedDoctorId);
+    }
+  }, [bookingPreselectedDoctorId, showBookingModal]);
+
+  // Auto-scroll the selected service item into view so user immediately sees it checked
+  useEffect(() => {
+    if (showBookingModal && step === 1) {
+      const timer = setTimeout(() => {
+        if (selectedServiceRef.current) {
+          selectedServiceRef.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest'
+          });
+        }
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [showBookingModal, step, selectedServiceId]);
 
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -185,6 +217,7 @@ export const BookingModal: React.FC = () => {
                   {services.map((s) => (
                     <div
                       key={s.id}
+                      ref={selectedServiceId === s.id ? selectedServiceRef : null}
                       onClick={() => setSelectedServiceId(s.id)}
                       className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start justify-between gap-3 ${
                         selectedServiceId === s.id

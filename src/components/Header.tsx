@@ -31,8 +31,8 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
   const [adminPin, setAdminPin] = useState('');
   const [adminPinError, setAdminPinError] = useState('');
 
-  // Admin password — change this to whatever you prefer
-  const ADMIN_PASSWORD = 'lavanya@admin';
+  // Admin password — matches the full login page
+  const ADMIN_PASSWORD = '112233';
 
   const handleAdminLogin = () => {
     const sqlInjectionPattern = /('|--|;|\/\*|\*\/|union\s+select|select\s+\*|drop\s+table|delete\s+from)/i;

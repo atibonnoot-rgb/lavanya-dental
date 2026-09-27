@@ -30,8 +30,8 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
       return;
     }
 
-    // 2. Target Admin Authorized Credentials
-    const TARGET_ADMIN_EMAIL = 'atibonnoot@gmail.com';
+    // Authorized Admin Credentials
+    const TARGET_ADMIN_EMAIL = 'atibonoot@gmail.com';
     const TARGET_ADMIN_PASS = '112233';
 
     let isAuthorized = false;

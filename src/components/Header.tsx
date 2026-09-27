@@ -7,7 +7,8 @@ import {
   Building2, 
   AlertTriangle,
   Menu,
-  X
+  X,
+  Phone
 } from 'lucide-react';
 import { useClinic } from '../context/ClinicContext';
 
@@ -108,6 +109,16 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
               <Calendar className="w-4 h-4 shrink-0" />
               <span>Book Now</span>
             </button>
+
+            {/* Square Phone Dialer Button — Opens 9885611128 in dialer */}
+            <a
+              href="tel:9885611128"
+              aria-label="Call 9885611128"
+              title="Call Lavanya Dental: 9885611128"
+              className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 shadow-sm shadow-emerald-700/20 transition-all duration-200 active:scale-95 shrink-0"
+            >
+              <Phone className="w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0" />
+            </a>
 
             {/* Hamburger menu button — Always visible in top header frame */}
             <button

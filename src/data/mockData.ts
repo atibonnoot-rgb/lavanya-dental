@@ -299,7 +299,7 @@ export const DENTAL_SERVICES: DentalService[] = [
   {
     id: 'serv-oral-maxillofacial',
     name: 'Oral & Maxillofacial Surgeries',
-    category: 'Surgical & Implants',
+    category: 'Oral & Maxillofacial Surgeries',
     description: 'Specialized surgical interventions treating diseases, injuries, and defects in the head, neck, face, jaws, and hard & soft oral tissues.',
     durationMinutes: 60,
     priceEstimate: 0,
@@ -316,7 +316,7 @@ export const DENTAL_SERVICES: DentalService[] = [
   {
     id: 'serv-fractures-jaw',
     name: 'Fractures of Jaw',
-    category: 'Surgical & Implants',
+    category: 'Oral & Maxillofacial Surgeries',
     description: 'Emergency and elective surgical reduction, rigid titanium mini-plate fixation, and stabilization for mandibular and maxillary jaw fractures.',
     durationMinutes: 60,
     priceEstimate: 0,
@@ -333,7 +333,7 @@ export const DENTAL_SERVICES: DentalService[] = [
   {
     id: 'serv-tumors-jaw',
     name: 'Tumors of Jaw',
-    category: 'Surgical & Implants',
+    category: 'Oral & Maxillofacial Surgeries',
     description: 'Specialist clinical diagnosis, radiographic 3D evaluation, histological biopsy, and micro-surgical excision of benign and aggressive jaw lesions and cysts.',
     durationMinutes: 60,
     priceEstimate: 0,
@@ -350,7 +350,7 @@ export const DENTAL_SERVICES: DentalService[] = [
   {
     id: 'serv-jaw-defects',
     name: 'Jaw Defects',
-    category: 'Surgical & Implants',
+    category: 'Oral & Maxillofacial Surgeries',
     description: 'Comprehensive functional and aesthetic jawbone reconstruction utilizing autogenous bone grafting, titanium mesh, and guided tissue regeneration.',
     durationMinutes: 60,
     priceEstimate: 0,

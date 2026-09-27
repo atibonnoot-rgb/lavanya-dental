@@ -489,7 +489,7 @@ const ClinicInfoTab: React.FC = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: SERVICES
 // ─────────────────────────────────────────────────────────────────────────────
-const SERVICE_CATEGORIES = ['Preventive', 'Cosmetic', 'Restorative', 'Orthodontics', 'Surgical & Implants', 'Emergency & Endodontics'];
+const SERVICE_CATEGORIES = ['Oral & Maxillofacial Surgeries', 'Preventive', 'Cosmetic', 'Restorative', 'Orthodontics', 'Surgical & Implants', 'Emergency & Endodontics'];
 const INSURANCE_OPTIONS = ['Full', 'Partial', 'Varies', 'Cosmetic/Elective'];
 
 interface ServiceEditFormProps {

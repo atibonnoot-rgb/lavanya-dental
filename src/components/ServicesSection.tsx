@@ -17,11 +17,12 @@ export const ServicesSection: React.FC = () => {
 
   const categories: { id: string; label: string }[] = [
     { id: 'ALL', label: 'All Treatments' },
+    { id: 'Oral & Maxillofacial Surgeries', label: 'Oral & Maxillofacial Surgeries' },
     { id: 'Preventive', label: 'Preventive & Hygiene' },
     { id: 'Cosmetic', label: 'Cosmetic & Aesthetics' },
     { id: 'Orthodontics', label: 'Aligners & Braces' },
     { id: 'Restorative', label: 'Bridges & Dentures' },
-    { id: 'Surgical & Implants', label: 'Implants & Extractions' },
+    { id: 'Surgical & Implants', label: 'Dental Implants & Extractions' },
     { id: 'Emergency & Endodontics', label: 'Root Canal & Emergency' },
   ];
 

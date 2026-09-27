@@ -6,7 +6,8 @@ export type ServiceCategory =
   | 'Restorative' 
   | 'Orthodontics' 
   | 'Surgical & Implants' 
-  | 'Emergency & Endodontics';
+  | 'Emergency & Endodontics'
+  | 'Oral & Maxillofacial Surgeries';
 
 export interface DentalService {
   id: string;

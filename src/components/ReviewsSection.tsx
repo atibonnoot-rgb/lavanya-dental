@@ -12,23 +12,15 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
-const GOOGLE_REVIEW_URL = 'https://g.page/r/CQt0oBG3ht7DEBM/review';
+const GOOGLE_REVIEW_URL = 'https://maps.app.goo.gl/6xQioN2UgJ4wPccJ9';
 
 const PREWRITTEN_REVIEWS = [
-  "Exceptional experience at Lavanya Dental Clinic! The doctors are extremely gentle, patient, and knowledgeable. The clinic is equipped with the latest modern technology and the staff made sure I felt completely comfortable throughout the treatment. Highly recommend to everyone in need of quality dental care!",
-  "Had a wonderful and completely painless treatment at Lavanya Dental. The doctors and clinical team are thorough professionals who explain every step with clarity. Pristine hygiene standards and very courteous staff. 5 stars all the way!",
-  "Best dental clinic experience I've ever had. Truly painless procedure and very modern facilities. The doctors are polite, attentive, and genuinely caring. The clinic maintains impeccable cleanliness. Will definitely recommend Lavanya Dental to all my friends and family!",
-  "I was very anxious about my dental treatment, but the team at Lavanya Dental made it so easy and stress-free. From the welcoming front desk to the skilled doctors, everything was top-notch. Completely pain-free and transparent care!",
-  "Outstanding clinical service and wonderful doctors! State-of-the-art equipment and a very hygienic atmosphere. They attended to my issue promptly with zero waiting time. Truly appreciate the dedication and warmth of Dr. Lavanya and team.",
-  "Visited Lavanya Dental for treatment and was thoroughly impressed by their expertise and gentle approach. They took the time to answer all my queries and provided the best possible care with zero discomfort. Easily a 5-star clinic!",
-  "Top quality dental care at Lavanya Dental Clinic! Doctors are highly experienced and treatments are completely pain-free. The entire clinic is spotless, welcoming, and very well managed. Kudos to the entire staff!",
-  "Very satisfied with the treatment at Lavanya Dental. The doctors are kind, considerate, and treat patients with great care. High-tech equipment, clear explanations, and no hidden surprises. Deserves more than 5 stars!",
-  "Remarkable attention to detail and patient comfort! Lavanya Dental sets a high benchmark for dental care. Treatment was smooth, prompt, and completely painless. Thank you to the doctors and support staff for such a great experience.",
-  "Had a fantastic experience at Lavanya Dental Clinic. The doctors are experts at what they do, very gentle with their hands, and make you feel at ease immediately. Clean, modern, and trustworthy clinic. Highly recommended!",
-  "Extremely satisfied with the dental treatment here. The clinic is spotless, well-maintained, and the doctors are skilled and gentle. The entire appointment was smooth and on time. Best dental clinic around!",
-  "Lavanya Dental Clinic is the gold standard for oral care! Modern clinic, courteous staff, and skilled doctors who prioritize patient comfort above all else. Truly a 5-star experience from start to finish.",
-  "Very smooth and comfortable consultation at Lavanya Dental. The doctors take time to listen and diagnose accurately without rushing. Friendly staff and spotless clinic. Very happy with the care provided!",
-  "Impressed by the professionalism and hygiene at Lavanya Dental Clinic. The doctor was so gentle that I didn't feel any discomfort during the entire treatment. Highly recommended for families!"
+  "Best clinic I have ever visited in Hyderabad! Painless treatment by Dr. Vijay Rajshekar and very hygienic clinic. Highly recommend Lavanya Dental Clinic to everyone!",
+  "I have done my laser root canal treatment and crown fixation fully satisfied with the treatment and services at Lavanya Dental by Dr Vijay Rajshekar.",
+  "Excellent and very caring doctor for dental! Highly recommend him in hyderabad with budget friendly also...without second thought u can rush into this clinic....",
+  "Dr vijay rajshekhar is one of the best doctor.. He listen to the patient very nicely and explain the treatment plan very nicely. He done my laser surgical extraction it is painless.. He is one of the best doctor",
+  "Had a very good experience with Dr. Vijay. The surgery was performed efficiently and the entire process was smooth and painless.",
+  "Very pleased with the consultation, hygiene and care at Lavanya Dental Clinic. Highly recommended for painless laser dental treatments!"
 ];
 
 export const ReviewsSection: React.FC = () => {
@@ -40,42 +32,74 @@ export const ReviewsSection: React.FC = () => {
   const reviews = [
     {
       id: 1,
-      author: 'Marcus H.',
-      procedure: '3D Computer-Guided Dental Implant',
-      doctor: 'Dr. Marcus Vance',
+      author: 'Kiran Paulloy',
+      badge: 'Verified Google Patient',
+      procedure: 'Painless Dental Treatment',
+      doctor: 'Dr. Vijay Rajshekar',
       rating: 5,
-      date: '2 weeks ago',
-      comment: 'I was terrified of implant surgery after losing a molar in a sports accident. Dr. Vance used the 3D CT scan to guide the implant with pinpoint accuracy. Zero pain during surgery, and I was back at work the next morning. Outstanding clinical mastery!',
+      date: 'Recent',
+      comment: 'Best clinic I have ever visited. Painless treatment.',
+      ownerReply: 'Thank you so much for your review madam.',
       verified: true
     },
     {
       id: 2,
-      author: 'Emily Chen-Miller',
-      procedure: 'Invisalign Clear Aligners & Whitening',
-      doctor: 'Dr. Sarah Lin',
+      author: 'Laxminarasimha Rao Gundapuneni',
+      badge: 'Verified Google Review',
+      procedure: 'Laser Root Canal & Crown Fixation',
+      doctor: 'Dr. Vijay Rajshekar',
       rating: 5,
-      date: '3 weeks ago',
-      comment: 'Booking online took literally 2 minutes, and Dr. Lin confirmed on her mobile app within seconds. The 3D scan simulator showed me exactly how my teeth would look 10 months later, and the reality actually exceeded expectations.',
+      date: '9 weeks ago',
+      comment: 'I have done my laser root canal treatment and crown fixation fully satisfied with the treatment and services at Lavanya Dental by Dr Vijay Rajshekar.',
+      ownerReply: 'Hello uncle, thank you so much for your valuable and supportive msg, we will keep up the same.',
       verified: true
     },
     {
       id: 3,
-      author: 'Jonathan Ross',
-      procedure: 'Painless Root Canal Therapy',
-      doctor: 'Dr. James Chen',
+      author: 'Deepthi Su',
+      badge: 'Google Local Guide · 17 Reviews',
+      procedure: 'Comprehensive Dental Care',
+      doctor: 'Dr. Vijay Rajshekar',
       rating: 5,
-      date: '1 month ago',
-      comment: 'Had a severe dental emergency on a Friday afternoon. The triage system routed my complaint straight to Dr. Chen’s phone. He stayed late to perform a microscopic root canal. True lifesaver.',
+      date: '10 weeks ago',
+      comment: 'Excellent and very caring doctor for dental! Highly recommend him in hyderabad with budget friendly also...without second thought u can rush into this clinic....',
+      ownerReply: 'Hello Deepthi ji, thank u very much mam.',
       verified: true
     },
     {
       id: 4,
-      author: 'Victoria Sterling',
-      procedure: 'Cosmetic Porcelain Veneers (6 Units)',
-      doctor: 'Dr. Elena Rostova',
+      author: 'Nithya Bonagalla',
+      badge: 'Verified Google Review',
+      procedure: 'Laser Surgical Extraction (Painless)',
+      doctor: 'Dr. Vijay Rajshekar',
       rating: 5,
-      date: '1 month ago',
-      comment: 'Dr. Rostova has an artist’s eye for facial harmony. She customized the shade and surface texture to look 100% natural, not like fake Hollywood chiclets. I smile in every photo now.',
+      date: '10 weeks ago',
+      comment: 'Dr vijay rajshekhar is one of the best doctor.. He listen to the patient very nicely and explain the treatment plan very nicely. He done my laser surgical extraction it is painless.. He is one of the best doctor.',
+      ownerReply: 'Hello Nithya, with 25+ yrs experience we should do a good job, we will always keep up the same..',
+      verified: true
+    },
+    {
+      id: 5,
+      author: 'Eshwar Rao',
+      badge: 'Verified Google Review',
+      procedure: 'Laser Oral Surgery',
+      doctor: 'Dr. Vijay Rajshekar',
+      rating: 5,
+      date: '10 weeks ago',
+      comment: 'Had a very good experience with Dr. Vijay. The surgery was performed efficiently and the entire process was smooth and painless.',
+      ownerReply: 'Hello Eshwar, thank u for ur inspiring reviews, a great boost to others, we will keep up the same.tnq',
+      verified: true
+    },
+    {
+      id: 6,
+      author: 'Priyanka Vishnu',
+      badge: 'Verified Google Patient',
+      procedure: 'V-Clear Aligners & Checkup',
+      doctor: 'Dr. Vijay Rajshekar',
+      rating: 5,
+      date: '7 weeks ago',
+      comment: 'Very pleased with the consultation and hygiene at Lavanya Dental. Professional care with gentle hands and clear guidance.',
+      ownerReply: 'Hello mam tnq so much, pls have regular checkups to maintain it.',
       verified: true
     }
   ];
@@ -144,28 +168,43 @@ export const ReviewsSection: React.FC = () => {
 
           {/* Rate Now Button + 4.96 Rating Pill */}
           <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
-            {/* Rate Now Button to the left of the 4.96 badge */}
+            {/* Rate Now Button */}
             <button
               onClick={handleOpenRateModal}
               className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-5 py-4 rounded-2xl font-bold text-sm shadow-md hover:shadow-lg hover:shadow-emerald-900/10 transition-all active:scale-95 cursor-pointer whitespace-nowrap group"
             >
               <Star className="w-4 h-4 fill-amber-300 text-amber-300 group-hover:scale-110 transition-transform" />
-              <span>Rate Now</span>
+              <span>Rate on Google</span>
               <ExternalLink className="w-3.5 h-3.5 opacity-80" />
             </button>
 
-            {/* 4.96 Badge */}
-            <div className="flex items-center gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs shrink-0">
-              <div className="text-3xl font-extrabold font-display text-slate-900">4.96</div>
+            {/* Google Rating Badge */}
+            <a 
+              href={GOOGLE_REVIEW_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs shrink-0 hover:border-teal-300 transition-colors group cursor-pointer"
+              title="View Lavanya Dental Clinic on Google Maps"
+            >
+              <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center font-bold text-lg text-slate-800">
+                <svg className="w-6 h-6" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                </svg>
+              </div>
               <div>
                 <div className="flex items-center text-amber-400">
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} className="w-4 h-4 fill-current" />
                   ))}
                 </div>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">Based on 1,508 verified reviews</p>
+                <p className="text-xs text-slate-500 font-medium mt-0.5 group-hover:text-teal-700 transition-colors">
+                  5.0 ★ on Google Maps
+                </p>
               </div>
-            </div>
+            </a>
           </div>
         </div>
 
@@ -203,7 +242,7 @@ export const ReviewsSection: React.FC = () => {
                 <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
                   <span className="flex items-center gap-1 text-emerald-700 font-semibold">
                     <Sparkles className="w-3.5 h-3.5" />
-                    Unique Pre-Written 5-Star Review
+                    Suggested 5-Star Review
                   </span>
                   <button
                     onClick={handleShuffleReview}
@@ -261,24 +300,25 @@ export const ReviewsSection: React.FC = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* ══ AUTHENTIC GOOGLE REVIEWS GRID ══ */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {reviews.map(rev => (
             <div
               key={rev.id}
-              className="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-sm space-y-4 flex flex-col justify-between"
+              className="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-sm space-y-4 flex flex-col justify-between hover:shadow-md hover:border-teal-200 transition-all"
             >
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-slate-900 text-sm">{rev.author}</span>
-                    {rev.verified && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                        <CheckCircle2 className="w-3 h-3" />
-                        Verified Patient
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-sm leading-snug">{rev.author}</h3>
+                    {rev.badge && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full mt-1">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                        {rev.badge}
                       </span>
                     )}
                   </div>
-                  <span className="text-xs text-slate-400">{rev.date}</span>
+                  <span className="text-xs text-slate-400 whitespace-nowrap">{rev.date}</span>
                 </div>
 
                 <div className="flex items-center gap-1 text-amber-400">
@@ -287,14 +327,26 @@ export const ReviewsSection: React.FC = () => {
                   ))}
                 </div>
 
-                <p className="text-xs text-slate-600 leading-relaxed italic">
+                <p className="text-xs text-slate-700 leading-relaxed italic bg-slate-50/70 p-3 rounded-2xl border border-slate-100">
                   "{rev.comment}"
                 </p>
+
+                {rev.ownerReply && (
+                  <div className="bg-teal-50/70 border border-teal-100 rounded-2xl p-3 space-y-1 text-[11px]">
+                    <div className="flex items-center gap-1.5 font-bold text-teal-900">
+                      <span className="w-1.5 h-1.5 rounded-full bg-teal-600 shrink-0"></span>
+                      <span>Lavanya Dental Clinic [Owner Response]</span>
+                    </div>
+                    <p className="text-slate-600 italic">
+                      "{rev.ownerReply}"
+                    </p>
+                  </div>
+                )}
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                <span>Treatment: <strong>{rev.procedure}</strong></span>
-                <span className="text-teal-700 font-medium">Treated by {rev.doctor}</span>
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 gap-2">
+                <span>Treatment: <strong className="text-slate-800">{rev.procedure}</strong></span>
+                <span className="text-teal-700 font-semibold whitespace-nowrap">{rev.doctor}</span>
               </div>
             </div>
           ))}

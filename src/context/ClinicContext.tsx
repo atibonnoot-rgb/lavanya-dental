@@ -21,7 +21,7 @@ const DEFAULT_CLINIC_SETTINGS: ClinicSettings = {
   logoUrl: '',
   phone: '+91 8555052843',
   email: 'appointments@lavanyadental.com',
-  address: 'Lavanya Dental Care Pavilion, Main Road',
+  address: 'Lavanya Dental Care Pavilion, Main Road, Secunderabad, Hyderabad - 500003, Telangana',
   hours: {
     monday:    { open: true,  start: '08:00', end: '18:00' },
     tuesday:   { open: true,  start: '08:00', end: '18:00' },

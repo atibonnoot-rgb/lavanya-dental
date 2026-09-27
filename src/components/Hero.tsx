@@ -59,7 +59,7 @@ export const Hero: React.FC<{ onExploreServices: () => void }> = ({ onExploreSer
             </h1>
 
             <p className="text-lg text-slate-600 max-w-2xl leading-relaxed">
-              Experience modern, pain-free dentistry backed by 3D computer navigation and digital aligners. Book directly with board-certified specialists and receive instant confirmation in seconds.
+              Experience modern, pain-free dentistry in Hyderabad &amp; Secunderabad backed by 3D computer navigation and digital aligners. Book directly with board-certified specialists and receive instant confirmation in seconds.
             </p>
 
             {/* Quick-Booking Interactive Card */}

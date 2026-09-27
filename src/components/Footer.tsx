@@ -105,10 +105,16 @@ export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onN
           <div className="lg:col-span-3 space-y-3">
             <h4 className="text-xs font-bold text-white uppercase tracking-wider">Clinic Location</h4>
             <div className="space-y-2 text-slate-400">
-              <p className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 text-teal-400 shrink-0 mt-0.5" />
+              <a 
+                href="https://maps.app.goo.gl/6xQioN2UgJ4wPccJ9" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="flex items-start gap-2 hover:text-teal-300 transition-colors group"
+                title="View Lavanya Dental Clinic on Google Maps"
+              >
+                <MapPin className="w-4 h-4 text-teal-400 shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
                 <span>{clinicSettings.address}</span>
-              </p>
+              </a>
               <p className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-teal-400 shrink-0" />
                 <span>{clinicSettings.phone}</span>

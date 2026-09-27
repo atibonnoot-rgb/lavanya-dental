@@ -3,25 +3,25 @@ import { DentalService, Doctor, Appointment, BeforeAfterCase, PostCareGuide, Aud
 export const INITIAL_DOCTORS: Doctor[] = [
   {
     id: 'doc-1',
-    name: 'Dr. Sarah Lin, DDS, MS',
-    title: 'Chief Orthodontist & Clear Aligner Specialist',
-    specialty: 'Orthodontics & Facial Aesthetics',
-    degrees: 'Columbia University College of Dental Medicine • Board Certified Orthodontist',
+    name: 'Dr. Vijay Rajshekar, BDS, MDS',
+    title: 'Senior Dental Surgeon & V-Clear Aligners Specialist',
+    specialty: 'Laser Endodontics, Oral Surgery & Aligners',
+    degrees: 'Senior Specialist • Certified V-Clear Aligners & Laser Dental Provider',
     experienceYears: 25,
-    rating: 4.96,
-    reviewsCount: 382,
-    photoUrl: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=600&q=80',
-    bio: 'Specializing in digital aligner therapy, complex adult malocclusions, and teen airway-friendly orthodontic care. Recognized for gentle touch and aesthetic symmetry.',
-    phone: '+1 (555) 382-9901',
-    email: 'dr.lin@auradental.com',
-    workingDays: [1, 2, 3, 4, 5], // Mon-Fri
+    rating: 5.0,
+    reviewsCount: 240,
+    photoUrl: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=600&q=80',
+    bio: 'Over 25+ years of distinguished clinical experience in painless laser root canal therapy, surgical extractions, crown fixations, and advanced V-Clear aligners.',
+    phone: '+91 8555052843',
+    email: 'dr.vijay@lavanyadental.in',
+    workingDays: [1, 2, 3, 4, 5, 6], // Mon-Sat
     workingHours: {
-      start: '08:30',
-      end: '17:00'
+      start: '08:00',
+      end: '18:00'
     },
     slotDurationMinutes: 45,
     isAvailableToday: true,
-    onCallForEmergency: false,
+    onCallForEmergency: true,
   },
   {
     id: 'doc-2',

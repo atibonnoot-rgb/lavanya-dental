@@ -136,27 +136,21 @@ const mapClinicSettingsRow = (row: Record<string, unknown>): ClinicSettings => (
 export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentRole, setCurrentRole] = useState<UserRole>(() => {
     if (typeof window !== 'undefined') {
+      // Clear legacy saved role so visits to lavanyadental.in always land on public website
+      try {
+        localStorage.removeItem('lavanya_current_role');
+      } catch {}
+
       const hash = window.location.hash || '';
       const path = window.location.pathname || '';
       const search = window.location.search || '';
+      // Only start in admin role if URL specifically contains #admin or /admin
       if (hash.includes('admin') || path.includes('admin') || search.includes('admin')) {
         return 'admin';
       }
-      try {
-        const saved = localStorage.getItem('lavanya_current_role');
-        if (saved === 'admin' || saved === 'doctor' || saved === 'patient') {
-          return saved as UserRole;
-        }
-      } catch {}
     }
     return 'patient';
   });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('lavanya_current_role', currentRole);
-    } catch {}
-  }, [currentRole]);
 
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('doc-1');
   const [clinicSettings, setClinicSettings] = useState<ClinicSettings>(DEFAULT_CLINIC_SETTINGS);

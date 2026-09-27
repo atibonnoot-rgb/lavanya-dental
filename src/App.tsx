@@ -127,13 +127,25 @@ const AppContent: React.FC = () => {
             setIsAdminAuthenticated(true);
           }} />
         ) : (
-          <SupabaseAdminPanel onLogout={() => {
-            setIsAdminAuthenticated(false);
-            setCurrentRole('patient');
-            try { localStorage.setItem('lavanya_current_role', 'patient'); } catch {}
-            // Sign out of Supabase session too
-            try { supabase.auth.signOut(); } catch {}
-          }} />
+          <SupabaseAdminPanel 
+            onBackToWebsite={() => {
+              setCurrentRole('patient');
+              try { localStorage.removeItem('lavanya_current_role'); } catch {}
+              if (window.location.hash.includes('admin')) {
+                history.replaceState(null, '', window.location.pathname + window.location.search);
+              }
+            }}
+            onLogout={() => {
+              setIsAdminAuthenticated(false);
+              setCurrentRole('patient');
+              try { localStorage.removeItem('lavanya_current_role'); } catch {}
+              // Sign out of Supabase session too
+              try { supabase.auth.signOut(); } catch {}
+              if (window.location.hash.includes('admin')) {
+                history.replaceState(null, '', window.location.pathname + window.location.search);
+              }
+            }} 
+          />
         )
       )}
 

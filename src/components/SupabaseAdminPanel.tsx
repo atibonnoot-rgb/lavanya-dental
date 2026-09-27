@@ -2,8 +2,8 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Calendar, Clock, Phone, Plus, Trash2, CheckCircle2,
   AlertCircle, Users, Search, Check, Send, X, Database,
-  ArrowRight, Stethoscope, RefreshCw, MessageSquare, UserCheck,
-  Building2, LogOut, ExternalLink, ShieldCheck
+  ArrowRight, ArrowLeft, Stethoscope, RefreshCw, MessageSquare, UserCheck,
+  Building2, LogOut, ExternalLink, ShieldCheck, Globe
 } from 'lucide-react';
 import { useClinic } from '../context/ClinicContext';
 import { Appointment } from '../types';
@@ -29,9 +29,10 @@ export interface TreatedPatientRecord {
 
 interface SupabaseAdminPanelProps {
   onLogout: () => void;
+  onBackToWebsite?: () => void;
 }
 
-export const SupabaseAdminPanel: React.FC<SupabaseAdminPanelProps> = ({ onLogout }) => {
+export const SupabaseAdminPanel: React.FC<SupabaseAdminPanelProps> = ({ onLogout, onBackToWebsite }) => {
   const { 
     appointments, 
     services, 
@@ -440,40 +441,43 @@ export const SupabaseAdminPanel: React.FC<SupabaseAdminPanelProps> = ({ onLogout
             </div>
 
             {/* Header Right Actions */}
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-2.5">
+              {/* Back to Website Button */}
+              <button
+                onClick={onBackToWebsite || onLogout}
+                className="flex items-center gap-1 bg-white hover:bg-stone-100 text-slate-700 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border border-stone-200 shadow-2xs hover:border-slate-300"
+                title="View the public clinic website"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 text-slate-500" />
+                <span className="hidden sm:inline">Website</span>
+              </button>
+
               {/* Manual Refresh Button */}
               <button
                 onClick={handleManualRefresh}
                 disabled={isRefreshing}
-                className="flex items-center gap-1.5 bg-stone-100 hover:bg-stone-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border border-stone-200 active:scale-95 disabled:opacity-60"
+                className="p-2 sm:px-3 sm:py-2 flex items-center gap-1.5 bg-stone-100 hover:bg-stone-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer border border-stone-200 active:scale-95 disabled:opacity-60"
                 title="Refresh appointments and sync with database"
               >
                 <RefreshCw className={`w-3.5 h-3.5 text-slate-600 ${isRefreshing ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">Refresh</span>
+                <span className="hidden md:inline">Refresh</span>
               </button>
 
               {/* + New Booking Button */}
               <button
                 onClick={() => setShowAddModal(true)}
-                className="flex items-center gap-1.5 bg-[#064E3B] hover:bg-emerald-800 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+                className="flex items-center gap-1 sm:gap-1.5 bg-[#064E3B] hover:bg-emerald-800 text-white px-2.5 sm:px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer whitespace-nowrap"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>+ New Booking</span>
-              </button>
-
-              {/* Back to Public Website Button */}
-              <button
-                onClick={onLogout}
-                className="flex items-center gap-1 bg-stone-100 hover:bg-stone-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border border-stone-200"
-              >
-                <span>← Back to Website</span>
+                <span className="hidden sm:inline">+ New Booking</span>
+                <span className="sm:hidden">Booking</span>
               </button>
 
               {/* Logout Button */}
               <button
                 onClick={onLogout}
-                className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                title="Log Out"
+                className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer border border-transparent hover:border-rose-200"
+                title="Log Out of Admin Panel"
               >
                 <LogOut className="w-4 h-4" />
               </button>

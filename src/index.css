@@ -36,3 +36,14 @@
     max-width: 100%;
   }
 }
+
+@layer utilities {
+  /* Hide scrollbar but keep scroll functionality (for tab bars, carousels, etc.) */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}

@@ -484,60 +484,68 @@ export const SupabaseAdminPanel: React.FC<SupabaseAdminPanelProps> = ({ onLogout
           {/* ════════════════════════════════════════════════════════════════════
               3 CLEAN SIMPLE TABS
           ════════════════════════════════════════════════════════════════════ */}
-          <div className="flex items-center gap-2 py-2.5 border-t border-stone-100">
-            {/* Tab 1: Booked */}
-            <button
-              onClick={() => setActiveTab('booked')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                activeTab === 'booked'
-                  ? 'bg-[#064E3B] text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-stone-200/60'
-              }`}
-            >
-              <Calendar className="w-4 h-4" />
-              <span>1. Booked Appointments</span>
-              <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
-                activeTab === 'booked' ? 'bg-emerald-950 text-emerald-200' : 'bg-stone-200 text-slate-700'
-              }`}>
-                {bookedAppointments.length}
-              </span>
-            </button>
+          {/* 3 TABS — perfectly responsive grid on mobile, flex on desktop */}
+          <div className="py-2.5 border-t border-stone-100">
+            <div className="grid grid-cols-3 sm:flex sm:items-center gap-1 sm:gap-2">
 
-            {/* Tab 2: In-Clinic */}
-            <button
-              onClick={() => setActiveTab('in_clinic')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                activeTab === 'in_clinic'
-                  ? 'bg-[#064E3B] text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-stone-200/60'
-              }`}
-            >
-              <UserCheck className="w-4 h-4" />
-              <span>2. In-Clinic (Arrived &amp; In Treatment)</span>
-              <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
-                activeTab === 'in_clinic' ? 'bg-emerald-950 text-emerald-200' : 'bg-stone-200 text-slate-700'
-              }`}>
-                {inClinicAppointments.length}
-              </span>
-            </button>
+              {/* Tab 1: Booked */}
+              <button
+                onClick={() => setActiveTab('booked')}
+                className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'booked'
+                    ? 'bg-[#064E3B] text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-stone-200/60'
+                }`}
+              >
+                <Calendar className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden sm:inline">1. Booked Appointments</span>
+                <span className="sm:hidden">Booked</span>
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                  activeTab === 'booked' ? 'bg-emerald-950 text-emerald-200' : 'bg-stone-200 text-slate-700'
+                }`}>
+                  {bookedAppointments.length}
+                </span>
+              </button>
 
-            {/* Tab 3: Patient Records Database */}
-            <button
-              onClick={() => setActiveTab('database')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                activeTab === 'database'
-                  ? 'bg-[#064E3B] text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-stone-200/60'
-              }`}
-            >
-              <Database className="w-4 h-4" />
-              <span>3. Patient Database (Treated Records)</span>
-              <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
-                activeTab === 'database' ? 'bg-emerald-950 text-emerald-200' : 'bg-stone-200 text-slate-700'
-              }`}>
-                {patientDatabase.length}
-              </span>
-            </button>
+              {/* Tab 2: In-Clinic */}
+              <button
+                onClick={() => setActiveTab('in_clinic')}
+                className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'in_clinic'
+                    ? 'bg-[#064E3B] text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-stone-200/60'
+                }`}
+              >
+                <UserCheck className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden sm:inline">2. In-Clinic (Arrived &amp; In Treatment)</span>
+                <span className="sm:hidden">In-Clinic</span>
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                  activeTab === 'in_clinic' ? 'bg-emerald-950 text-emerald-200' : 'bg-stone-200 text-slate-700'
+                }`}>
+                  {inClinicAppointments.length}
+                </span>
+              </button>
+
+              {/* Tab 3: Patient Records Database */}
+              <button
+                onClick={() => setActiveTab('database')}
+                className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'database'
+                    ? 'bg-[#064E3B] text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-stone-200/60'
+                }`}
+              >
+                <Database className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden sm:inline">3. Patient Database (Treated Records)</span>
+                <span className="sm:hidden">Database</span>
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                  activeTab === 'database' ? 'bg-emerald-950 text-emerald-200' : 'bg-stone-200 text-slate-700'
+                }`}>
+                  {patientDatabase.length}
+                </span>
+              </button>
+
+            </div>
           </div>
 
         </div>

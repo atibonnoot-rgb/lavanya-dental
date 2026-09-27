@@ -12,7 +12,7 @@ import { useClinic } from '../context/ClinicContext';
 import clinicLogo from '../assets/logo.png';
 
 export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onNavigateTab }) => {
-  const { setShowEmergencyModal, setShowBookingModal, clinicSettings } = useClinic();
+  const { setShowEmergencyModal, setShowBookingModal, clinicSettings, setCurrentRole } = useClinic();
   const { hours } = clinicSettings;
   const dayLabels: [keyof typeof hours, string][] = [
     ['monday', 'Monday'],
@@ -131,6 +131,14 @@ export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onN
             <span>GDPR Data Protection</span>
             <span>•</span>
             <span>Encrypted Relational Storage (AES-256)</span>
+            <span>•</span>
+            <button
+              onClick={() => setCurrentRole('admin')}
+              className="text-slate-700 hover:text-slate-500 transition-colors text-[10px] cursor-pointer"
+              title="Staff Login"
+            >
+              Staff Login
+            </button>
           </div>
         </div>
 

@@ -134,7 +134,30 @@ const mapClinicSettingsRow = (row: Record<string, unknown>): ClinicSettings => (
 });
 
 export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentRole, setCurrentRole] = useState<UserRole>('patient');
+  const [currentRole, setCurrentRole] = useState<UserRole>(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash || '';
+      const path = window.location.pathname || '';
+      const search = window.location.search || '';
+      if (hash.includes('admin') || path.includes('admin') || search.includes('admin')) {
+        return 'admin';
+      }
+      try {
+        const saved = localStorage.getItem('lavanya_current_role');
+        if (saved === 'admin' || saved === 'doctor' || saved === 'patient') {
+          return saved as UserRole;
+        }
+      } catch {}
+    }
+    return 'patient';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lavanya_current_role', currentRole);
+    } catch {}
+  }, [currentRole]);
+
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('doc-1');
   const [clinicSettings, setClinicSettings] = useState<ClinicSettings>(DEFAULT_CLINIC_SETTINGS);
 
@@ -434,13 +457,22 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       if (e.key === LOCAL_STORAGE_KEY_DOCTORS && e.newValue) {
-        try { setDoctors(JSON.parse(e.newValue)); } catch {}
+        try { 
+          const parsed = JSON.parse(e.newValue);
+          setDoctors(prev => JSON.stringify(prev) === e.newValue ? prev : parsed);
+        } catch {}
       }
       if (e.key === LOCAL_STORAGE_KEY_SERVICES && e.newValue) {
-        try { setServices(JSON.parse(e.newValue)); } catch {}
+        try { 
+          const parsed = JSON.parse(e.newValue);
+          setServices(prev => JSON.stringify(prev) === e.newValue ? prev : parsed);
+        } catch {}
       }
       if (e.key === LOCAL_STORAGE_KEY_APPOINTMENTS && e.newValue) {
-        try { setAppointments(JSON.parse(e.newValue)); } catch {}
+        try { 
+          const parsed = JSON.parse(e.newValue);
+          setAppointments(prev => JSON.stringify(prev) === e.newValue ? prev : parsed);
+        } catch {}
       }
     };
 
@@ -449,13 +481,13 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       bc = new BroadcastChannel('auradental_clinic_sync');
       bc.onmessage = (msg) => {
         if (msg.data?.type === 'DOCTORS_UPDATED' && Array.isArray(msg.data.data)) {
-          setDoctors(msg.data.data);
+          setDoctors(prev => JSON.stringify(prev) === JSON.stringify(msg.data.data) ? prev : msg.data.data);
         }
         if (msg.data?.type === 'SERVICES_UPDATED' && Array.isArray(msg.data.data)) {
-          setServices(msg.data.data);
+          setServices(prev => JSON.stringify(prev) === JSON.stringify(msg.data.data) ? prev : msg.data.data);
         }
         if (msg.data?.type === 'APPOINTMENTS_UPDATED' && Array.isArray(msg.data.data)) {
-          setAppointments(msg.data.data);
+          setAppointments(prev => JSON.stringify(prev) === JSON.stringify(msg.data.data) ? prev : msg.data.data);
         }
       };
     } catch {}
@@ -544,27 +576,31 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
 
     // Persist to Supabase — realtime will fire INSERT on all other clients
-    await supabase.from('appointments').insert({
-      id: newAppointment.id,
-      confirmation_code: newAppointment.confirmationCode,
-      patient_name: newAppointment.patientName,
-      patient_phone: newAppointment.patientPhone,
-      patient_email: newAppointment.patientEmail,
-      doctor_id: newAppointment.doctorId,
-      service_id: newAppointment.serviceId,
-      date: newAppointment.date,
-      time_slot: newAppointment.timeSlot,
-      status: newAppointment.status,
-      primary_complaint: newAppointment.primaryComplaint,
-      medical_history: newAppointment.medicalHistory,
-      insurance_provider: newAppointment.insuranceProvider,
-      insurance_policy_number: newAppointment.insurancePolicyNumber,
-      deposit_amount: newAppointment.depositAmount,
-      deposit_paid: newAppointment.depositPaid,
-      payment_method: newAppointment.paymentMethod,
-      created_at: newAppointment.createdAt,
-      otp_verified: newAppointment.otpVerified,
-    }).then(() => {});
+    try {
+      await supabase.from('appointments').insert({
+        id: newAppointment.id,
+        confirmation_code: newAppointment.confirmationCode,
+        patient_name: newAppointment.patientName,
+        patient_phone: newAppointment.patientPhone,
+        patient_email: newAppointment.patientEmail,
+        doctor_id: newAppointment.doctorId,
+        service_id: newAppointment.serviceId,
+        date: newAppointment.date,
+        time_slot: newAppointment.timeSlot,
+        status: newAppointment.status,
+        primary_complaint: newAppointment.primaryComplaint,
+        medical_history: newAppointment.medicalHistory,
+        insurance_provider: newAppointment.insuranceProvider,
+        insurance_policy_number: newAppointment.insurancePolicyNumber,
+        deposit_amount: newAppointment.depositAmount,
+        deposit_paid: newAppointment.depositPaid,
+        payment_method: newAppointment.paymentMethod,
+        created_at: newAppointment.createdAt,
+        otp_verified: newAppointment.otpVerified,
+      });
+    } catch (err) {
+      console.warn('Supabase appointment insert error:', err);
+    }
 
     addAuditLog(
       `Patient (${newAppointment.patientName})`,

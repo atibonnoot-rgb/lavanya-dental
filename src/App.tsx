@@ -13,9 +13,6 @@ import { EmergencyModal } from './components/EmergencyModal';
 import { DoctorMobileCompanion } from './components/DoctorMobileCompanion';
 import { Footer } from './components/Footer';
 import { supabase } from './lib/supabase';
-import { 
-  Stethoscope
-} from 'lucide-react';
 
 const WhatsAppIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
   <svg 
@@ -29,22 +26,21 @@ const WhatsAppIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" 
   </svg>
 );
 
+
 const AppContent: React.FC = () => {
   const { 
     currentRole, 
     setCurrentRole, 
     showDoctorMobileSimulator, 
     setShowDoctorMobileSimulator,
-    getDoctorById,
-    selectedDoctorId
   } = useClinic();
 
   const [activeTab, setActiveTab] = useState<string>('home');
+  // Admin auth is NEVER auto-granted from URL — must go through AdminLogin
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
-  const [isDoctorAuthenticated, setIsDoctorAuthenticated] = useState<boolean>(false);
   const [authChecked, setAuthChecked] = useState<boolean>(false);
 
-  // Check Supabase auth session on mount and listen for changes
+  // Check Supabase auth session on mount for persistent admin sessions
   useEffect(() => {
     let sub: { unsubscribe: () => void } | null = null;
 
@@ -52,8 +48,9 @@ const AppContent: React.FC = () => {
       try {
         if (import.meta.env.VITE_SUPABASE_URL) {
           const { data } = await supabase.auth.getSession();
-          setIsAdminAuthenticated(!!data?.session);
-          setIsDoctorAuthenticated(!!data?.session);
+          if (data?.session) {
+            setIsAdminAuthenticated(true);
+          }
         }
       } catch (err) {
         console.warn('Auth check skipped:', err);
@@ -67,8 +64,11 @@ const AppContent: React.FC = () => {
     try {
       if (import.meta.env.VITE_SUPABASE_URL) {
         const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-          setIsAdminAuthenticated(!!session);
-          setIsDoctorAuthenticated(!!session);
+          if (session) {
+            setIsAdminAuthenticated(true);
+          } else {
+            setIsAdminAuthenticated(false);
+          }
         });
         sub = data.subscription;
       }
@@ -80,6 +80,33 @@ const AppContent: React.FC = () => {
       if (sub) sub.unsubscribe();
     };
   }, []);
+
+  // Listen for /admin in URL — but only to redirect to login, NOT auto-grant access
+  useEffect(() => {
+    const handleUrlChange = () => {
+      if (
+        window.location.hash.includes('admin') ||
+        window.location.pathname.includes('admin') ||
+        window.location.search.includes('admin')
+      ) {
+        // Just set the role to admin so login screen shows; auth gate remains
+        setCurrentRole('admin');
+        // Clean the URL hash so it doesn't confuse state
+        if (window.location.hash.includes('admin')) {
+          history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+      }
+    };
+
+    handleUrlChange();
+    window.addEventListener('hashchange', handleUrlChange);
+    window.addEventListener('popstate', handleUrlChange);
+
+    return () => {
+      window.removeEventListener('hashchange', handleUrlChange);
+      window.removeEventListener('popstate', handleUrlChange);
+    };
+  }, [setCurrentRole]);
 
   const handleNavigateTab = (tab: string) => {
     setActiveTab(tab);
@@ -93,53 +120,21 @@ const AppContent: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans selection:bg-teal-100 selection:text-teal-900">
       
-      {/* ADMIN ROLE — Password Protected */}
+      {/* ADMIN ROLE — Login gate then Admin Panel */}
       {currentRole === 'admin' && (
-        <>
-          {!isAdminAuthenticated ? (
-            <AdminLogin onAuthenticated={() => setIsAdminAuthenticated(true)} />
-          ) : (
-            <SupabaseAdminPanel onLogout={() => {
-              setIsAdminAuthenticated(false);
-              setCurrentRole('patient');
-            }} />
-          )}
-        </>
-      )}
-
-      {/* DOCTOR / CLINICIAN ROLE — Password Protected */}
-      {currentRole === 'doctor' && (
-        <>
-          {!isDoctorAuthenticated ? (
-            <AdminLogin onAuthenticated={() => setIsDoctorAuthenticated(true)} />
-          ) : (
-            <div className="min-h-screen bg-slate-900 text-white flex flex-col">
-              {/* Doctor header bar with Lock / Logout */}
-              <div className="bg-slate-950 border-b border-slate-800 py-3 px-4 sm:px-6 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Stethoscope className="w-5 h-5 text-emerald-400" />
-                  <span className="font-bold text-sm text-white font-display">
-                    Clinician Mobile Console (Protected) — {getDoctorById(selectedDoctorId)?.name}
-                  </span>
-                </div>
-                <button
-                  onClick={() => {
-                    setIsDoctorAuthenticated(false);
-                    setCurrentRole('patient');
-                  }}
-                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3.5 py-1.5 rounded-xl border border-slate-700 font-semibold transition-colors flex items-center gap-1.5"
-                >
-                  <span>Lock Console</span>
-                  <span>🔒</span>
-                </button>
-              </div>
-
-              <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-8 w-full">
-                <DoctorMobileCompanion isModal={false} />
-              </div>
-            </div>
-          )}
-        </>
+        !isAdminAuthenticated ? (
+          <AdminLogin onAuthenticated={() => {
+            setIsAdminAuthenticated(true);
+          }} />
+        ) : (
+          <SupabaseAdminPanel onLogout={() => {
+            setIsAdminAuthenticated(false);
+            setCurrentRole('patient');
+            try { localStorage.setItem('lavanya_current_role', 'patient'); } catch {}
+            // Sign out of Supabase session too
+            try { supabase.auth.signOut(); } catch {}
+          }} />
+        )
       )}
 
       {/* PATIENT ROLE — Public website */}
@@ -200,6 +195,8 @@ const AppContent: React.FC = () => {
             <WhatsAppIcon className="w-5 h-5 text-white" />
             <span className="hidden sm:inline font-bold text-xs tracking-wide">WhatsApp</span>
           </a>
+
+
 
           {/* Floating Smartphone Companion */}
           {showDoctorMobileSimulator && (

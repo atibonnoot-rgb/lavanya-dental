@@ -160,19 +160,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
               )}
             </button>
 
-            {/* Quick Fill Demo Credentials */}
-            <div className="pt-2 text-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('atibonnoot@gmail.com');
-                  setPassword('112233');
-                }}
-                className="text-xs text-teal-400 hover:text-teal-300 underline font-medium cursor-pointer"
-              >
-                Auto-fill Admin Credentials (1-Tap)
-              </button>
-            </div>
+
           </form>
         </div>
       </div>

@@ -3,15 +3,14 @@ import {
   Calendar, 
   ShieldCheck, 
   User, 
-  Stethoscope, 
-  Building2, 
-  AlertTriangle,
   Menu,
   X,
-  Phone
+  Phone,
+  Lock,
+  LayoutDashboard,
+  AlertCircle
 } from 'lucide-react';
 import { useClinic } from '../context/ClinicContext';
-
 import clinicLogo from '../assets/logo.png';
 
 interface HeaderProps {
@@ -24,15 +23,34 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
     currentRole, 
     setCurrentRole, 
     setShowBookingModal, 
-    setShowEmergencyModal,
-    unreadCountForSelectedDoctor,
-    doctors,
-    selectedDoctorId,
-    setSelectedDoctorId,
     clinicSettings
   } = useClinic();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showAdminPrompt, setShowAdminPrompt] = useState(false);
+  const [adminPin, setAdminPin] = useState('');
+  const [adminPinError, setAdminPinError] = useState('');
+
+  // Admin password — change this to whatever you prefer
+  const ADMIN_PASSWORD = 'lavanya@admin';
+
+  const handleAdminLogin = () => {
+    const sqlInjectionPattern = /('|--|;|\/\*|\*\/|union\s+select|select\s+\*|drop\s+table|delete\s+from)/i;
+    if (sqlInjectionPattern.test(adminPin)) {
+      setAdminPinError('Invalid input detected.');
+      return;
+    }
+    if (adminPin === ADMIN_PASSWORD) {
+      setAdminPinError('');
+      setAdminPin('');
+      setShowAdminPrompt(false);
+      setMobileMenuOpen(false);
+      setCurrentRole('admin');
+    } else {
+      setAdminPinError('Incorrect password. Access denied.');
+      setAdminPin('');
+    }
+  };
 
   const navLinks = [
     { id: 'home', label: 'Home' },
@@ -53,7 +71,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
             </span>
-            {clinicSettings?.hours?.monday?.open ? 'Open Now' : 'Open Now'}
+            Open Now
           </span>
           <span className="inline-flex items-center gap-1 text-slate-400 text-[11px] sm:text-xs">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
@@ -64,17 +82,20 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
 
       {/* Main navigation row */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6">
-        <div className="flex items-center justify-between h-20 md:h-20 gap-3">
+        <div className="flex items-center justify-between h-20 gap-3">
           {/* Logo & Brand Lockup */}
-          <div className="flex flex-col items-center justify-center cursor-pointer min-w-0 shrink group py-1 select-none" onClick={() => onNavigateTab('home')}>
+          <div
+            className="flex flex-col items-center justify-center cursor-pointer min-w-0 shrink group py-1 select-none"
+            onClick={() => onNavigateTab('home')}
+          >
             <div className="flex items-center justify-center">
-              <img 
-                src={clinicLogo} 
-                alt="Lavanya Dental Clinic" 
-                className="h-14 sm:h-16 md:h-13 w-auto object-contain transition-transform duration-200 group-hover:scale-105" 
+              <img
+                src={clinicLogo}
+                alt="Lavanya Dental Clinic"
+                className="h-14 sm:h-16 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
               />
             </div>
-            <span className="text-[10px] sm:text-[11.5px] md:text-[11px] font-black tracking-[0.25em] text-[#0f2d59] uppercase font-sans text-center leading-tight mt-0.5">
+            <span className="text-[10px] sm:text-[11.5px] font-black tracking-[0.25em] text-[#0f2d59] uppercase font-sans text-center leading-tight mt-0.5">
               DENTAL CLINIC
             </span>
           </div>
@@ -96,33 +117,38 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
             ))}
           </nav>
 
-          {/* Header Right Action Area: Book Now button + Hamburger Menu toggle */}
+          {/* Right actions */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Square Phone Dialer Button — Opens 9885611128 in dialer */}
+            {/* Phone */}
             <a
               href="tel:9885611128"
               aria-label="Call 9885611128"
               title="Call Lavanya Dental: 9885611128"
-              className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 shadow-sm shadow-emerald-700/20 transition-all duration-200 active:scale-95 shrink-0"
+              className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 shadow-sm transition-all duration-200 active:scale-95 shrink-0"
             >
-              <Phone className="w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0" />
+              <Phone className="w-4 h-4 shrink-0" />
             </a>
 
-            {/* Book Now Button — Always visible in frame with text & icon */}
+            {/* Book Now */}
             <button
               onClick={() => {
                 if (currentRole !== 'patient') setCurrentRole('patient');
                 setShowBookingModal(true);
               }}
-              className="flex items-center gap-1.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-2.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold shadow-sm shadow-teal-600/20 transition-all active:scale-[0.97] shrink-0 whitespace-nowrap"
+              className="flex items-center gap-1.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-2.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold shadow-sm transition-all active:scale-[0.97] shrink-0 whitespace-nowrap"
             >
               <Calendar className="w-4 h-4 shrink-0" />
               <span>Book Now</span>
             </button>
 
-            {/* Hamburger menu button — Always visible in top header frame */}
+            {/* Hamburger */}
             <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              onClick={() => {
+                setMobileMenuOpen(prev => !prev);
+                setShowAdminPrompt(false);
+                setAdminPin('');
+                setAdminPinError('');
+              }}
               className="p-2 text-slate-600 hover:text-slate-900 rounded-xl hover:bg-slate-100 border border-slate-200/80 transition-colors shrink-0 flex items-center justify-center"
               aria-label="Toggle Menu"
             >
@@ -132,81 +158,86 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
         </div>
       </div>
 
-      {/* Hamburger Menu Dropdown (contains Patient / Clinician / Admin tabs & nav links) */}
+      {/* Hamburger Dropdown */}
       {mobileMenuOpen && (
         <div className="bg-white border-b border-slate-200 px-4 pt-3 pb-5 space-y-4 shadow-xl">
-          {/* Persona / Portal Role Switcher */}
-          <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
-            <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold mb-2">
-              Select Portal / View
+
+          {/* Quick Actions section */}
+          <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/80 space-y-2">
+            <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">
+              Quick Actions
             </p>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                onClick={() => { 
-                  setCurrentRole('patient'); 
-                  setMobileMenuOpen(false); 
-                }}
-                className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-semibold border transition-all ${
-                  currentRole === 'patient' 
-                    ? 'bg-teal-600 text-white border-teal-600 shadow-sm' 
-                    : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                <User className="w-4 h-4 shrink-0" />
-                <span>Patient</span>
-              </button>
 
+            {/* Patient Portal */}
+            <button
+              onClick={() => {
+                setCurrentRole('patient');
+                setMobileMenuOpen(false);
+                setShowAdminPrompt(false);
+              }}
+              className={`w-full flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-semibold border transition-all ${
+                currentRole === 'patient'
+                  ? 'bg-teal-600 text-white border-teal-600 shadow-sm'
+                  : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+              }`}
+            >
+              <User className="w-4 h-4 shrink-0" />
+              <span>Patient Portal</span>
+            </button>
+
+            {/* Admin Panel — shows password prompt inline */}
+            {!showAdminPrompt ? (
               <button
-                onClick={() => { 
-                  setCurrentRole('doctor'); 
-                  setMobileMenuOpen(false); 
+                onClick={() => {
+                  setShowAdminPrompt(true);
+                  setAdminPin('');
+                  setAdminPinError('');
                 }}
-                className={`relative flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-semibold border transition-all ${
-                  currentRole === 'doctor' 
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' 
-                    : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
-                }`}
+                className="w-full flex items-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-semibold border bg-white text-slate-600 border-slate-200 hover:border-slate-800 hover:bg-slate-900 hover:text-white transition-all group"
               >
-                <Stethoscope className="w-4 h-4 shrink-0" />
-                <span>Clinician</span>
-                {unreadCountForSelectedDoctor > 0 && (
-                  <span className="w-2 h-2 rounded-full bg-rose-500 absolute top-1 right-1 border border-white"></span>
+                <LayoutDashboard className="w-4 h-4 shrink-0" />
+                <span>Admin Panel</span>
+                <Lock className="w-3 h-3 ml-auto text-slate-400 group-hover:text-slate-300" />
+              </button>
+            ) : (
+              <div className="bg-slate-900 rounded-xl p-3 space-y-2.5 border border-slate-700">
+                <p className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
+                  <Lock className="w-3 h-3 text-teal-400" />
+                  Enter Admin Password
+                </p>
+
+                {adminPinError && (
+                  <div className="flex items-center gap-1.5 text-rose-400 text-[11px]">
+                    <AlertCircle className="w-3 h-3 shrink-0" />
+                    <span>{adminPinError}</span>
+                  </div>
                 )}
-              </button>
 
-              <button
-                onClick={() => { 
-                  setCurrentRole('admin'); 
-                  setMobileMenuOpen(false); 
-                }}
-                className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-semibold border transition-all ${
-                  currentRole === 'admin' 
-                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' 
-                    : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                <Building2 className="w-4 h-4 shrink-0" />
-                <span>Admin</span>
-              </button>
-            </div>
+                <input
+                  id="header-admin-password"
+                  type="password"
+                  value={adminPin}
+                  onChange={e => { setAdminPin(e.target.value); setAdminPinError(''); }}
+                  onKeyDown={e => e.key === 'Enter' && handleAdminLogin()}
+                  placeholder="••••••••••"
+                  autoFocus
+                  className="w-full bg-slate-800 border border-slate-600 text-white placeholder-slate-500 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all"
+                />
 
-            {/* Clinician Profile Selector (if Clinician active) */}
-            {currentRole === 'doctor' && (
-              <div className="mt-3 pt-3 border-t border-slate-200">
-                <label className="block text-xs font-semibold text-emerald-900 mb-1">
-                  Clinician Profile:
-                </label>
-                <select
-                  value={selectedDoctorId}
-                  onChange={(e) => setSelectedDoctorId(e.target.value)}
-                  className="w-full text-xs bg-white border border-emerald-300 text-emerald-900 rounded-xl px-3 py-2 font-medium focus:ring-2 focus:ring-emerald-500 outline-hidden"
-                >
-                  {doctors.map(d => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleAdminLogin}
+                    className="flex-1 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold py-2 rounded-lg transition-colors"
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    onClick={() => { setShowAdminPrompt(false); setAdminPin(''); setAdminPinError(''); }}
+                    className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-semibold py-2 rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -238,4 +269,3 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
     </header>
   );
 };
-

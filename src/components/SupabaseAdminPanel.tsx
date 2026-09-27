@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Calendar, Clock, Phone, Plus, Trash2, CheckCircle2,
   AlertCircle, Users, Search, Check, Send, X, Database,
@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useClinic } from '../context/ClinicContext';
 import { Appointment } from '../types';
+import { supabase } from '../lib/supabase';
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 export type AdminTab = 'booked' | 'in_clinic' | 'database';
@@ -24,47 +25,7 @@ export interface TreatedPatientRecord {
   confirmationCode?: string;
 }
 
-const LOCAL_STORAGE_DB_KEY = 'lavanya_treated_patient_records_v2';
-
-// Initial preloaded patient records for the database
-const INITIAL_DATABASE_RECORDS: TreatedPatientRecord[] = [
-  {
-    id: 'db-101',
-    patientName: 'Vikram Reddy',
-    patientPhone: '9885611128',
-    source: 'Website',
-    serviceName: 'Root Canal Treatment (RCT)',
-    treatedDate: '2026-09-26',
-    treatedTime: '11:30 AM',
-    doctorName: 'Dr. Lavanya MDS',
-    doctorNotes: 'Single sitting rotary RCT on tooth #46 completed. Temporary crown placed.',
-    confirmationCode: 'LD-9281'
-  },
-  {
-    id: 'db-102',
-    patientName: 'Kavita Rao',
-    patientPhone: '9700192837',
-    source: 'WhatsApp',
-    serviceName: 'Dental Cleaning and Scaling',
-    treatedDate: '2026-09-25',
-    treatedTime: '04:15 PM',
-    doctorName: 'Dr. Lavanya MDS',
-    doctorNotes: 'Full mouth ultrasonic scaling & polishing done. Oral hygiene instructions given.',
-    confirmationCode: 'LD-7712'
-  },
-  {
-    id: 'db-103',
-    patientName: 'Mohammed Zameer',
-    patientPhone: '9848022334',
-    source: 'Walk-in',
-    serviceName: 'Oral & Maxillofacial Surgeries',
-    treatedDate: '2026-09-24',
-    treatedTime: '02:00 PM',
-    doctorName: 'Dr. Lavanya MDS',
-    doctorNotes: 'Surgical extraction of impacted lower right wisdom tooth #48. Sutures placed.',
-    confirmationCode: 'LD-6034'
-  }
-];
+// All data is now stored in Supabase — no localStorage fallback, no fake records
 
 interface SupabaseAdminPanelProps {
   onLogout: () => void;
@@ -105,7 +66,7 @@ export const SupabaseAdminPanel: React.FC<SupabaseAdminPanelProps> = ({ onLogout
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await refreshData();
+      await Promise.all([refreshData(), loadFromSupabase()]);
     } catch (err) {
       console.warn('Manual refresh warning:', err);
     } finally {
@@ -118,40 +79,55 @@ export const SupabaseAdminPanel: React.FC<SupabaseAdminPanelProps> = ({ onLogout
   const [inClinicSearchQuery, setInClinicSearchQuery] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Permanent Patient Database records
-  const [patientDatabase, setPatientDatabase] = useState<TreatedPatientRecord[]>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_DB_KEY);
-      return saved ? JSON.parse(saved) : INITIAL_DATABASE_RECORDS;
-    } catch {
-      return INITIAL_DATABASE_RECORDS;
-    }
-  });
+  // ── Permanent patient records — stored in Supabase, not localStorage ─────
+  const [patientDatabase, setPatientDatabase] = useState<TreatedPatientRecord[]>([]);
+  const [dbLoading, setDbLoading] = useState<boolean>(true);
 
-  // Track In-Clinic appointment IDs with instant local persistence
-  const [inClinicIds, setInClinicIds] = useState<string[]>(() => {
+  // ── In-clinic queue — stored in Supabase ──────────────────────────────────
+  const [inClinicIds, setInClinicIds] = useState<string[]>([]);
+
+  // Load both from Supabase on mount
+  const loadFromSupabase = useCallback(async () => {
     try {
-      const saved = localStorage.getItem('lavanya_in_clinic_ids_v1');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
+      // Load patient records
+      const { data: records, error: recErr } = await supabase
+        .from('patient_records')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!recErr && records) {
+        setPatientDatabase(records.map((r: any) => ({
+          id: r.id,
+          patientName: r.patient_name,
+          patientPhone: r.patient_phone,
+          source: r.source,
+          serviceName: r.service_name,
+          treatedDate: r.treated_date,
+          treatedTime: r.treated_time,
+          doctorName: r.doctor_name,
+          doctorNotes: r.doctor_notes || '',
+          confirmationCode: r.confirmation_code || ''
+        })));
+      }
+
+      // Load in-clinic queue
+      const { data: queue, error: qErr } = await supabase
+        .from('in_clinic_queue')
+        .select('appointment_id');
+
+      if (!qErr && queue) {
+        setInClinicIds(queue.map((q: any) => q.appointment_id));
+      }
+    } catch (err) {
+      console.warn('Supabase load error:', err);
+    } finally {
+      setDbLoading(false);
     }
-  });
+  }, []);
 
   useEffect(() => {
-    try {
-      localStorage.setItem('lavanya_in_clinic_ids_v1', JSON.stringify(inClinicIds));
-    } catch {}
-  }, [inClinicIds]);
-
-  // Save database records to localStorage on change
-  useEffect(() => {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_DB_KEY, JSON.stringify(patientDatabase));
-    } catch (e) {
-      console.error('Failed to save patient records:', e);
-    }
-  }, [patientDatabase]);
+    loadFromSupabase();
+  }, [loadFromSupabase]);
 
   // Modal: Add New Booking / Walk-in
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
@@ -261,55 +237,79 @@ export const SupabaseAdminPanel: React.FC<SupabaseAdminPanelProps> = ({ onLogout
   }, [patientDatabase, bookedSearchQuery]);
 
   // ─── ACTION 1: CONFIRM APPOINTMENT WHEN PATIENT ARRIVES ───────────────────
-  // Immediately deletes from Booked tab and moves to In-Clinic tab!
-  const handleConfirmArrival = (appointmentId: string) => {
-    // 1. Instantly move into inClinic list
+  const handleConfirmArrival = async (appointmentId: string) => {
+    // 1. Instantly update local state
     setInClinicIds(prev => prev.includes(appointmentId) ? prev : [...prev, appointmentId]);
 
-    // 2. Call context confirm function
+    // 2. Persist to Supabase in_clinic_queue
+    try {
+      await supabase.from('in_clinic_queue').upsert({ appointment_id: appointmentId });
+    } catch (err) {
+      console.warn('in_clinic_queue upsert error:', err);
+    }
+
+    // 3. Call context confirm function
     try {
       confirmAppointmentByDoctor(appointmentId);
     } catch (e) {
       console.warn('confirmAppointmentByDoctor call:', e);
     }
 
-    // 3. Immediately navigate to the In-Clinic tab
+    // 4. Navigate to In-Clinic tab
     setActiveTab('in_clinic');
   };
 
-  // ─── ACTION 2: MARK TREATED (DELETES FROM QUEUE -> ADDS TO DATABASE) ─────
+  // ─── ACTION 2: MARK TREATED (DELETES FROM QUEUE -> ADDS TO SUPABASE DATABASE) ─────
   const handleMarkTreated = async (appointment: Appointment, customNotes?: string) => {
     const serviceName = services.find(s => s.id === appointment.serviceId)?.name || appointment.primaryComplaint || 'General Dental Treatment';
     const doctorName = doctors.find(d => d.id === appointment.doctorId)?.name || 'Dr. Lavanya MDS';
+    const recordId = `rec-${Date.now()}`;
 
     const newRecord: TreatedPatientRecord = {
-      id: `rec-${Date.now()}`,
+      id: recordId,
       patientName: appointment.patientName,
       patientPhone: appointment.patientPhone,
       source: appointment.paymentMethod === 'Insurance' ? 'WhatsApp' : 'Website',
-      serviceName: serviceName,
+      serviceName,
       treatedDate: new Date().toISOString().split('T')[0],
       treatedTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      doctorName: doctorName,
+      doctorName,
       doctorNotes: customNotes || 'Procedure successfully completed at clinic. Post-op instructions given.',
       confirmationCode: appointment.confirmationCode
     };
 
-    // 1. Add to permanent patient records database
+    // 1. Save to Supabase patient_records (permanent storage)
+    try {
+      await supabase.from('patient_records').insert({
+        id: newRecord.id,
+        patient_name: newRecord.patientName,
+        patient_phone: newRecord.patientPhone,
+        source: newRecord.source,
+        service_name: newRecord.serviceName,
+        treated_date: newRecord.treatedDate,
+        treated_time: newRecord.treatedTime,
+        doctor_name: newRecord.doctorName,
+        doctor_notes: newRecord.doctorNotes,
+        confirmation_code: newRecord.confirmationCode || ''
+      });
+    } catch (err) {
+      console.warn('patient_records insert error:', err);
+    }
+
+    // 2. Update local state immediately for instant UI feedback
     setPatientDatabase(prev => [newRecord, ...prev]);
 
-    // 2. Remove from inClinicIds
+    // 3. Remove from in_clinic_queue in Supabase
+    try {
+      await supabase.from('in_clinic_queue').delete().eq('appointment_id', appointment.id);
+    } catch {}
     setInClinicIds(prev => prev.filter(id => id !== appointment.id));
 
-    // 3. Complete and delete from appointments queue
-    try {
-      completeAppointment(appointment.id, customNotes);
-    } catch {}
-    try {
-      await deleteAppointment(appointment.id);
-    } catch {}
+    // 4. Complete and delete from appointments queue
+    try { completeAppointment(appointment.id, customNotes); } catch {}
+    try { await deleteAppointment(appointment.id); } catch {}
 
-    // 4. Switch to database view so the doctor sees the saved record
+    // 5. Switch to database view
     setActiveTab('database');
   };
 
@@ -343,8 +343,15 @@ export const SupabaseAdminPanel: React.FC<SupabaseAdminPanelProps> = ({ onLogout
     }
   };
 
-  const handleDeleteFromDatabase = (recordId: string, patientName: string) => {
+  const handleDeleteFromDatabase = async (recordId: string, patientName: string) => {
     if (window.confirm(`Delete record for ${patientName} from patient database?`)) {
+      // Delete from Supabase
+      try {
+        await supabase.from('patient_records').delete().eq('id', recordId);
+      } catch (err) {
+        console.warn('patient_records delete error:', err);
+      }
+      // Update local state immediately
       setPatientDatabase(prev => prev.filter(r => r.id !== recordId));
     }
   };

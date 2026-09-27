@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useClinic } from '../context/ClinicContext';
 import { TREATMENT_ICON_MAP } from './TreatmentIcons';
+import { ReviewsSection } from './ReviewsSection';
 
 export const ServicesSection: React.FC = () => {
   const { services, isLoading, setShowBookingModal, setBookingPreselectedServiceId } = useClinic();
@@ -66,11 +67,10 @@ export const ServicesSection: React.FC = () => {
   };
 
   return (
-    <section id="services" className="py-16 sm:py-24 bg-white border-b border-slate-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        
-        {/* ══ DENTAL TREATMENTS OFFERED IN HYDERABAD (Exact from Reference Image) ══ */}
-        <div className="mb-16">
+    <div>
+      {/* ══ DENTAL TREATMENTS OFFERED IN LAVANYA (Exact from Reference Image) ══ */}
+      <section id="services-grid" className="pt-16 sm:pt-24 pb-12 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#064E3B] tracking-tight text-center mb-8 sm:mb-10 font-display">
             Dental Treatments Offered in Lavanya
           </h2>
@@ -106,20 +106,27 @@ export const ServicesSection: React.FC = () => {
             })}
           </div>
         </div>
+      </section>
 
-        {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto space-y-3 mb-10 pt-4 border-t border-slate-100">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-semibold border border-emerald-200">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Comprehensive Clinical Excellence</span>
+      {/* ══ PATIENT EXPERIENCES & FEEDBACK (Between the treatments grid and consultations) ══ */}
+      <ReviewsSection />
+
+      {/* ══ DETAILED TREATMENT INFORMATION & CONSULTATIONS ══ */}
+      <section id="services" className="py-16 sm:py-24 bg-white border-b border-slate-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          {/* Section Header */}
+          <div className="text-center max-w-3xl mx-auto space-y-3 mb-10">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-semibold border border-emerald-200">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Comprehensive Clinical Excellence</span>
+            </div>
+            <h3 className="text-2xl sm:text-3xl font-bold font-display text-slate-900 tracking-tight">
+              Detailed Treatment Information & Consultations
+            </h3>
+            <p className="text-slate-600 text-sm sm:text-base">
+              Every procedure is planned using 3D digital imaging and computer guidance. Book your dedicated consultation slot below.
+            </p>
           </div>
-          <h3 className="text-2xl sm:text-3xl font-bold font-display text-slate-900 tracking-tight">
-            Detailed Treatment Information & Consultations
-          </h3>
-          <p className="text-slate-600 text-sm sm:text-base">
-            Every procedure is planned using 3D digital imaging and computer guidance. Book your dedicated consultation slot below.
-          </p>
-        </div>
 
         {/* Category Filter Chips */}
         <div className="flex items-center justify-center gap-2 flex-wrap mb-10">
@@ -266,5 +273,6 @@ export const ServicesSection: React.FC = () => {
 
       </div>
     </section>
+    </div>
   );
 };

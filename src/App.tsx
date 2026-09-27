@@ -5,7 +5,6 @@ import { Hero } from './components/Hero';
 import { ServicesSection } from './components/ServicesSection';
 import { DoctorsSection } from './components/DoctorsSection';
 import { BeforeAfterGallery } from './components/BeforeAfterGallery';
-import { ReviewsSection } from './components/ReviewsSection';
 import { PatientPortal } from './components/PatientPortal';
 import { AdminLogin } from './components/AdminLogin';
 import { SupabaseAdminPanel } from './components/SupabaseAdminPanel';
@@ -157,7 +156,6 @@ const AppContent: React.FC = () => {
                 <ServicesSection />
                 <DoctorsSection />
                 <BeforeAfterGallery />
-                <ReviewsSection />
               </>
             )}
 

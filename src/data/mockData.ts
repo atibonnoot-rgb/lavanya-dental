@@ -93,100 +93,208 @@ export const INITIAL_DOCTORS: Doctor[] = [
 
 export const DENTAL_SERVICES: DentalService[] = [
   {
-    id: 'serv-1',
-    name: 'Comprehensive Oral Exam & Ultrasonic Hygiene',
-    category: 'Preventive',
-    description: 'Includes full digital low-radiation X-rays, 3D intraoral scan, periodontal probing, ultrasonic scaling, and remineralizing fluoride varnish.',
-    durationMinutes: 45,
-    priceEstimate: 180,
-    depositRequired: 50,
-    recommendedFor: ['Routine checkup every 6 months', 'Plaque & tartar buildup', 'Early cavity detection'],
-    popular: true,
-    insuranceCovered: 'Full'
-  },
-  {
-    id: 'serv-2',
-    name: 'Advanced Clear Aligner Consultation & 3D Simulation',
+    id: 'serv-aligner',
+    name: 'Aligner',
     category: 'Orthodontics',
-    description: 'Complete digital photogrammetry scan, bite analysis, and an instant 3D video simulation previewing your projected teeth alignment journey.',
+    description: 'Custom-designed clear invisible aligners using 3D digital intraoral scans to straighten teeth discreetly without metal wires or brackets.',
     durationMinutes: 45,
-    priceEstimate: 120,
-    depositRequired: 40,
-    recommendedFor: ['Crowded or gapped teeth', 'Crossbite & overbite correction', 'Discreet adult orthodontics'],
+    priceEstimate: 25000,
+    depositRequired: 5000,
+    recommendedFor: [
+      'Crowded, crooked, or uneven teeth',
+      'Spacing and gaps between teeth',
+      'Discreet smile correction for working professionals & adults',
+      'Mild to moderate bite irregularities'
+    ],
     popular: true,
     insuranceCovered: 'Partial'
   },
   {
-    id: 'serv-3',
-    name: 'Single Tooth 3D Guided Dental Implant Consultation',
+    id: 'serv-dental-implants',
+    name: 'Dental Implants',
     category: 'Surgical & Implants',
-    description: 'High-resolution CBCT volumetric scan, bone density evaluation, computer-guided surgical planning, and customized surgical stent preview.',
+    description: 'Precision computer-guided titanium dental implants that permanently replace missing tooth roots, topped with lifelike ceramic crowns.',
     durationMinutes: 60,
-    priceEstimate: 290,
-    depositRequired: 75,
-    recommendedFor: ['Missing teeth', 'Failed root canals requiring replacement', 'Permanent lifelong restoration'],
+    priceEstimate: 22000,
+    depositRequired: 4000,
+    recommendedFor: [
+      'Single or multiple missing teeth',
+      'Permanent alternative to loose removable dentures',
+      'Preventing jawbone loss and facial sagging',
+      'Lifelong fixed tooth restoration'
+    ],
     popular: true,
     insuranceCovered: 'Partial'
   },
   {
-    id: 'serv-4',
-    name: 'Custom Porcelain Veneer & Smile Design Preview',
-    category: 'Cosmetic',
-    description: 'Aesthetic facial harmony assessment, mock-up test smile, shade matching, and custom ultra-thin feldspathic porcelain consultation.',
+    id: 'serv-root-canal',
+    name: 'Root Canal',
+    category: 'Emergency & Endodontics',
+    description: 'Painless microscopic root canal therapy to eliminate infection, remove inflamed nerve pulp, and preserve your natural tooth.',
     durationMinutes: 60,
-    priceEstimate: 250,
-    depositRequired: 60,
-    recommendedFor: ['Chipped, discolored or worn enamel', 'Uneven teeth proportions', 'Hollywood smile makeover'],
+    priceEstimate: 4500,
+    depositRequired: 1000,
+    recommendedFor: [
+      'Severe throbbing toothache or radiating facial pain',
+      'Deep cavity reaching the internal pulp chamber',
+      'Prolonged sensitivity to hot or cold food and drinks',
+      'Swollen gums or visible tooth abscess'
+    ],
+    popular: true,
+    insuranceCovered: 'Full'
+  },
+  {
+    id: 'serv-bridges',
+    name: 'Bridges',
+    category: 'Restorative',
+    description: 'Custom fixed dental bridge prosthetics anchored to adjacent natural teeth or implants to seamlessly close missing tooth gaps.',
+    durationMinutes: 45,
+    priceEstimate: 7500,
+    depositRequired: 1500,
+    recommendedFor: [
+      'One or more missing consecutive teeth',
+      'Restoring chewing strength and normal bite pressure',
+      'Preventing neighboring teeth from drifting out of alignment',
+      'Natural aesthetic tooth replacement'
+    ],
+    popular: false,
+    insuranceCovered: 'Partial'
+  },
+  {
+    id: 'serv-braces',
+    name: 'Braces',
+    category: 'Orthodontics',
+    description: 'Advanced metallic and ceramic orthodontic braces for comprehensive teeth straightening, jaw alignment, and bite correction.',
+    durationMinutes: 45,
+    priceEstimate: 28000,
+    depositRequired: 5000,
+    recommendedFor: [
+      'Severe teeth crowding, overlapping, or rotation',
+      'Overbite, underbite, crossbite, or open bite',
+      'Complex orthodontic bite correction',
+      'Children, teens, and adult smile alignment'
+    ],
+    popular: false,
+    insuranceCovered: 'Partial'
+  },
+  {
+    id: 'serv-dental-bonding',
+    name: 'Dental Bonding',
+    category: 'Cosmetic',
+    description: 'High-strength tooth-colored composite resin artistically sculpted and cured to instantly repair chips, cracks, and gaps in a single visit.',
+    durationMinutes: 30,
+    priceEstimate: 2500,
+    depositRequired: 500,
+    recommendedFor: [
+      'Chipped, cracked, or fractured teeth',
+      'Small gaps (diastema) between front teeth',
+      'Minor tooth discoloration or uneven edges',
+      'Fast, single-session smile touchup'
+    ],
     popular: false,
     insuranceCovered: 'Cosmetic/Elective'
   },
   {
-    id: 'serv-5',
-    name: 'Microscopic Painless Root Canal Therapy',
-    category: 'Emergency & Endodontics',
-    description: 'Same-day pulpal relief using high-magnification surgical microscope, rotary nickel-titanium cleaning, and bioceramic thermal seal.',
-    durationMinutes: 60,
-    priceEstimate: 850,
-    depositRequired: 100,
-    recommendedFor: ['Severe throbbing toothache', 'Sensitivity to hot & cold that lingers', 'Abscess or facial tenderness'],
+    id: 'serv-tooth-extraction',
+    name: 'Tooth Extraction',
+    category: 'Surgical & Implants',
+    description: 'Safe, gentle, and virtually painless tooth removal under local anesthesia, including simple extractions and impacted wisdom teeth.',
+    durationMinutes: 45,
+    priceEstimate: 1800,
+    depositRequired: 500,
+    recommendedFor: [
+      'Impacted or painful wisdom teeth',
+      'Severely damaged or unrestorable teeth',
+      'Severe periodontitis or recurring infection',
+      'Orthodontic treatment spacing'
+    ],
     popular: false,
     insuranceCovered: 'Full'
   },
   {
-    id: 'serv-6',
-    name: 'In-Office Medical Laser Teeth Whitening (Zoom 4)',
+    id: 'serv-teeth-whitening',
+    name: 'Teeth Whitening',
     category: 'Cosmetic',
-    description: 'Gentle protective gum barrier application followed by 3x 15-minute cycles of medical-grade hydrogen peroxide light activation. Up to 8 shades whiter.',
-    durationMinutes: 60,
-    priceEstimate: 395,
-    depositRequired: 75,
-    recommendedFor: ['Coffee, tea, wine stains', 'Pre-wedding or event preparation', 'Enamel brightening'],
+    description: 'Professional in-office laser teeth whitening delivering up to 8 shades lighter results while safeguarding delicate tooth enamel.',
+    durationMinutes: 45,
+    priceEstimate: 6500,
+    depositRequired: 1000,
+    recommendedFor: [
+      'Stains from coffee, tea, smoking, or red wine',
+      'Yellowed or dull tooth enamel',
+      'Pre-wedding and special event smile makeover',
+      'Fast, dramatic cosmetic brightness'
+    ],
     popular: true,
     insuranceCovered: 'Cosmetic/Elective'
   },
   {
-    id: 'serv-7',
-    name: 'Urgent Dental Trauma & Acute Emergency Triage',
-    category: 'Emergency & Endodontics',
-    description: 'Priority immediate slot for acute trauma, knocked-out (avulsed) tooth, sudden fracture, or severe bleeding. On-call doctor notified instantly.',
-    durationMinutes: 45,
-    priceEstimate: 220,
-    depositRequired: 50,
-    recommendedFor: ['Avulsed or fractured tooth', 'Uncontrollable dental bleeding', 'Acute swelling'],
+    id: 'serv-dental-jewellery',
+    name: 'Dental Jewellery',
+    category: 'Cosmetic',
+    description: 'Non-invasive bonding of certified sparkling Swarovski crystals or gold dental studs to teeth with zero drilling and zero enamel damage.',
+    durationMinutes: 30,
+    priceEstimate: 2000,
+    depositRequired: 500,
+    recommendedFor: [
+      'Adding eye-catching sparkle to your smile',
+      'Fashion-forward tooth styling',
+      'Celebrations, weddings, and festivals',
+      '100% reversible, non-invasive placement'
+    ],
     popular: false,
+    insuranceCovered: 'Cosmetic/Elective'
+  },
+  {
+    id: 'serv-complete-dentures',
+    name: 'Complete Dentures',
+    category: 'Restorative',
+    description: 'Custom-molded full arch upper and lower dentures restoring natural facial profile, speech articulation, and comfortable chewing.',
+    durationMinutes: 60,
+    priceEstimate: 18000,
+    depositRequired: 3000,
+    recommendedFor: [
+      'Total tooth loss in upper or lower dental arch',
+      'Difficulty chewing solid foods',
+      'Facial muscle sagging due to missing teeth',
+      'Affordable complete smile restoration'
+    ],
+    popular: false,
+    insuranceCovered: 'Partial'
+  },
+  {
+    id: 'serv-dental-cleaning',
+    name: 'Dental Cleaning and scaling',
+    category: 'Preventive',
+    description: 'Ultrasonic scaling and polishing to remove tough calculus, tartar deposits, and plaque bio-film to safeguard gum health.',
+    durationMinutes: 45,
+    priceEstimate: 1500,
+    depositRequired: 500,
+    recommendedFor: [
+      'Routine 6-month preventive hygiene visit',
+      'Tartar and plaque calculus deposits',
+      'Bleeding, swollen, or tender gums (gingivitis)',
+      'Chronic bad breath (halitosis) prevention'
+    ],
+    popular: true,
     insuranceCovered: 'Full'
   },
   {
-    id: 'serv-8',
-    name: 'Biomimetic Tooth-Colored Composite Filling',
-    category: 'Restorative',
-    description: 'Mercury-free nano-hybrid composite restoration layered to match natural dental translucency and anatomy with zero sensitivity.',
-    durationMinutes: 45,
-    priceEstimate: 210,
-    depositRequired: 50,
-    recommendedFor: ['New dental cavities', 'Replacing dark amalgam fillings', 'Enamel bonding'],
-    popular: false,
-    insuranceCovered: 'Full'
+    id: 'serv-dental-veneers',
+    name: 'Dental Veneers',
+    category: 'Cosmetic',
+    description: 'Custom handcrafted ultra-thin porcelain or composite veneers permanently bonded to front teeth for an immaculate Hollywood smile.',
+    durationMinutes: 60,
+    priceEstimate: 12000,
+    depositRequired: 2500,
+    recommendedFor: [
+      'Deep intrinsic stains resistant to bleaching',
+      'Worn down, chipped, or irregularly shaped teeth',
+      'Uneven tooth spacing and minor misalignment',
+      'Long-lasting celebrity smile makeover'
+    ],
+    popular: true,
+    insuranceCovered: 'Cosmetic/Elective'
   }
 ];
 

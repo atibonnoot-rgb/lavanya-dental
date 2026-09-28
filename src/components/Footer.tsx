@@ -66,9 +66,12 @@ export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onN
             <h4 className="text-xs font-bold text-white uppercase tracking-wider">Quick Navigation</h4>
             <ul className="space-y-2">
               <li><button onClick={() => onNavigateTab('home')} className="hover:text-white transition-colors">Clinic Home</button></li>
-              <li><button onClick={() => onNavigateTab('services')} className="hover:text-white transition-colors">Treatments & Services</button></li>
-              <li><button onClick={() => onNavigateTab('doctors')} className="hover:text-white transition-colors">Specialist Faculty</button></li>
+              <li><button onClick={() => onNavigateTab('services')} className="hover:text-white transition-colors">Treatments</button></li>
+              <li><button onClick={() => onNavigateTab('why-us')} className="hover:text-white transition-colors">Why Choose Us</button></li>
+              <li><button onClick={() => onNavigateTab('doctors')} className="hover:text-white transition-colors">Specialist Dentists</button></li>
               <li><button onClick={() => onNavigateTab('gallery')} className="hover:text-white transition-colors">Smile Transformations</button></li>
+              <li><button onClick={() => onNavigateTab('areas-served')} className="hover:text-white transition-colors">Areas We Serve</button></li>
+              <li><button onClick={() => onNavigateTab('faq')} className="hover:text-white transition-colors">Hyderabad Dental FAQs</button></li>
               <li><button onClick={() => onNavigateTab('patient-portal')} className="hover:text-white transition-colors">My Appointments</button></li>
               <li><button onClick={() => onNavigateTab('care-guides')} className="hover:text-white transition-colors">Post-Op Care Guides</button></li>
             </ul>

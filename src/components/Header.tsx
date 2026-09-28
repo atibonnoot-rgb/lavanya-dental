@@ -28,11 +28,12 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
 
   const navLinks = [
     { id: 'home', label: 'Home' },
-    { id: 'services', label: 'Treatments & Services' },
-    { id: 'doctors', label: 'Dental Specialists' },
-    { id: 'gallery', label: 'Before & After' },
-    { id: 'patient-portal', label: 'My Appointments' },
-    { id: 'care-guides', label: 'Post-Op Care' },
+    { id: 'services', label: 'Treatments' },
+    { id: 'why-us', label: 'Why Us' },
+    { id: 'doctors', label: 'Specialists' },
+    { id: 'gallery', label: 'Smile Gallery' },
+    { id: 'areas-served', label: 'Areas Served' },
+    { id: 'faq', label: 'FAQs' },
   ];
 
   return (

@@ -5,6 +5,9 @@ import { Hero } from './components/Hero';
 import { ServicesSection } from './components/ServicesSection';
 import { DoctorsSection } from './components/DoctorsSection';
 import { BeforeAfterGallery } from './components/BeforeAfterGallery';
+import { WhyChooseUsSection } from './components/WhyChooseUsSection';
+import { AreasServedSection } from './components/AreasServedSection';
+import { FaqSection } from './components/FaqSection';
 import { Footer } from './components/Footer';
 import { supabase } from './lib/supabase';
 
@@ -168,15 +171,24 @@ const AppContent: React.FC = () => {
             {activeTab === 'home' && (
               <>
                 <Hero onExploreServices={() => handleNavigateTab('services')} />
+                <WhyChooseUsSection />
                 <ServicesSection />
                 <DoctorsSection />
                 <BeforeAfterGallery />
+                <AreasServedSection />
+                <FaqSection />
               </>
             )}
 
             {activeTab === 'services' && (
               <div className="pt-6">
                 <ServicesSection />
+              </div>
+            )}
+
+            {activeTab === 'why-us' && (
+              <div className="pt-6">
+                <WhyChooseUsSection />
               </div>
             )}
 
@@ -189,6 +201,18 @@ const AppContent: React.FC = () => {
             {activeTab === 'gallery' && (
               <div className="pt-6">
                 <BeforeAfterGallery />
+              </div>
+            )}
+
+            {activeTab === 'areas-served' && (
+              <div className="pt-6">
+                <AreasServedSection />
+              </div>
+            )}
+
+            {activeTab === 'faq' && (
+              <div className="pt-6">
+                <FaqSection />
               </div>
             )}
 

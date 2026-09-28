@@ -7,6 +7,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useClinic } from '../context/ClinicContext';
+import { ClinicalComparisonTable } from './ClinicalComparisonTable';
 
 export const DoctorsSection: React.FC = () => {
   const { doctors, isLoading, setShowBookingModal, setBookingPreselectedDoctorId } = useClinic();
@@ -132,6 +133,9 @@ export const DoctorsSection: React.FC = () => {
             ))}
           </div>
         )}
+
+        {/* Clinical Comparison: Lavanya Dental vs Generic Dental Clinics */}
+        <ClinicalComparisonTable />
 
       </div>
     </section>

@@ -46,20 +46,20 @@ export const Hero: React.FC<{ onExploreServices: () => void }> = ({ onExploreSer
             {/* Accreditation Chip */}
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-teal-200/80 shadow-xs text-xs font-semibold text-teal-800">
               <span className="flex h-2 w-2 rounded-full bg-teal-500 animate-pulse"></span>
-              <span>Next-Gen Direct Scheduling Platform</span>
+              <span>⭐ Top Rated Dental Clinic in Hyderabad & Secunderabad</span>
               <span className="text-slate-300">•</span>
-              <span className="text-slate-600 font-normal">Real-Time Doctor Availability</span>
+              <span className="text-slate-600 font-normal">PG Road (500003)</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 font-display leading-[1.15]">
-              World-Class Dental Care, <br />
+              Best Dental Clinic in Hyderabad <br />
               <span className="bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 bg-clip-text text-transparent">
-                Directly On Your Schedule.
+                & Secunderabad (PG Road)
               </span>
             </h1>
 
-            <p className="text-lg text-slate-600 max-w-2xl leading-relaxed">
-              Experience modern, pain-free dentistry in Hyderabad &amp; Secunderabad backed by 3D computer navigation and digital aligners. Book directly with board-certified specialists and receive instant confirmation in seconds.
+            <p className="text-base sm:text-lg text-slate-600 max-w-2xl leading-relaxed">
+              Welcome to <strong>Lavanya Dental Clinic</strong> — trusted for painless laser root canal treatments, dental implants, invisible braces, and smile makeovers led by <strong>Dr. Vijay Rajshekar</strong> (25+ yrs experience). Located at PG Road, Secunderabad, serving Hyderabad & Telangana.
             </p>
 
             {/* Quick-Booking Interactive Card */}

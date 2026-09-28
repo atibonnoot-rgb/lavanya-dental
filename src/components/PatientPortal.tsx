@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   Calendar, 
@@ -6,15 +6,11 @@ import {
   User, 
   FileText, 
   ShieldCheck, 
-  CheckCircle2, 
   AlertCircle, 
-  ArrowRight, 
-  Download, 
-  Stethoscope,
-  HeartPulse,
-  RotateCcw,
-  Sparkles,
-  ExternalLink
+  HeartPulse, 
+  RotateCcw, 
+  Lock,
+  X
 } from 'lucide-react';
 import { useClinic } from '../context/ClinicContext';
 import { POST_CARE_GUIDES } from '../data/mockData';
@@ -22,7 +18,6 @@ import { Appointment } from '../types';
 
 export const PatientPortal: React.FC = () => {
   const { 
-    appointments, 
     doctors, 
     services, 
     findAppointmentByCodeOrPhone, 
@@ -30,26 +25,58 @@ export const PatientPortal: React.FC = () => {
   } = useClinic();
 
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(() => {
-    return appointments[0] || null;
-  });
+  const [searchError, setSearchError] = useState<string>('');
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
 
-  React.useEffect(() => {
-    if (!selectedAppointment && appointments.length > 0) {
-      setSelectedAppointment(appointments[0]);
-    }
-  }, [appointments, selectedAppointment]);
+  // Check if current browser session just booked an appointment
+  useEffect(() => {
+    try {
+      const recentCode = sessionStorage.getItem('lavanya_recent_booking_code');
+      if (recentCode) {
+        const found = findAppointmentByCodeOrPhone(recentCode);
+        if (found.length > 0) {
+          setSelectedAppointment(found[0]);
+          setSearchQuery(recentCode);
+        }
+      }
+    } catch {}
+  }, []);
 
   const [selectedCareGuideId, setSelectedCareGuideId] = useState<string>('guide-extraction');
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    const results = findAppointmentByCodeOrPhone(searchQuery);
+    setSearchError('');
+
+    const trimmed = searchQuery.trim();
+    if (!trimmed) {
+      setSearchError('Please enter your confirmation code or registered mobile number.');
+      return;
+    }
+
+    const cleanDigits = trimmed.replace(/\D/g, '');
+    if (trimmed.length < 4 && cleanDigits.length < 10) {
+      setSearchError('Please enter a full confirmation code (e.g. LD-1234) or 10-digit mobile number.');
+      return;
+    }
+
+    const results = findAppointmentByCodeOrPhone(trimmed);
     if (results.length > 0) {
       setSelectedAppointment(results[0]);
+      setSearchError('');
     } else {
-      alert(`No appointment found matching "${searchQuery}". Please check your confirmation code or phone number.`);
+      setSelectedAppointment(null);
+      setSearchError(`No appointment found for "${trimmed}". Please verify your confirmation code or mobile number.`);
     }
+  };
+
+  const handleClearSelected = () => {
+    setSelectedAppointment(null);
+    setSearchQuery('');
+    setSearchError('');
+    try {
+      sessionStorage.removeItem('lavanya_recent_booking_code');
+    } catch {}
   };
 
   const currentDoctor = selectedAppointment 
@@ -69,14 +96,14 @@ export const PatientPortal: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 text-teal-800 text-xs font-semibold border border-teal-200 mb-2">
-            <User className="w-3.5 h-3.5" />
-            <span>Secure Patient Portal & Guest Checkout Lookup</span>
+            <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
+            <span>Encrypted Patient Portal • Private Health Information</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold font-display text-slate-900 tracking-tight">
-            My Appointments & Clinical Records
+            My Appointments &amp; Recovery Records
           </h1>
           <p className="text-slate-600 text-sm mt-1">
-            Access appointment status, verified treatment plans, and post-procedure recovery protocols.
+            Look up your verified treatment schedule, doctor notes, and post-procedure recovery instructions.
           </p>
         </div>
 
@@ -90,20 +117,40 @@ export const PatientPortal: React.FC = () => {
       </div>
 
       {/* Appointment Lookup Bar */}
-      <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
-        <h3 className="text-sm font-bold text-slate-900">Look Up Appointment Details</h3>
-        <p className="text-xs text-slate-500">
-          Enter your 6-digit confirmation code (e.g. <strong>AD-8921</strong>) or your registered mobile phone number.
-        </p>
+      <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Search className="w-4 h-4 text-teal-600" />
+              Secure Appointment Lookup
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Enter your booking confirmation code (e.g. <strong>LD-8921</strong>) or your 10-digit registered mobile number.
+            </p>
+          </div>
+
+          {selectedAppointment && (
+            <button
+              onClick={handleClearSelected}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition-colors self-start sm:self-auto"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>Lock / Clear Records</span>
+            </button>
+          )}
+        </div>
 
         <form onSubmit={handleSearch} className="flex flex-col sm:flex-row items-center gap-3">
           <div className="relative flex-1 w-full">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Enter AD-XXXX or mobile phone number"
+              placeholder="e.g. LD-1234 or 9885611128"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                if (searchError) setSearchError('');
+              }}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-900 focus:ring-2 focus:ring-teal-500 outline-hidden font-medium"
             />
           </div>
@@ -112,48 +159,16 @@ export const PatientPortal: React.FC = () => {
             type="submit"
             className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm shrink-0"
           >
-            Find Records
+            Find My Records
           </button>
         </form>
 
-        {/* Booked Appointments List */}
-        <div className="pt-2 border-t border-slate-100">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-slate-700">All Scheduled Visits ({appointments.length}):</span>
-            {appointments.length === 0 && (
-              <span className="text-xs text-slate-400">No appointments scheduled yet</span>
-            )}
+        {searchError && (
+          <div className="flex items-center gap-2 text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-xl p-3">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{searchError}</span>
           </div>
-          {appointments.length > 0 && (
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-              {appointments.map(a => {
-                const isSelected = selectedAppointment?.id === a.id;
-                return (
-                  <button
-                    key={a.id}
-                    onClick={() => {
-                      setSearchQuery(a.confirmationCode);
-                      setSelectedAppointment(a);
-                    }}
-                    className={`shrink-0 px-3 py-1.5 rounded-xl font-medium text-xs border transition-all text-left flex items-center gap-2 ${
-                      isSelected 
-                        ? 'bg-teal-600 text-white border-teal-600 shadow-sm' 
-                        : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-                    }`}
-                  >
-                    <span className="font-mono font-bold">{a.confirmationCode}</span>
-                    <span className="truncate max-w-[120px]">{a.patientName}</span>
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${
-                      isSelected ? 'bg-teal-700 text-teal-100' : 'bg-slate-200 text-slate-600'
-                    }`}>
-                      {a.status}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
       {/* Main Content Layout: Active Appointment Details & Post-Care Guides */}
@@ -162,7 +177,7 @@ export const PatientPortal: React.FC = () => {
         {/* Left 7 Columns: Selected Appointment Card */}
         <div className="lg:col-span-7 space-y-6">
           {selectedAppointment ? (
-            <div className="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-md space-y-6">
+            <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-md space-y-6 animate-in fade-in duration-200">
               
               {/* Header card with status badge */}
               <div className="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-slate-100">
@@ -182,7 +197,7 @@ export const PatientPortal: React.FC = () => {
                     </span>
                   </div>
                   <h3 className="text-xl font-bold font-display text-slate-900 mt-2">
-                    {currentService?.name}
+                    {currentService?.name || 'Dental Consultation'}
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
                     Booked on {new Date(selectedAppointment.createdAt).toLocaleDateString()}
@@ -221,7 +236,7 @@ export const PatientPortal: React.FC = () => {
                     Doctor Proposed Alternative Time
                   </span>
                   <p>
-                    Dr. {currentDoctor?.name.split(',')[0]} suggested moving your visit to <strong>{selectedAppointment.rescheduledTo.date} at {selectedAppointment.rescheduledTo.timeSlot}</strong>.
+                    The doctor suggested moving your visit to <strong>{selectedAppointment.rescheduledTo.date} at {selectedAppointment.rescheduledTo.timeSlot}</strong>.
                   </p>
                 </div>
               )}
@@ -229,14 +244,12 @@ export const PatientPortal: React.FC = () => {
               {/* Clinical Complaint & Medical History */}
               <div className="space-y-3">
                 <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                  Patient Complaint & Pre-Visit Intake
+                  Patient Complaint &amp; Pre-Visit Intake
                 </h4>
                 <div className="bg-slate-50 rounded-2xl p-4 text-xs text-slate-700 space-y-2 border border-slate-200/60">
                   <p><strong>Primary Complaint:</strong> {selectedAppointment.primaryComplaint}</p>
-                  <p><strong>Patient Name:</strong> {selectedAppointment.patientName} ({selectedAppointment.patientPhone})</p>
-                  {selectedAppointment.insuranceProvider && (
-                    <p><strong>Insurance on File:</strong> {selectedAppointment.insuranceProvider} (ID: {selectedAppointment.insurancePolicyNumber})</p>
-                  )}
+                  <p><strong>Patient Name:</strong> {selectedAppointment.patientName}</p>
+                  <p><strong>Phone:</strong> {selectedAppointment.patientPhone}</p>
                   {selectedAppointment.medicalHistory.hasAllergies && (
                     <p className="text-rose-600 font-semibold">
                       ⚠️ Allergy Alert: {selectedAppointment.medicalHistory.allergyDetails || 'Documented allergy'}
@@ -250,14 +263,14 @@ export const PatientPortal: React.FC = () => {
                 </div>
               </div>
 
-              {/* Deposit Payment Receipt Info */}
+              {/* Payment Receipt Info */}
               <div className="p-4 rounded-2xl bg-teal-50/50 border border-teal-200/70 flex items-center justify-between text-xs">
                 <div>
-                  <span className="font-bold text-teal-900">Deposit Paid: ${selectedAppointment.depositAmount}.00</span>
-                  <p className="text-teal-700 text-[11px]">Deducted from your balance on appointment day</p>
+                  <span className="font-bold text-teal-900">Payment: Pay at Clinic</span>
+                  <p className="text-teal-700 text-[11px]">Settled following consultation and diagnostic check</p>
                 </div>
                 <span className="text-[11px] font-mono text-emerald-700 font-semibold bg-emerald-100 px-2.5 py-1 rounded-full">
-                  VERIFIED PAID ✓
+                  VERIFIED SLOT ✓
                 </span>
               </div>
 
@@ -274,13 +287,21 @@ export const PatientPortal: React.FC = () => {
 
             </div>
           ) : (
-            <div className="bg-white rounded-3xl p-10 text-center border border-slate-200">
-              <p className="text-sm text-slate-500">No appointment selected.</p>
+            <div className="bg-white rounded-3xl p-10 text-center border border-slate-200 space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-slate-100 text-slate-500 flex items-center justify-center mx-auto">
+                <User className="w-7 h-7 text-slate-400" />
+              </div>
+              <div className="max-w-md mx-auto space-y-1">
+                <h3 className="text-base font-bold text-slate-800">No Patient Record Active</h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Enter your appointment confirmation code above to look up your scheduled visit, treatment instructions, and clinical details.
+                </p>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Right 5 Columns: Post-Procedure Care Instructions Library (PRD 4.1) */}
+        {/* Right 5 Columns: Post-Procedure Care Instructions Library */}
         <div className="lg:col-span-5 space-y-4">
           <div className="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-md space-y-4">
             <div className="flex items-center gap-2">

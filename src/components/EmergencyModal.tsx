@@ -58,7 +58,7 @@ export const EmergencyModal: React.FC = () => {
           <div className="bg-rose-50 rounded-2xl p-4 border border-rose-200 text-xs text-rose-950 space-y-2">
             <span className="font-bold flex items-center gap-1.5 text-rose-900 text-sm">
               <ShieldAlert className="w-4 h-4 text-rose-600" />
-              Call 911 Immediately If You Experience:
+              Call 108 / 112 or Clinic Hotline If You Experience:
             </span>
             <ul className="space-y-1 list-disc pl-4 text-rose-800">
               <li>Severe facial swelling that threatens your airway or causes difficulty breathing.</li>
@@ -93,11 +93,11 @@ export const EmergencyModal: React.FC = () => {
           {/* Emergency Hotline Buttons */}
           <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row items-center gap-3">
             <a
-              href="tel:18005553368"
+              href="tel:+918555052843"
               className="w-full sm:w-1/2 inline-flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white py-3 px-4 rounded-xl text-xs font-bold shadow-md transition-colors"
             >
               <Phone className="w-4 h-4" />
-              <span>Call On-Call Hotline: (800) 555-DENT</span>
+              <span>Call Hotline: +91 85550 52843</span>
             </a>
 
             <button

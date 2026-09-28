@@ -27,7 +27,8 @@ process.on('unhandledRejection', (err) => {
 dotenv.config({ path: path.join(__dirname, '../.env') });
 dotenv.config();
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || Buffer.from("QVEuQWI4Uk42SU5FWXlSYVhUb3JXN1VsNm45NFFyX3JreF9iaDJ2VnZ2SXhSNEZfYVZqd3c=", "base64").toString("utf-8");
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const BOT_ADMIN_SECRET = process.env.BOT_ADMIN_SECRET || '';
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "https://dlylhcrcxdjbfvprbuqb.supabase.co";
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRseWxoY3JjeGRqYmZ2cHJidXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3MTY5NTEsImV4cCI6MjEwNTI5Mjk1MX0.PqbFhdxXU6G_HfYFZjJj2R4r4YIds6EHqCjpUOXlUGA";
 
@@ -37,6 +38,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const conversationHistory = new Map();
 const messageLogs = [];
 const sentBotMessageIds = new Set();
+const ipRateLimits = new Map();
 
 let currentQRDataUrl = null;
 let botStatus = 'Initializing...';
@@ -629,10 +631,59 @@ const server = http.createServer(async (req, res) => {
   const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = urlObj.pathname;
 
+  // CORS & Security Headers
+  const origin = req.headers.origin || '';
+  const allowedOrigins = ['https://www.lavanyadental.in', 'https://lavanyadental.in', 'http://localhost:3000', 'http://localhost:5173'];
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Admin-Secret');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  // Rate Limiting by IP (60 requests/min for API endpoints)
+  const clientIp = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress || 'ip';
+  const now = Date.now();
+  const clientData = ipRateLimits.get(clientIp) || { count: 0, resetTime: now + 60000 };
+  if (now > clientData.resetTime) {
+    clientData.count = 1;
+    clientData.resetTime = now + 60000;
+  } else {
+    clientData.count++;
+  }
+  ipRateLimits.set(clientIp, clientData);
+
+  if (clientData.count > 60 && pathname.startsWith('/api/')) {
+    res.writeHead(429, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Too Many Requests. Rate limit exceeded.' }));
+    return;
+  }
+
+  const isAuthorized = () => {
+    if (!BOT_ADMIN_SECRET) return true;
+    const authHeader = req.headers['authorization']?.replace('Bearer ', '');
+    const provided = req.headers['x-admin-secret'] || urlObj.searchParams.get('token') || authHeader;
+    return provided === BOT_ADMIN_SECRET;
+  };
+
   // 1. Health Ping for 24/7 Keep-Alive
   if (pathname === '/ping' || pathname === '/health') {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('OK');
+    return;
+  }
+
+  // Guard administrative mutation endpoints
+  if ((pathname === '/reset' || pathname.startsWith('/save-settings') || pathname.startsWith('/api/save-settings')) && !isAuthorized()) {
+    res.writeHead(401, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Unauthorized: Valid BOT_ADMIN_SECRET required.' }));
     return;
   }
 
@@ -652,7 +703,12 @@ const server = http.createServer(async (req, res) => {
   // 3. Save Clinic Details & Knowledge Base
   if (req.method === 'POST' && (pathname === '/save-settings' || pathname === '/api/save-settings')) {
     let body = '';
-    req.on('data', chunk => { body += chunk; });
+    req.on('data', chunk => {
+      body += chunk;
+      if (body.length > 500000) {
+        req.destroy();
+      }
+    });
     req.on('end', async () => {
       try {
         let parsed = {};
@@ -685,7 +741,12 @@ const server = http.createServer(async (req, res) => {
   // 4. Test AI Playground API (Test custom clinic prompt instantly in browser)
   if (req.method === 'POST' && pathname === '/api/test-ai') {
     let body = '';
-    req.on('data', chunk => { body += chunk; });
+    req.on('data', chunk => {
+      body += chunk;
+      if (body.length > 500000) {
+        req.destroy();
+      }
+    });
     req.on('end', async () => {
       try {
         const { query } = JSON.parse(body);

@@ -189,7 +189,7 @@ export const Hero: React.FC<{ onExploreServices: () => void }> = ({ onExploreSer
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
                     <span className="text-xs font-semibold text-emerald-300">Live Clinician Status</span>
                   </div>
-                  <span className="text-[11px] text-slate-400 font-mono">Today, Sep 18</span>
+                  <span className="text-[11px] text-slate-400 font-mono">Today, {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-800">
                   <div>

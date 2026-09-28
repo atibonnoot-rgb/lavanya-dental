@@ -306,7 +306,7 @@ export const SupabaseAdminPanel: React.FC<SupabaseAdminPanelProps> = ({ onLogout
   // ─── ACTION 2: MARK TREATED (DELETES FROM QUEUE -> ADDS TO SUPABASE DATABASE) ─────
   const handleMarkTreated = async (appointment: Appointment, customNotes?: string) => {
     const serviceName = services.find(s => s.id === appointment.serviceId)?.name || appointment.primaryComplaint || 'General Dental Treatment';
-    const doctorName = doctors.find(d => d.id === appointment.doctorId)?.name || 'Dr. Lavanya MDS';
+    const doctorName = doctors.find(d => d.id === appointment.doctorId)?.name || 'Dr. Vijai';
     const recordId = `rec-${Date.now()}`;
 
     const newRecord: TreatedPatientRecord = {
@@ -366,7 +366,7 @@ export const SupabaseAdminPanel: React.FC<SupabaseAdminPanelProps> = ({ onLogout
     const cleanPhone = phone.startsWith('91') ? phone : `91${phone}`;
 
     // WhatsApp Bot message giving the doctor's phone number as requested
-    const message = `Hello ${patientName},\n\nThis is an automated update from Lavanya Dental Clinic.\n\nYour appointment scheduled for ${cancelTarget.date} at ${cancelTarget.timeSlot} has been cancelled by the doctor.\nReason: ${cancellationReason}\n\nPlease contact Dr. Lavanya directly at +91 9885611128 to reschedule your visit or for any clinical questions.\n\nLavanya Dental Clinic\nContact: 9885611128\nAddress: PG Road, Hyderabad`;
+    const message = `Hello ${patientName},\n\nThis is an automated update from Lavanya Dental Clinic.\n\nYour appointment scheduled for ${cancelTarget.date} at ${cancelTarget.timeSlot} has been cancelled by the doctor.\nReason: ${cancellationReason}\n\nPlease contact Dr. Vijai directly at +91 9885611128 to reschedule your visit or for any clinical questions.\n\nLavanya Dental Clinic\nContact: 9885611128\nAddress: PG Road, Hyderabad`;
 
     const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
 
@@ -385,7 +385,7 @@ export const SupabaseAdminPanel: React.FC<SupabaseAdminPanelProps> = ({ onLogout
     const svc = services.find(s => s.id === apt.serviceId);
     const doc = doctors.find(d => d.id === apt.doctorId);
     const treatmentName = svc?.name || apt.primaryComplaint || 'General Dental Consultation';
-    const doctorName = doc?.name || 'Dr. Lavanya MDS';
+    const doctorName = doc?.name || 'Dr. Vijai';
 
     return `Hello ${apt.patientName},
 
@@ -545,7 +545,7 @@ We look forward to seeing you today! 😊
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 hidden sm:block">
-                  Dr. Lavanya MDS • Direct Doctor Helpline: 9885611128
+                  Dr. Vijai • Direct Doctor Helpline: 9885611128
                 </p>
               </div>
             </div>
@@ -1037,7 +1037,7 @@ We look forward to seeing you today! 😊
                       <div className="bg-emerald-50/70 rounded-2xl p-3.5 border border-emerald-200 text-xs space-y-1.5">
                         <div className="flex items-center justify-between font-bold text-emerald-950">
                           <span>Treatment in progress:</span>
-                          <span className="text-emerald-700">Dr. Lavanya MDS</span>
+                          <span className="text-emerald-700">Dr. Vijai</span>
                         </div>
                         <p className="text-slate-700 font-semibold">
                           {svc?.name || apt.primaryComplaint || 'Oral & Maxillofacial Consultation'}
@@ -1177,7 +1177,7 @@ We look forward to seeing you today! 😊
                     <div className="flex items-center gap-2 shrink-0">
                       {/* WhatsApp Follow-up */}
                       <a
-                        href={`https://wa.me/91${record.patientPhone.replace(/\D/g, '')}?text=Hello%20${encodeURIComponent(record.patientName)}%2C%20this%20is%20Dr.%20Lavanya%20from%20Lavanya%20Dental%20Clinic%20following%20up%20on%20your%20treatment.%20How%20are%20you%20feeling%20today%3F`}
+                        href={`https://wa.me/91${record.patientPhone.replace(/\D/g, '')}?text=Hello%20${encodeURIComponent(record.patientName)}%2C%20this%20is%20Dr.%20Vijai%20from%20Lavanya%20Dental%20Clinic%20following%20up%20on%20your%20treatment.%20How%20are%20you%20feeling%20today%3F`}
                         target="_blank"
                         rel="noreferrer"
                         className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-3 py-2 rounded-xl text-xs font-bold transition-all"
@@ -1349,7 +1349,7 @@ We look forward to seeing you today! 😊
                   <span>WhatsApp Bot Notification Message:</span>
                 </div>
                 <p className="italic text-slate-700">
-                  "Your appointment has been cancelled by the doctor. Please contact Dr. Lavanya directly at <strong>+91 9885611128</strong> to reschedule."
+                  "Your appointment has been cancelled by the doctor. Please contact Dr. Vijai directly at <strong>+91 9885611128</strong> to reschedule."
                 </p>
               </div>
             </div>

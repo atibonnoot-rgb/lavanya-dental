@@ -64,7 +64,11 @@ export const DoctorMobileCompanion: React.FC<DoctorMobileCompanionProps> = ({
   const [activeTab, setActiveTab] = useState<'schedule' | 'alerts' | 'profile'>('alerts');
   const [selectedAppointmentForAction, setSelectedAppointmentForAction] = useState<Appointment | null>(null);
   const [rescheduleModalOpen, setRescheduleModalOpen] = useState<boolean>(false);
-  const [newRescheduleDate, setNewRescheduleDate] = useState<string>('2026-09-21');
+  const [newRescheduleDate, setNewRescheduleDate] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  });
   const [newRescheduleSlot, setNewRescheduleSlot] = useState<string>('11:00');
   const [declineReason, setDeclineReason] = useState<string>('Schedule conflict / Emergency surgery block');
   const [showDeclineConfirm, setShowDeclineConfirm] = useState<boolean>(false);
@@ -578,11 +582,11 @@ export const DoctorMobileCompanion: React.FC<DoctorMobileCompanionProps> = ({
                   <div className="grid grid-cols-2 gap-2 text-[11px]">
                     <div className="bg-slate-50 p-2 rounded-xl">
                       <span className="text-slate-400 block text-[10px]">Start Shift</span>
-                      <strong className="text-slate-800">{currentDoctor.workingHours.start} AM</strong>
+                      <strong className="text-slate-800">{currentDoctor.workingHours.start}</strong>
                     </div>
                     <div className="bg-slate-50 p-2 rounded-xl">
                       <span className="text-slate-400 block text-[10px]">End Shift</span>
-                      <strong className="text-slate-800">{currentDoctor.workingHours.end} PM</strong>
+                      <strong className="text-slate-800">{currentDoctor.workingHours.end}</strong>
                     </div>
                   </div>
                 </div>

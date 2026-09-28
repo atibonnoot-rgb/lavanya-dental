@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useClinic } from '../context/ClinicContext';
-import { MedicalHistory } from '../types';
+import { MedicalHistory, Appointment } from '../types';
 
 export const BookingModal: React.FC = () => {
   const { 
@@ -85,6 +85,7 @@ export const BookingModal: React.FC = () => {
   const [patientPhone, setPatientPhone] = useState<string>('');
   const [patientEmail, setPatientEmail] = useState<string>('');
   const [primaryComplaint, setPrimaryComplaint] = useState<string>('');
+  const [honeypot, setHoneypot] = useState<string>('');
 
   const [medicalHistory, setMedicalHistory] = useState<MedicalHistory>({
     hasAllergies: false,
@@ -98,7 +99,7 @@ export const BookingModal: React.FC = () => {
   });
 
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [confirmedApt, setConfirmedApt] = useState<any>(null);
+  const [confirmedApt, setConfirmedApt] = useState<Appointment | null>(null);
 
   if (!showBookingModal) return null;
 
@@ -107,39 +108,86 @@ export const BookingModal: React.FC = () => {
 
   const generateAvailableTimeSlots = () => {
     const slots = ['09:00','09:45','10:30','11:15','13:00','13:45','14:30','15:15','16:00','16:45'];
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
     const booked = appointments.filter(a => {
       if (a.date !== selectedDate) return false;
       if (selectedDoctorId && a.doctorId !== selectedDoctorId) return false;
       return a.status !== 'Cancelled';
     }).map(a => a.timeSlot);
-    return slots.map(time => ({ time, isAvailable: !booked.includes(time) }));
+
+    return slots.map(time => {
+      const [h, m] = time.split(':').map(Number);
+      const slotMinutes = h * 60 + m;
+      const isPast = selectedDate === todayStr && slotMinutes <= currentMinutes + 15;
+      const isAvailable = !booked.includes(time) && !isPast;
+      return { time, isAvailable };
+    });
   };
 
   const availableSlots = generateAvailableTimeSlots();
 
   const handleFinalSubmit = async () => {
-    if (!patientName.trim() || !patientPhone.trim() || !patientEmail.trim()) {
-      alert('Please provide your full name, mobile number, and email address to proceed.');
+    // 1. Bot Honeypot Check: Bots fill hidden inputs; human users never see it
+    if (honeypot.trim() !== '') {
+      console.warn('Bot submission blocked.');
       return;
     }
+
+    // 2. Rate Limiting: 25s cooldown between consecutive bookings from this browser
+    const lastSubmitTime = parseInt(sessionStorage.getItem('lavanya_last_booking_time') || '0', 10);
+    const now = Date.now();
+    if (now - lastSubmitTime < 25000) {
+      const waitSec = Math.ceil((25000 - (now - lastSubmitTime)) / 1000);
+      alert(`For security and spam protection, please wait ${waitSec} seconds before submitting another booking.`);
+      return;
+    }
+
+    const cleanName = patientName.trim().replace(/[<>'"/\\;]/g, '').slice(0, 80);
+    const cleanPhone = patientPhone.trim().replace(/\D/g, '').slice(0, 15);
+    const cleanEmail = patientEmail.trim().toLowerCase().slice(0, 100);
+
+    if (!cleanName || cleanName.length < 2) {
+      alert('Please provide your full legal name to proceed.');
+      return;
+    }
+    if (cleanPhone.length < 10) {
+      alert('Please enter a valid 10-digit mobile number.');
+      return;
+    }
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(cleanEmail)) {
+      alert('Please enter a valid email address.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const assignedDoctorId = selectedDoctorId || (doctors[0]?.id || 'doc-1');
+      const cleanComplaint = primaryComplaint.trim().replace(/[<>'"/\\;]/g, '').slice(0, 300) || 'Routine examination & procedure consultation';
       const created = await createAppointment({
-        patientName,
-        patientPhone,
-        patientEmail,
+        patientName: cleanName,
+        patientPhone: patientPhone.trim(),
+        patientEmail: cleanEmail,
         doctorId: assignedDoctorId,
         serviceId: selectedServiceId,
         date: selectedDate,
         timeSlot: selectedTimeSlot,
-        primaryComplaint: primaryComplaint || 'Routine examination & procedure consultation',
+        primaryComplaint: cleanComplaint,
         medicalHistory,
         depositAmount: 0,
         depositPaid: false,
         paymentMethod: 'Clinic',
         otpVerified: true,
       });
+
+      try {
+        sessionStorage.setItem('lavanya_recent_booking_code', created.confirmationCode);
+        sessionStorage.setItem('lavanya_last_booking_time', Date.now().toString());
+      } catch {}
+
       setConfirmedApt(created);
       setIsSubmitting(false);
       setStep(4);
@@ -385,6 +433,18 @@ export const BookingModal: React.FC = () => {
                 <textarea id={complaintInputId} rows={2} placeholder="Describe pain, location, or dental goal..."
                   value={primaryComplaint} onChange={(e) => setPrimaryComplaint(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-teal-500 outline-hidden" />
+              </div>
+
+              {/* Bot anti-spam honeypot hidden input */}
+              <div className="hidden" aria-hidden="true" style={{ display: 'none' }}>
+                <input 
+                  type="text" 
+                  name="clinic_hp_field" 
+                  value={honeypot} 
+                  onChange={(e) => setHoneypot(e.target.value)} 
+                  tabIndex={-1} 
+                  autoComplete="off" 
+                />
               </div>
 
               <div className="pt-2 border-t border-slate-100">

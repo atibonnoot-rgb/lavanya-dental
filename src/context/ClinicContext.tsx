@@ -20,7 +20,7 @@ const DEFAULT_CLINIC_SETTINGS: ClinicSettings = {
   tagline: 'Where Precision Meets Perfection',
   logoUrl: '',
   phone: '+91 8555052843',
-  email: 'appointments@lavanyadental.com',
+  email: 'appointments@lavanyadental.in',
   address: 'Lavanya Dental Care Pavilion, PG Road, Secunderabad, Hyderabad - 500003, Telangana',
   hours: {
     monday:    { open: true,  start: '08:00', end: '18:00' },
@@ -107,7 +107,7 @@ const mapDoctorRow = (row: Record<string, unknown>): Doctor => ({
   title: row.title as string,
   specialty: row.specialty as string,
   degrees: row.degrees as string,
-  experienceYears: (row.experience_years === 14 || row.id === 'doc-1') ? 25 : (row.experience_years as number),
+  experienceYears: typeof row.experience_years === 'number' ? (row.experience_years as number) : 25,
   rating: row.rating as number,
   reviewsCount: row.reviews_count as number,
   photoUrl: row.photo_url as string,
@@ -549,7 +549,7 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     data: Omit<Appointment, 'id' | 'confirmationCode' | 'createdAt' | 'status'>
   ): Promise<Appointment> => {
     const codeNum = Math.floor(1000 + Math.random() * 9000);
-    const confirmationCode = `AD-${codeNum}`;
+    const confirmationCode = `LD-${codeNum}`;
     const newAppointment: Appointment = {
       ...data,
       id: `apt-${Date.now()}`,
@@ -791,12 +791,15 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const findAppointmentByCodeOrPhone = (query: string): Appointment[] => {
     const q = query.trim().toLowerCase();
-    if (!q) return [];
-    return appointments.filter(a => 
-      a.confirmationCode.toLowerCase().includes(q) ||
-      a.patientPhone.replace(/\D/g, '').includes(q.replace(/\D/g, '')) ||
-      a.patientEmail.toLowerCase().includes(q)
-    );
+    if (!q || q.length < 3) return [];
+    const cleanDigits = q.replace(/\D/g, '');
+    return appointments.filter(a => {
+      const codeMatch = a.confirmationCode.toLowerCase() === q || 
+                        (q.length >= 4 && a.confirmationCode.toLowerCase().includes(q));
+      const phoneDigits = a.patientPhone.replace(/\D/g, '');
+      const phoneMatch = cleanDigits.length >= 10 && phoneDigits.endsWith(cleanDigits.slice(-10));
+      return codeMatch || phoneMatch;
+    });
   };
 
   return (

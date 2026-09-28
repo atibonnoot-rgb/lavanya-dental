@@ -1,18 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { ClinicProvider, useClinic } from './context/ClinicContext';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { ServicesSection } from './components/ServicesSection';
 import { DoctorsSection } from './components/DoctorsSection';
 import { BeforeAfterGallery } from './components/BeforeAfterGallery';
-import { PatientPortal } from './components/PatientPortal';
-import { AdminLogin } from './components/AdminLogin';
-import { SupabaseAdminPanel } from './components/SupabaseAdminPanel';
-import { BookingModal } from './components/BookingModal';
-import { EmergencyModal } from './components/EmergencyModal';
-import { DoctorMobileCompanion } from './components/DoctorMobileCompanion';
 import { Footer } from './components/Footer';
 import { supabase } from './lib/supabase';
+
+// Lazy-load heavy administrative, portal, and modal components for ultra-fast initial page load
+const PatientPortal = lazy(() => import('./components/PatientPortal').then(m => ({ default: m.PatientPortal })));
+const AdminLogin = lazy(() => import('./components/AdminLogin').then(m => ({ default: m.AdminLogin })));
+const SupabaseAdminPanel = lazy(() => import('./components/SupabaseAdminPanel').then(m => ({ default: m.SupabaseAdminPanel })));
+const BookingModal = lazy(() => import('./components/BookingModal').then(m => ({ default: m.BookingModal })));
+const EmergencyModal = lazy(() => import('./components/EmergencyModal').then(m => ({ default: m.EmergencyModal })));
+const DoctorMobileCompanion = lazy(() => import('./components/DoctorMobileCompanion').then(m => ({ default: m.DoctorMobileCompanion })));
+
+const LoadingSpinner: React.FC = () => (
+  <div className="flex items-center justify-center p-12">
+    <div className="w-8 h-8 border-3 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+  </div>
+);
 
 const WhatsAppIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
   <svg 
@@ -26,19 +34,19 @@ const WhatsAppIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" 
   </svg>
 );
 
-
 const AppContent: React.FC = () => {
   const { 
     currentRole, 
     setCurrentRole, 
     showDoctorMobileSimulator, 
     setShowDoctorMobileSimulator,
+    showBookingModal,
+    showEmergencyModal,
   } = useClinic();
 
   const [activeTab, setActiveTab] = useState<string>('home');
   // Admin auth is NEVER auto-granted from URL — must go through AdminLogin
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
-  const [authChecked, setAuthChecked] = useState<boolean>(false);
 
   // Check Supabase auth session on mount for persistent admin sessions
   useEffect(() => {
@@ -54,8 +62,6 @@ const AppContent: React.FC = () => {
         }
       } catch (err) {
         console.warn('Auth check skipped:', err);
-      } finally {
-        setAuthChecked(true);
       }
     };
 
@@ -116,36 +122,38 @@ const AppContent: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Public website rendered immediately without white-screen block
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans selection:bg-teal-100 selection:text-teal-900">
       
       {/* ADMIN ROLE — Login gate then Admin Panel */}
       {currentRole === 'admin' && (
         !isAdminAuthenticated ? (
-          <AdminLogin onAuthenticated={() => {
-            setIsAdminAuthenticated(true);
-          }} />
+          <Suspense fallback={<LoadingSpinner />}>
+            <AdminLogin onAuthenticated={() => {
+              setIsAdminAuthenticated(true);
+            }} />
+          </Suspense>
         ) : (
-          <SupabaseAdminPanel 
-            onBackToWebsite={() => {
-              setCurrentRole('patient');
-              try { localStorage.removeItem('lavanya_current_role'); } catch {}
-              if (window.location.hash.includes('admin')) {
-                history.replaceState(null, '', window.location.pathname + window.location.search);
-              }
-            }}
-            onLogout={() => {
-              setIsAdminAuthenticated(false);
-              setCurrentRole('patient');
-              try { localStorage.removeItem('lavanya_current_role'); } catch {}
-              // Sign out of Supabase session too
-              try { supabase.auth.signOut(); } catch {}
-              if (window.location.hash.includes('admin')) {
-                history.replaceState(null, '', window.location.pathname + window.location.search);
-              }
-            }} 
-          />
+          <Suspense fallback={<LoadingSpinner />}>
+            <SupabaseAdminPanel 
+              onBackToWebsite={() => {
+                setCurrentRole('patient');
+                try { localStorage.removeItem('lavanya_current_role'); } catch {}
+                if (window.location.hash.includes('admin')) {
+                  history.replaceState(null, '', window.location.pathname + window.location.search);
+                }
+              }}
+              onLogout={() => {
+                setIsAdminAuthenticated(false);
+                setCurrentRole('patient');
+                try { localStorage.removeItem('lavanya_current_role'); } catch {}
+                try { supabase.auth.signOut(); } catch {}
+                if (window.location.hash.includes('admin')) {
+                  history.replaceState(null, '', window.location.pathname + window.location.search);
+                }
+              }} 
+            />
+          </Suspense>
         )
       )}
 
@@ -185,16 +193,27 @@ const AppContent: React.FC = () => {
             )}
 
             {(activeTab === 'patient-portal' || activeTab === 'care-guides') && (
-              <PatientPortal />
+              <Suspense fallback={<LoadingSpinner />}>
+                <PatientPortal />
+              </Suspense>
             )}
           </main>
 
           {/* Footer */}
           <Footer onNavigateTab={handleNavigateTab} />
 
-          {/* Global Modals & Overlays */}
-          <BookingModal />
-          <EmergencyModal />
+          {/* Global Modals & Overlays (Loaded conditionally only when triggered) */}
+          {showBookingModal && (
+            <Suspense fallback={null}>
+              <BookingModal />
+            </Suspense>
+          )}
+
+          {showEmergencyModal && (
+            <Suspense fallback={null}>
+              <EmergencyModal />
+            </Suspense>
+          )}
 
           {/* Clean WhatsApp Direct Button (No Popups / Interferences) */}
           <a
@@ -208,14 +227,14 @@ const AppContent: React.FC = () => {
             <span className="hidden sm:inline font-bold text-xs tracking-wide">WhatsApp</span>
           </a>
 
-
-
           {/* Floating Smartphone Companion */}
           {showDoctorMobileSimulator && (
-            <DoctorMobileCompanion 
-              isModal={true} 
-              onClose={() => setShowDoctorMobileSimulator(false)} 
-            />
+            <Suspense fallback={null}>
+              <DoctorMobileCompanion 
+                isModal={true} 
+                onClose={() => setShowDoctorMobileSimulator(false)} 
+              />
+            </Suspense>
           )}
         </>
       )}

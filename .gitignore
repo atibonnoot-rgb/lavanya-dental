@@ -3,12 +3,17 @@ build/
 dist/
 coverage/
 .DS_Store
+Thumbs.db
 *.log
 .env*
 !.env.example
 .vercel
+*.pem
+*.key
+*.cert
 auth_info_baileys/
 whatsapp-bot/auth_info_baileys/
 whatsapp-bot/auth_session/
 whatsapp-bot/node_modules/
 whatsapp-bot/*.txt
+session_backup.txt

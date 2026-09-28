@@ -58,12 +58,20 @@ const DEFAULT_CLINIC_CONFIG = {
   clinicName: 'Lavanya Dental Clinic',
   phone: '+91 8555052843',
   address: 'PG Road, Innovation Colony, Jogani, Ramgopalpet, Hyderabad, Telangana 500003',
-  hours: 'Mon-Sat: 8:00 AM – 6:00 PM (Sunday Closed)',
+  hours: 'Mon-Sat: 10:30 AM – 8:30 PM (Sun: 11:00 AM – 1:00 PM)',
   doctors: 'Dr. V. Vijai Rajasekhar M.D.S. FRSH. (London) FAGE (Manipal), Oral & Maxilofacial Surgeon',
   services: `Root Canal Treatment, Ultrasonic Scaling & Cleaning, Dental Implants, Ceramic Veneers, Clear Aligners (Invisalign), Teeth Whitening, Emergency Dental Care`,
   pricingPolicy: 'Treatment costs and procedure plans are provided in person after clinical examination and diagnostics by our doctors during your visit. NEVER quote exact prices or fee numbers over chat.',
   customNotes: 'Parking: Available in front of the clinic. Payment options: Cash, UPI, Credit/Debit cards accepted. Walk-ins welcome for dental emergencies.',
-  behavioralDirectives: '',
+  behavioralDirectives: `CRITICAL WHATSAPP MESSAGE STYLE:
+- MAXIMUM BREVITY: Keep all messages ultra-short (2 to 4 lines max), visually pleasing, and fast to read.
+- NEVER ask the client for their phone number (we already have their WhatsApp number).
+- When booking, NEVER dump a long 5-point questionnaire. Keep it to just:
+  👤 *Your Name*
+  📅 *Preferred Day & Time*
+  🩺 *Dental Concern* (e.g., checkup, pain)
+- Sound warm, polite, and human. Avoid robotic headers or bureaucratic forms.
+- Directions: Give a crisp 2-line reply with Google Maps: https://maps.app.goo.gl/9cWnZ8Gv4k7r6R7p8`,
   notificationPhone: '',
   customFields: [
     { title: 'Languages Spoken', value: 'English, Telugu, Hindi' },
@@ -73,6 +81,7 @@ const DEFAULT_CLINIC_CONFIG = {
 };
 
 let clinicConfig = { ...DEFAULT_CLINIC_CONFIG };
+let lastSettingsLoadTime = 0;
 
 async function loadClinicSettings() {
   try {
@@ -88,6 +97,7 @@ async function loadClinicSettings() {
       if (!Array.isArray(clinicConfig.customFields)) {
         clinicConfig.customFields = DEFAULT_CLINIC_CONFIG.customFields;
       }
+      lastSettingsLoadTime = Date.now();
       console.log('[Settings] Loaded customized clinic knowledge from Supabase.');
     }
   } catch (err) {
@@ -144,42 +154,53 @@ function getSystemPrompt() {
     ? `\nDIRECT CUSTOM INSTRUCTIONS & RESPONSE STYLE (HIGHEST PRIORITY):\n${clinicConfig.behavioralDirectives.trim()}\n`
     : '';
 
-  return `You are "Aura", the smart, warm, friendly AI receptionist for ${clinicConfig.clinicName} (${clinicConfig.phone}).
+  return `You are "Aura", the warm, professional, human-like virtual receptionist for ${clinicConfig.clinicName} (${clinicConfig.phone}).
 
 Clinic Details & Knowledge Base:
 - Clinic Name: ${clinicConfig.clinicName}
-- Address / Location: ${clinicConfig.address}
+- Address: ${clinicConfig.address}
 - Working Hours: ${clinicConfig.hours}
-- Clinic Phone / Helpline: ${clinicConfig.phone}
-- Doctors / Clinicians: ${clinicConfig.doctors}
-- Treatments & Services:
-${clinicConfig.services}
-- Additional Clinic Info / FAQ:
-${clinicConfig.customNotes}
-${customFieldsText ? `\nAdditional Custom Topics & Options:\n${customFieldsText}` : ''}
+- Phone: ${clinicConfig.phone}
+- Doctors: ${clinicConfig.doctors}
+- Services: ${clinicConfig.services}
+- Notes: ${clinicConfig.customNotes}
+${customFieldsText ? `\nAdditional Info:\n${customFieldsText}` : ''}
 ${directivesText}
-CRITICAL RULES:
-1. STRICT PRICING POLICY: ${clinicConfig.pricingPolicy}
-2. Always be polite, warm, and helpful. Answer in the same language the patient speaks (English, Hindi, Hinglish, Telugu, etc.).
-3. Strictly follow any custom instructions & response style directives provided above.
-4. Answer questions about procedures, pain management, doctor specializations, clinic location, directions, timings, and any custom clinic topics accurately based on the clinic details above.
-5. APPOINTMENT BOOKING DETAILS:
-   If a patient wants to book an appointment, gather these details:
-   - Patient Full Name
-   - Contact Phone Number (verify or confirm the number they wish to be contacted on)
-   - Preferred Date (YYYY-MM-DD or e.g. tomorrow/Monday)
-   - Preferred Time Slot (e.g. 10:00 AM, 11:30 AM, 2:00 PM, 4:30 PM)
-   - Dental Concern or Treatment needed
-6. CRITICAL RULE FOR BOOKING CONFIRMATION & CLINIC SELF-ALERT:
-   Once the patient provides their Name, Phone Number, Date, and Time Slot (whether given in a single message or gathered step-by-step), you MUST confirm their appointment warmly and append this exact JSON tag at the VERY END of your message:
+
+CRITICAL RULES & WHATSAPP MESSAGE STYLE:
+1. MAXIMUM BREVITY & ELEGANCE (HIGHEST PRIORITY):
+   - Keep messages ULTRA-SHORT (2 to 4 lines maximum).
+   - NEVER send long walls of text, clumsy multi-line bullet lists with parenthetical explanations, or robotic questionnaires.
+   - Use clean, pleasing WhatsApp formatting with line breaks and 1-2 friendly emojis (😊, 🦷, 📍, 📅, 👤).
+   - Speak warmly and conversationally like a helpful human receptionist, not an automated form bot.
+   - Reply in the same language the patient speaks (English, Telugu, Hindi, or Hinglish).
+
+2. APPOINTMENT BOOKING CONVERSATION FLOW:
+   - When a patient says "I want an appointment", "book appointment", or similar:
+     NEVER dump a 5-item bureaucratic questionnaire!
+     Reply with this exact pleasing, short 3-line format:
+     "We'd love to help you book your visit! 😊\n\nPlease let us know:\n👤 *Your Name*\n📅 *Preferred Day & Time*\n🩺 *Dental Concern* (e.g., checkup, cleaning, tooth pain)"
+   - NEVER ask for their phone number! You are already chatting on WhatsApp and have their contact number.
+   - If they already mentioned their concern or date (e.g., "I have tooth pain tomorrow"), do NOT ask again. Acknowledge with empathy and ask only for their name and time.
+   - Clinic hours: Mon–Sat: 10:30 AM – 8:30 PM, Sun: 11:00 AM – 1:00 PM.
+
+3. CONFIRMATION & TAG:
+   Once you have their Name, Date, and Time Slot (use current year: 2026), confirm warmly and concisely in under 4 lines:
+   "All set! Your appointment is confirmed 🎉\n\n👤 *Patient:* [Name]\n📅 *Date & Time:* [Date] at [Time]\n🩺 *Treatment:* [Service/Concern]\n📍 *Location:* Lavanya Dental, PG Road, Secunderabad\n\nSee you soon! 😊"
+   And append this tag at the very end (this tag will be stripped automatically before sending to the patient):
 [BOOKING_READY: {"patient_name": "...", "patient_phone": "...", "date": "YYYY-MM-DD", "time_slot": "HH:MM", "service_id": "serv-1", "primary_complaint": "..."}]
-   Note: This tag automatically triggers the system to send an instant summary message with the client's complete details to the clinic's WhatsApp chat ('Message Yourself') and records the appointment in the database.
-   Use today's year: 2026. If service matches, use serv-1 to serv-7, otherwise default to serv-1.
-   Keep your messages concise and WhatsApp-friendly (use line breaks and emojis).`;
+
+4. PRICING & CLINICAL ADVICE:
+   - Pricing Policy: ${clinicConfig.pricingPolicy}
+   - Never quote exact surgical prices. Keep it warm: "Consultation and procedure charges depend on an in-person clinical checkup by our specialists. Our initial consultation is very affordable. Would you like to schedule a quick checkup? 😊"
+
+5. DIRECTIONS & LOCATION:
+   Keep answers crisp (under 3 lines) with Google Maps link: https://maps.app.goo.gl/9cWnZ8Gv4k7r6R7p8`;
 }
 
 const CANDIDATE_MODELS = [
   'models/gemini-flash-lite-latest',
+  'models/gemini-3.8-flash',
   'models/gemini-3-flash-preview',
   'models/gemini-flash-latest'
 ];
@@ -229,10 +250,10 @@ async function callGeminiAI(userPhone, userMessage) {
   // Contextual fallback if all AI models are temporarily unavailable
   const lower = userMessage.toLowerCase();
   if (lower.includes('book') || lower.includes('appointment')) {
-    return `I would be delighted to assist you with booking an appointment at ${clinicConfig.clinicName}! 😊\n\nCould you please share:\n1. Your Full Name\n2. Preferred Date & Time\n3. Treatment or Dental Concern (e.g., Checkup, Root Canal, Cleaning)?`;
+    return `We'd love to help you book your visit! 😊\n\nPlease let us know:\n👤 *Your Name*\n📅 *Preferred Day & Time*\n🩺 *Dental Concern* (e.g., checkup, cleaning, tooth pain)`;
   }
 
-  return `Hello! I am Aura from ${clinicConfig.clinicName}. How can I assist you with your dental care or booking today?`;
+  return `Hello! Welcome to ${clinicConfig.clinicName}. How can we help you with your dental care today? 😊`;
 }
 
 // Cloud Session Storage (Supabase) to survive container restarts & redeploys
@@ -456,8 +477,8 @@ async function startWhatsAppBot() {
 
       if (!userText.trim()) continue;
 
-      // Prevent infinite loop if text has bot prefix, signature, or alert
-      if (userText.includes('Lavanya Dental Assistant') || userText.includes('NEW APPOINTMENT ALERT') || userText.includes('[BOOKING_READY')) continue;
+      // Prevent infinite loop if text has bot signature, alert, or booking tag
+      if (userText.includes('— Lavanya Dental') || userText.includes('\u200B') || userText.includes('Lavanya Dental Assistant') || userText.includes('NEW APPOINTMENT ALERT') || userText.includes('[BOOKING_READY')) continue;
 
       const myRawId = sock.user?.id || '';
       const myNumber = myRawId.split(':')[0].replace(/[^0-9]/g, '');
@@ -472,6 +493,11 @@ async function startWhatsAppBot() {
       const patientName = msg.pushName || (isMessageToSelf ? 'You (Self-Test)' : 'Patient');
 
       console.log(`[WhatsApp Incoming] ${patientName} (${senderPhone}): "${userText}"`);
+
+      // Auto-refresh settings from Supabase if older than 30s
+      if (Date.now() - lastSettingsLoadTime > 30000) {
+        await loadClinicSettings();
+      }
 
       // Call Gemini AI
       const aiResponse = await callGeminiAI(senderPhone, userText);
@@ -568,11 +594,11 @@ async function startWhatsAppBot() {
         finalReply = aiResponse.replace(/\[BOOKING_READY:\s*\{.*?\}\]/s, '').trim();
       }
 
-      // Add signature to prevent self-loop
-      const replyFormatted = `🦷 *Lavanya Dental Assistant*\n\n${finalReply}`;
+      // Clean, elegant WhatsApp format with subtle loop marker
+      const replyFormatted = `${finalReply.trim()}\n\n— Lavanya Dental ✨\u200B`;
 
-      // Send reply back to patient
-      const sent = await sock.sendMessage(jid, { text: replyFormatted }, { quoted: msg });
+      // Send reply back to patient (clean chat bubble, no bloated quoted box)
+      const sent = await sock.sendMessage(jid, { text: replyFormatted });
       if (sent?.key?.id) {
         sentBotMessageIds.add(sent.key.id);
       }

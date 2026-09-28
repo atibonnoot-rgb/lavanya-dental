@@ -3,11 +3,34 @@ import {
   Calendar, Clock, Phone, Plus, Trash2, CheckCircle2,
   AlertCircle, Users, Search, Check, Send, X, Database,
   ArrowRight, ArrowLeft, Stethoscope, RefreshCw, MessageSquare, UserCheck,
-  Building2, LogOut, ExternalLink, ShieldCheck, Globe
+  Building2, LogOut, ExternalLink, ShieldCheck, Globe, Copy
 } from 'lucide-react';
 import { useClinic } from '../context/ClinicContext';
 import { Appointment } from '../types';
 import { supabase } from '../lib/supabase';
+
+const WhatsAppIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    className={className} 
+    fill="currentColor"
+    aria-hidden="true"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path fillRule="evenodd" clipRule="evenodd" d="M12.04 2C6.516 2 2.024 6.491 2.024 12.016c0 1.764.461 3.487 1.336 5.006L2 22l5.12-1.343c1.464.798 3.119 1.218 4.805 1.218 5.524 0 10.016-4.49 10.016-10.016 0-2.677-1.042-5.195-2.936-7.09A10.02 10.02 0 0012.04 2zm0 18.293c-1.503 0-2.975-.405-4.262-1.17l-.306-.182-3.167.83.845-3.087-.199-.317a8.272 8.272 0 01-1.267-4.351c0-4.57 3.719-8.29 8.29-8.29 2.215 0 4.298.863 5.864 2.43 1.566 1.566 2.428 3.65 2.427 5.866 0 4.571-3.719 8.291-8.29 8.291zm4.61-6.19c-.253-.127-1.498-.739-1.73-.823-.232-.085-.4-.127-.57.127-.17.253-.655.823-.803.992-.148.17-.296.19-.55.064-.253-.127-1.07-.394-2.038-1.258-.753-.672-1.261-1.503-1.41-1.756-.148-.253-.016-.39.111-.516.115-.113.254-.296.38-.444.127-.148.17-.253.254-.423.085-.17.042-.317-.021-.444-.064-.127-.57-1.373-.782-1.881-.206-.494-.415-.426-.57-.434l-.487-.008c-.17 0-.444.064-.676.317-.233.254-.888.867-.888 2.114 0 1.248.91 2.453 1.036 2.622.127.17 1.79 2.733 4.337 3.832.606.262 1.08.419 1.45.536.61.194 1.165.166 1.603.101.488-.073 1.498-.613 1.71-1.205.212-.592.212-1.1.148-1.205-.063-.106-.233-.17-.486-.296z" />
+  </svg>
+);
+
+const cleanWhatsAppPhone = (rawPhone: string) => {
+  let cleaned = (rawPhone || '').replace(/\D/g, '');
+  if (cleaned.startsWith('0')) {
+    cleaned = cleaned.substring(1);
+  }
+  if (cleaned.length === 10) {
+    return `91${cleaned}`;
+  }
+  return cleaned;
+};
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 export type AdminTab = 'booked' | 'in_clinic' | 'database';
@@ -153,6 +176,26 @@ export const SupabaseAdminPanel: React.FC<SupabaseAdminPanelProps> = ({ onLogout
   const [cancellationReason, setCancellationReason] = useState<string>(
     'Emergency surgery schedule / Doctor unavailable at selected slot'
   );
+
+  // Modal: WhatsApp Appointment Reminder
+  const [reminderTarget, setReminderTarget] = useState<Appointment | null>(null);
+  const [customReminderMessage, setCustomReminderMessage] = useState<string>('');
+  const [copiedReminder, setCopiedReminder] = useState<boolean>(false);
+  const [skipReminderPreview, setSkipReminderPreview] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('lavanya_skip_reminder_preview') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [remindedMap, setRemindedMap] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem('lavanya_reminded_map');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
 
   // Filter Booked (Pending) - EXCLUDES anything in clinic or cancelled or completed
   const rawBookedAppointments = useMemo(() => {
@@ -337,6 +380,72 @@ export const SupabaseAdminPanel: React.FC<SupabaseAdminPanelProps> = ({ onLogout
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
   };
 
+  // ─── ACTION 3.5: SEND WHATSAPP APPOINTMENT REMINDER ───────────────────────
+  const generateReminderMessage = (apt: Appointment) => {
+    const svc = services.find(s => s.id === apt.serviceId);
+    const doc = doctors.find(d => d.id === apt.doctorId);
+    const treatmentName = svc?.name || apt.primaryComplaint || 'General Dental Consultation';
+    const doctorName = doc?.name || 'Dr. Lavanya MDS';
+
+    return `Hello ${apt.patientName},
+
+This is a friendly reminder from *Lavanya Dental Clinic* regarding your dental appointment today:
+
+📅 *Date:* ${apt.date}
+⏰ *Time Slot:* ${apt.timeSlot}
+🩺 *Treatment:* ${treatmentName}
+👨‍⚕️ *Doctor:* ${doctorName}
+📍 *Location:* Lavanya Dental Care Pavilion, PG Road, Secunderabad
+🗺️ *Google Maps:* https://maps.app.goo.gl/9cWnZ8Gv4k7r6R7p8
+
+⚠️ *Helpful Note:* Please arrive 5–10 minutes before your scheduled slot. If you need any assistance, directions, or wish to reschedule, please reply here or call *+91 8555052843* / *9885611128*.
+
+We look forward to seeing you today! 😊
+— Team Lavanya Dental`;
+  };
+
+  const handleSendReminder = (apt: Appointment, customText?: string) => {
+    const message = customText || generateReminderMessage(apt);
+    const phone = cleanWhatsAppPhone(apt.patientPhone);
+    const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+
+    // Track that reminder was sent today with timestamp
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setRemindedMap(prev => {
+      const updated = { ...prev, [apt.id]: timeStr };
+      try {
+        localStorage.setItem('lavanya_reminded_map', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    // Close preview modal if open
+    setReminderTarget(null);
+
+    // Open WhatsApp
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleReminderClick = (apt: Appointment) => {
+    if (skipReminderPreview) {
+      handleSendReminder(apt);
+    } else {
+      setReminderTarget(apt);
+      setCustomReminderMessage(generateReminderMessage(apt));
+      setCopiedReminder(false);
+    }
+  };
+
+  const handleCopyReminder = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedReminder(true);
+      setTimeout(() => setCopiedReminder(false), 2000);
+    } catch (e) {
+      console.warn('Clipboard copy error:', e);
+    }
+  };
+
   // ─── ACTION 4: DELETE ANYTIME (FROM BOOKED OR DATABASE) ───────────────────
   const handleDeleteBooked = async (appointmentId: string, patientName: string) => {
     if (window.confirm(`Are you sure you want to delete the booking for ${patientName}?`)) {
@@ -391,7 +500,8 @@ export const SupabaseAdminPanel: React.FC<SupabaseAdminPanelProps> = ({ onLogout
         },
         depositAmount: 0,
         depositPaid: false,
-        paymentMethod: newBookingSource === 'WhatsApp' ? 'Insurance' : 'Clinic'
+        paymentMethod: newBookingSource === 'WhatsApp' ? 'Insurance' : 'Clinic',
+        otpVerified: true
       });
 
       setShowAddModal(false);
@@ -706,15 +816,29 @@ export const SupabaseAdminPanel: React.FC<SupabaseAdminPanelProps> = ({ onLogout
                           </h3>
                         </div>
 
-                        {/* Direct Call / Contact */}
-                        <a
-                          href={`tel:${apt.patientPhone}`}
-                          className="flex items-center gap-1 text-xs font-bold text-slate-700 bg-stone-100 hover:bg-stone-200 px-2.5 py-1.5 rounded-xl transition-colors"
-                          title="Call Patient"
-                        >
-                          <Phone className="w-3.5 h-3.5 text-emerald-700" />
-                          <span>{apt.patientPhone}</span>
-                        </a>
+                        {/* Direct Call & WhatsApp Contact */}
+                        <div className="flex items-center gap-1.5">
+                          <a
+                            href={`tel:${apt.patientPhone}`}
+                            className="flex items-center gap-1 text-xs font-bold text-slate-700 bg-stone-100 hover:bg-stone-200 px-2.5 py-1.5 rounded-xl transition-colors"
+                            title="Call Patient"
+                          >
+                            <Phone className="w-3.5 h-3.5 text-emerald-700" />
+                            <span>{apt.patientPhone}</span>
+                          </a>
+
+                          <button
+                            onClick={() => {
+                              setReminderTarget(apt);
+                              setCustomReminderMessage(generateReminderMessage(apt));
+                              setCopiedReminder(false);
+                            }}
+                            className="p-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors cursor-pointer"
+                            title="Preview & Customize WhatsApp Reminder"
+                          >
+                            <WhatsAppIcon className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
 
                       {/* Details Box */}
@@ -743,35 +867,58 @@ export const SupabaseAdminPanel: React.FC<SupabaseAdminPanelProps> = ({ onLogout
                         )}
                       </div>
 
-                      {/* Action Buttons: Confirm Arrived | Cancel (WhatsApp Bot) | Delete */}
-                      <div className="flex items-center gap-2 pt-1">
-                        {/* 1. Confirm / Arrived */}
+                      {/* Action Buttons: Confirm Arrived | WhatsApp Reminder | Cancel | Delete */}
+                      <div className="space-y-2 pt-1">
+                        {/* 1. Primary: Confirm Arrived */}
                         <button
                           onClick={() => handleConfirmArrival(apt.id)}
-                          className="flex-1 bg-[#064E3B] hover:bg-emerald-800 text-white py-2.5 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+                          className="w-full bg-[#064E3B] hover:bg-emerald-800 text-white py-2.5 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
                         >
                           <UserCheck className="w-4 h-4 text-emerald-300" />
                           <span>Confirm &amp; Patient Arrived</span>
                         </button>
 
-                        {/* 2. Cancel (WhatsApp Bot notification with doctor number) */}
-                        <button
-                          onClick={() => setCancelTarget(apt)}
-                          className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
-                          title="Cancel appointment and notify client via WhatsApp"
-                        >
-                          <Send className="w-3.5 h-3.5 text-amber-700" />
-                          <span>Cancel</span>
-                        </button>
+                        {/* 2. Secondary Row: WhatsApp Reminder | Cancel | Delete */}
+                        <div className="flex items-center gap-2">
+                          {/* WhatsApp Reminder Button */}
+                          <button
+                            onClick={() => handleReminderClick(apt)}
+                            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer border active:scale-98 shadow-2xs ${
+                              remindedMap[apt.id]
+                                ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300'
+                                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300/80 hover:border-emerald-500'
+                            }`}
+                            title={
+                              remindedMap[apt.id]
+                                ? `Reminder already sent today at ${remindedMap[apt.id]}. Click to open WhatsApp again.`
+                                : 'Send WhatsApp appointment reminder to client'
+                            }
+                          >
+                            <WhatsAppIcon className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            <span className="truncate">
+                              {remindedMap[apt.id] ? `✓ Reminded (${remindedMap[apt.id]})` : 'WhatsApp Reminder'}
+                            </span>
+                          </button>
 
-                        {/* 3. Delete anytime */}
-                        <button
-                          onClick={() => handleDeleteBooked(apt.id, apt.patientName)}
-                          className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
-                          title="Delete booking"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                          {/* 2. Cancel (WhatsApp Bot notification with doctor number) */}
+                          <button
+                            onClick={() => setCancelTarget(apt)}
+                            className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                            title="Cancel appointment and notify client via WhatsApp"
+                          >
+                            <Send className="w-3.5 h-3.5 text-amber-700" />
+                            <span>Cancel</span>
+                          </button>
+
+                          {/* 3. Delete anytime */}
+                          <button
+                            onClick={() => handleDeleteBooked(apt.id, apt.patientName)}
+                            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer shrink-0"
+                            title="Delete booking"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
 
                     </div>
@@ -1231,6 +1378,130 @@ export const SupabaseAdminPanel: React.FC<SupabaseAdminPanelProps> = ({ onLogout
               >
                 <Send className="w-3.5 h-3.5" />
                 <span>Cancel &amp; Open WhatsApp</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════════
+          MODAL: WHATSAPP APPOINTMENT REMINDER
+      ══════════════════════════════════════════════════════════════════════════ */}
+      {reminderTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-stone-200 relative space-y-4">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shrink-0">
+                  <WhatsAppIcon className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold font-display text-slate-900">
+                    Send WhatsApp Appointment Reminder
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Notify client with pre-written appointment details for today
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setReminderTarget(null)} 
+                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Target Patient Badge & Slot */}
+            <div className="bg-stone-50 border border-stone-200/80 rounded-2xl p-3 text-xs space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-extrabold text-slate-900 text-sm">{reminderTarget.patientName}</span>
+                <span className="font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 text-[11px]">
+                  {reminderTarget.date} • {reminderTarget.timeSlot}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-slate-600 text-[11px]">
+                <span className="truncate max-w-[240px]">
+                  Treatment: <strong>{services.find(s => s.id === reminderTarget.serviceId)?.name || reminderTarget.primaryComplaint || 'General Dental Checkup'}</strong>
+                </span>
+                <a href={`tel:${reminderTarget.patientPhone}`} className="text-slate-700 font-mono font-bold hover:underline flex items-center gap-1 shrink-0">
+                  <Phone className="w-3 h-3 text-emerald-600" />
+                  {reminderTarget.patientPhone}
+                </a>
+              </div>
+            </div>
+
+            {/* Pre-written Message Textarea */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-slate-700 uppercase">
+                  Pre-written Reminder Message (WhatsApp)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => handleCopyReminder(customReminderMessage)}
+                  className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 cursor-pointer"
+                >
+                  {copiedReminder ? (
+                    <>
+                      <Check className="w-3 h-3 text-emerald-600" />
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3" />
+                      <span>Copy Text</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <textarea
+                rows={8}
+                value={customReminderMessage}
+                onChange={(e) => setCustomReminderMessage(e.target.value)}
+                className="w-full bg-stone-50 border border-stone-200 rounded-2xl p-3 text-xs text-slate-800 resize-none font-sans leading-relaxed focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+              />
+              <p className="text-[10px] text-slate-400">
+                You can review or edit the message above before sending. Clicking "Send via WhatsApp" opens WhatsApp with this text pre-filled.
+              </p>
+            </div>
+
+            {/* Direct Send Preference Checkbox */}
+            <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer pt-1 select-none">
+              <input
+                type="checkbox"
+                checked={skipReminderPreview}
+                onChange={(e) => {
+                  setSkipReminderPreview(e.target.checked);
+                  try {
+                    localStorage.setItem('lavanya_skip_reminder_preview', e.target.checked ? 'true' : 'false');
+                  } catch {}
+                }}
+                className="w-3.5 h-3.5 rounded-sm text-emerald-600 accent-emerald-600 cursor-pointer"
+              />
+              <span>Direct send: skip this preview next time and open WhatsApp immediately</span>
+            </label>
+
+            {/* Modal Actions */}
+            <div className="flex items-center gap-2 pt-2 border-t border-stone-100">
+              <button
+                type="button"
+                onClick={() => setReminderTarget(null)}
+                className="flex-1 bg-stone-100 hover:bg-stone-200 text-slate-700 py-2.5 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSendReminder(reminderTarget, customReminderMessage)}
+                className="flex-2 bg-[#25D366] hover:bg-[#1EBE5D] text-white py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+              >
+                <WhatsAppIcon className="w-4 h-4 text-white" />
+                <span>Send via WhatsApp</span>
               </button>
             </div>
 

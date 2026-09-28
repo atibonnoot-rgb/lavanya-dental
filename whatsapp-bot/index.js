@@ -63,13 +63,15 @@ const DEFAULT_CLINIC_CONFIG = {
   services: `Root Canal Treatment, Ultrasonic Scaling & Cleaning, Dental Implants, Ceramic Veneers, Clear Aligners (Invisalign), Teeth Whitening, Emergency Dental Care`,
   pricingPolicy: 'Treatment costs and procedure plans are provided in person after clinical examination and diagnostics by our doctors during your visit. NEVER quote exact prices or fee numbers over chat.',
   customNotes: 'Parking: Available in front of the clinic. Payment options: Cash, UPI, Credit/Debit cards accepted. Walk-ins welcome for dental emergencies.',
-  behavioralDirectives: `CRITICAL WHATSAPP MESSAGE STYLE:
+  behavioralDirectives: `CRITICAL WHATSAPP MESSAGE STYLE & BOOKING REQUIREMENTS:
 - MAXIMUM BREVITY: Keep all messages ultra-short (2 to 4 lines max), visually pleasing, and fast to read.
-- NEVER ask the client for their phone number (we already have their WhatsApp number).
-- When booking, NEVER dump a long 5-point questionnaire. Keep it to just:
-  👤 *Your Name*
-  📅 *Preferred Day & Time*
-  🩺 *Dental Concern* (e.g., checkup, pain)
+- COMPULSORY DETAILS FOR EVERY BOOKING: You MUST collect BOTH:
+  1. 👤 *Patient Name* (Compulsory)
+  2. 📞 *Contact Phone Number* (Compulsory)
+  3. 📅 *Preferred Day & Time*
+- When someone wants to book, ask in this clean 4-line format:
+  "We'd love to help you book your visit! 😊\n\nPlease share:\n👤 *Patient Name*\n📞 *Contact Phone Number*\n📅 *Preferred Day & Time*\n🩺 *Dental Concern* (e.g., checkup, cleaning, tooth pain)"
+- If the patient provides a date or complaint but misses their Name or Phone Number, DO NOT confirm yet. Politely ask for the missing compulsory info first!
 - Sound warm, polite, and human. Avoid robotic headers or bureaucratic forms.
 - Directions: Give a crisp 2-line reply with Google Maps: https://maps.app.goo.gl/9cWnZ8Gv4k7r6R7p8`,
   notificationPhone: '',
@@ -171,22 +173,28 @@ CRITICAL RULES & WHATSAPP MESSAGE STYLE:
 1. MAXIMUM BREVITY & ELEGANCE (HIGHEST PRIORITY):
    - Keep messages ULTRA-SHORT (2 to 4 lines maximum).
    - NEVER send long walls of text, clumsy multi-line bullet lists with parenthetical explanations, or robotic questionnaires.
-   - Use clean, pleasing WhatsApp formatting with line breaks and 1-2 friendly emojis (😊, 🦷, 📍, 📅, 👤).
+   - Use clean, pleasing WhatsApp formatting with line breaks and 1-2 friendly emojis (😊, 🦷, 📍, 📅, 👤, 📞).
    - Speak warmly and conversationally like a helpful human receptionist, not an automated form bot.
    - Reply in the same language the patient speaks (English, Telugu, Hindi, or Hinglish).
 
-2. APPOINTMENT BOOKING CONVERSATION FLOW:
+2. COMPULSORY APPOINTMENT BOOKING DETAILS:
+   - EVERY APPOINTMENT COMPULSORILY REQUIRES:
+     1. 👤 *Patient Name* (Compulsory)
+     2. 📞 *Contact Phone Number* (Compulsory)
+     3. 📅 *Preferred Day & Time*
    - When a patient says "I want an appointment", "book appointment", or similar:
-     NEVER dump a 5-item bureaucratic questionnaire!
-     Reply with this exact pleasing, short 3-line format:
-     "We'd love to help you book your visit! 😊\n\nPlease let us know:\n👤 *Your Name*\n📅 *Preferred Day & Time*\n🩺 *Dental Concern* (e.g., checkup, cleaning, tooth pain)"
-   - NEVER ask for their phone number! You are already chatting on WhatsApp and have their contact number.
-   - If they already mentioned their concern or date (e.g., "I have tooth pain tomorrow"), do NOT ask again. Acknowledge with empathy and ask only for their name and time.
+     Reply in this exact pleasing, short 4-line format:
+     "We'd love to help you book your visit! 😊\n\nPlease share:\n👤 *Patient Name*\n📞 *Contact Phone Number*\n📅 *Preferred Day & Time*\n🩺 *Dental Concern* (e.g., checkup, cleaning, tooth pain)"
+   - STRICT VALIDATION: If the patient provides their date/time or concern but does NOT provide their Name or Phone Number, DO NOT confirm the appointment yet!
+     Politely ask for what is missing:
+     - Missing Phone Number: "Thank you [Name]! Could you please share your Contact Phone Number to secure your slot? 📞"
+     - Missing Name: "Thank you! May I have your Full Name and Contact Phone Number to confirm your slot? 👤📞"
+   - NEVER emit the [BOOKING_READY: ...] tag until BOTH Name and Phone Number are provided.
    - Clinic hours: Mon–Sat: 10:30 AM – 8:30 PM, Sun: 11:00 AM – 1:00 PM.
 
 3. CONFIRMATION & TAG:
-   Once you have their Name, Date, and Time Slot (use current year: 2026), confirm warmly and concisely in under 4 lines:
-   "All set! Your appointment is confirmed 🎉\n\n👤 *Patient:* [Name]\n📅 *Date & Time:* [Date] at [Time]\n🩺 *Treatment:* [Service/Concern]\n📍 *Location:* Lavanya Dental, PG Road, Secunderabad\n\nSee you soon! 😊"
+   Once you have BOTH Name and Phone Number along with Date and Time Slot (use current year: 2026), confirm warmly and concisely in under 4 lines:
+   "All set! Your appointment is confirmed 🎉\n\n👤 *Patient:* [Name]\n📞 *Phone:* [Phone]\n📅 *Date & Time:* [Date] at [Time]\n🩺 *Treatment:* [Service/Concern]\n📍 *Location:* Lavanya Dental, PG Road, Secunderabad\n\nSee you soon! 😊"
    And append this tag at the very end (this tag will be stripped automatically before sending to the patient):
 [BOOKING_READY: {"patient_name": "...", "patient_phone": "...", "date": "YYYY-MM-DD", "time_slot": "HH:MM", "service_id": "serv-1", "primary_complaint": "..."}]
 
@@ -250,7 +258,7 @@ async function callGeminiAI(userPhone, userMessage) {
   // Contextual fallback if all AI models are temporarily unavailable
   const lower = userMessage.toLowerCase();
   if (lower.includes('book') || lower.includes('appointment')) {
-    return `We'd love to help you book your visit! 😊\n\nPlease let us know:\n👤 *Your Name*\n📅 *Preferred Day & Time*\n🩺 *Dental Concern* (e.g., checkup, cleaning, tooth pain)`;
+    return `We'd love to help you book your visit! 😊\n\nPlease share:\n👤 *Patient Name*\n📞 *Contact Phone Number*\n📅 *Preferred Day & Time*\n🩺 *Dental Concern* (e.g., checkup, cleaning, tooth pain)`;
   }
 
   return `Hello! Welcome to ${clinicConfig.clinicName}. How can we help you with your dental care today? 😊`;

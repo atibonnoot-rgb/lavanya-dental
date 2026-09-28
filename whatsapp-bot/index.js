@@ -73,7 +73,7 @@ const DEFAULT_CLINIC_CONFIG = {
   "We'd love to help you book your visit! 😊\n\nPlease share:\n👤 *Patient Name*\n📞 *Contact Phone Number*\n📅 *Preferred Day & Time*\n🩺 *Dental Concern* (e.g., checkup, cleaning, tooth pain)"
 - If the patient provides a date or complaint but misses their Name or Phone Number, DO NOT confirm yet. Politely ask for the missing compulsory info first!
 - Sound warm, polite, and human. Avoid robotic headers or bureaucratic forms.
-- Directions: Give a crisp 2-line reply with Google Maps: https://maps.app.goo.gl/9cWnZ8Gv4k7r6R7p8`,
+- Directions: Give a crisp 2-line reply with Google Maps: https://maps.google.com/maps?cid=14113866403058578443`,
   notificationPhone: '',
   customFields: [
     { title: 'Languages Spoken', value: 'English, Telugu, Hindi' },
@@ -203,7 +203,7 @@ CRITICAL RULES & WHATSAPP MESSAGE STYLE:
    - Never quote exact surgical prices. Keep it warm: "Consultation and procedure charges depend on an in-person clinical checkup by our specialists. Our initial consultation is very affordable. Would you like to schedule a quick checkup? 😊"
 
 5. DIRECTIONS & LOCATION:
-   Keep answers crisp (under 3 lines) with Google Maps link: https://maps.app.goo.gl/9cWnZ8Gv4k7r6R7p8`;
+   Keep answers crisp (under 3 lines) with Google Maps link: https://maps.google.com/maps?cid=14113866403058578443`;
 }
 
 const CANDIDATE_MODELS = [

@@ -396,7 +396,7 @@ This is a friendly reminder from *Lavanya Dental Clinic* regarding your dental a
 🩺 *Treatment:* ${treatmentName}
 👨‍⚕️ *Doctor:* ${doctorName}
 📍 *Location:* Lavanya Dental Care Pavilion, PG Road, Secunderabad
-🗺️ *Google Maps:* https://maps.app.goo.gl/9cWnZ8Gv4k7r6R7p8
+🗺️ *Google Maps:* https://maps.google.com/maps?cid=14113866403058578443
 
 ⚠️ *Helpful Note:* Please arrive 5–10 minutes before your scheduled slot. If you need any assistance, directions, or wish to reschedule, please reply here or call *+91 8555052843* / *9885611128*.
 

@@ -17,6 +17,19 @@ export const DoctorsSection: React.FC = () => {
     setShowBookingModal(true);
   };
 
+  const formatTimeSlot = (timeStr?: string) => {
+    if (!timeStr) return '';
+    if (timeStr.toLowerCase().includes('am') || timeStr.toLowerCase().includes('pm')) return timeStr;
+    const parts = timeStr.split(':');
+    if (parts.length < 2) return timeStr;
+    const h = parseInt(parts[0], 10);
+    const m = parts[1];
+    if (isNaN(h)) return timeStr;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${m} ${ampm}`;
+  };
+
   return (
     <section id="doctors" className="py-16 sm:py-24 bg-slate-50 border-b border-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -101,7 +114,7 @@ export const DoctorsSection: React.FC = () => {
                     <div className="pt-2 border-t border-slate-100 space-y-1.5 text-[11px] text-slate-600">
                       <p className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5 text-teal-600 shrink-0" />
-                        <span>Hours: {doc.workingHours?.start || '08:30'} – {doc.workingHours?.end || '17:00'}</span>
+                        <span>Hours: {formatTimeSlot(doc.workingHours?.start || '10:30')} – {formatTimeSlot(doc.workingHours?.end || '20:30')}</span>
                       </p>
                       {doc.isAvailableToday ? (
                         <p className="flex items-center gap-1.5 text-emerald-700 font-medium">

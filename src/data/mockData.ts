@@ -14,10 +14,10 @@ export const INITIAL_DOCTORS: Doctor[] = [
     bio: 'Over 25+ years of distinguished clinical experience in painless laser root canal therapy, surgical extractions, crown fixations, and advanced V-Clear aligners.',
     phone: '+91 8555052843',
     email: 'dr.vijay@lavanyadental.in',
-    workingDays: [1, 2, 3, 4, 5, 6], // Mon-Sat
+    workingDays: [0, 1, 2, 3, 4, 5, 6], // Mon-Sat + Sun
     workingHours: {
-      start: '08:00',
-      end: '18:00'
+      start: '10:30',
+      end: '20:30'
     },
     slotDurationMinutes: 45,
     isAvailableToday: true,
@@ -38,8 +38,8 @@ export const INITIAL_DOCTORS: Doctor[] = [
     email: 'dr.vance@auradental.com',
     workingDays: [1, 2, 4, 5, 6], // Mon, Tue, Thu, Fri, Sat
     workingHours: {
-      start: '09:00',
-      end: '17:30'
+      start: '10:30',
+      end: '20:30'
     },
     slotDurationMinutes: 60,
     isAvailableToday: true,
@@ -60,8 +60,8 @@ export const INITIAL_DOCTORS: Doctor[] = [
     email: 'dr.rostova@auradental.com',
     workingDays: [2, 3, 4, 5, 6], // Tue-Sat
     workingHours: {
-      start: '09:00',
-      end: '18:00'
+      start: '10:30',
+      end: '20:30'
     },
     slotDurationMinutes: 45,
     isAvailableToday: true,
@@ -82,8 +82,8 @@ export const INITIAL_DOCTORS: Doctor[] = [
     email: 'dr.chen@auradental.com',
     workingDays: [1, 3, 4, 5], // Mon, Wed, Thu, Fri
     workingHours: {
-      start: '08:00',
-      end: '16:30'
+      start: '10:30',
+      end: '20:30'
     },
     slotDurationMinutes: 45,
     isAvailableToday: true,

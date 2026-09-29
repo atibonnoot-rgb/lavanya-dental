@@ -958,7 +958,7 @@ const server = http.createServer(async (req, res) => {
           <div class="space-y-2">
             <label class="block text-xs font-bold uppercase tracking-wider text-slate-300">Clinic Working Hours &amp; Days</label>
             <input type="text" name="hours" id="hours" value="${escapeHtml(clinicConfig.hours)}" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700/80 text-white text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" required />
-            <p class="text-[11px] text-slate-500">E.g., Mon-Sat: 8:00 AM – 6:00 PM (Sunday Closed).</p>
+            <p class="text-[11px] text-slate-500">E.g., Mon-Sat: 10:30 AM – 8:30 PM (Sun: 11:00 AM – 1:00 PM).</p>
           </div>
 
           <!-- Doctors & Clinicians -->

@@ -53,7 +53,7 @@ export const FAQ_DATA: FAQItem[] = [
     id: 'faq-6',
     category: 'Appointments',
     question: 'Is Lavanya Dental Clinic open on Sundays and public holidays for dental emergencies?',
-    answer: 'Yes. While regular operating hours are Monday through Saturday from 8:00 AM to 6:00 PM, we provide dedicated on-call Sunday appointments and a 24/7 Dental Emergency Triage Hotline (+91 8555052843) for acute toothaches, chipped/knocked-out teeth, facial swelling, or broken dental bridges.'
+    answer: 'Yes. Regular clinic operating hours are Monday through Saturday from 10:30 AM to 8:30 PM, and Sundays from 11:00 AM to 1:00 PM. We also provide dedicated emergency appointments and a 24/7 Dental Emergency Triage Hotline (+91 8555052843) for acute toothaches, chipped/knocked-out teeth, facial swelling, or broken dental bridges.'
   },
   {
     id: 'faq-7',

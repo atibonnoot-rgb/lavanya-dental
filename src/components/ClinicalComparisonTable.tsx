@@ -42,7 +42,7 @@ export const ClinicalComparisonTable: React.FC = () => {
     },
     {
       feature: 'Emergency & Sunday Availability',
-      lavanya: '24/7 Dental Emergency Triage Hotline + Sunday appointments on-call',
+      lavanya: 'Sunday clinic hours (11:00 AM – 1:00 PM) + 24/7 Dental Emergency Triage Hotline',
       others: 'Closed on Sundays and holidays with no weekend emergency contact',
     }
   ];

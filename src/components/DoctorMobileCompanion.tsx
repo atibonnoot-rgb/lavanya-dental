@@ -58,7 +58,7 @@ export const DoctorMobileCompanion: React.FC<DoctorMobileCompanionProps> = ({
     specialty: 'Complete Clinic Schedule',
     photoUrl: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=400&auto=format&fit=crop&q=80',
     isAvailableToday: true,
-    workingHours: { start: '08:30', end: '19:00' },
+    workingHours: { start: '10:30', end: '20:30' },
   };
 
   const [activeTab, setActiveTab] = useState<'schedule' | 'alerts' | 'profile'>('alerts');

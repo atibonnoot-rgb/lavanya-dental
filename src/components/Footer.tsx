@@ -24,6 +24,19 @@ export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onN
     ['sunday', 'Sunday'],
   ];
 
+  const formatTimeSlot = (timeStr?: string) => {
+    if (!timeStr) return '';
+    if (timeStr.toLowerCase().includes('am') || timeStr.toLowerCase().includes('pm')) return timeStr;
+    const parts = timeStr.split(':');
+    if (parts.length < 2) return timeStr;
+    const h = parseInt(parts[0], 10);
+    const m = parts[1];
+    if (isNaN(h)) return timeStr;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${m} ${ampm}`;
+  };
+
   return (
     <footer className="bg-slate-950 text-slate-400 text-xs border-t border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-14 space-y-12">
@@ -82,12 +95,12 @@ export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onN
             <h4 className="text-xs font-bold text-white uppercase tracking-wider">Operating Hours</h4>
             <ul className="space-y-1.5 text-slate-400">
               {dayLabels.map(([key, label]) => {
-                const day = (hours && hours[key]) ? hours[key] : { open: key !== 'sunday', start: '08:00', end: '18:00' };
+                const day = (hours && hours[key]) ? hours[key] : { open: true, start: key === 'sunday' ? '11:00' : '10:30', end: key === 'sunday' ? '13:00' : '20:30' };
                 return (
                   <li key={key} className="flex justify-between gap-2">
                     <span className="capitalize">{label}:</span>
                     <strong className={`font-normal ${day?.open ? 'text-slate-200' : 'text-rose-400'}`}>
-                      {day?.open ? `${day.start} – ${day.end}` : 'Closed'}
+                      {day?.open ? `${formatTimeSlot(day.start)} – ${formatTimeSlot(day.end)}` : 'Closed'}
                     </strong>
                   </li>
                 );

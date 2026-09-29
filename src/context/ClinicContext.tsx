@@ -23,13 +23,13 @@ const DEFAULT_CLINIC_SETTINGS: ClinicSettings = {
   email: 'appointments@lavanyadental.in',
   address: 'Lavanya Dental Care Pavilion, PG Road, Secunderabad, Hyderabad - 500003, Telangana',
   hours: {
-    monday:    { open: true,  start: '08:00', end: '18:00' },
-    tuesday:   { open: true,  start: '08:00', end: '18:00' },
-    wednesday: { open: true,  start: '08:00', end: '18:00' },
-    thursday:  { open: true,  start: '08:00', end: '18:00' },
-    friday:    { open: true,  start: '08:00', end: '17:00' },
-    saturday:  { open: true,  start: '09:00', end: '15:00' },
-    sunday:    { open: false, start: '09:00', end: '13:00' },
+    monday:    { open: true, start: '10:30', end: '20:30' },
+    tuesday:   { open: true, start: '10:30', end: '20:30' },
+    wednesday: { open: true, start: '10:30', end: '20:30' },
+    thursday:  { open: true, start: '10:30', end: '20:30' },
+    friday:    { open: true, start: '10:30', end: '20:30' },
+    saturday:  { open: true, start: '10:30', end: '20:30' },
+    sunday:    { open: true, start: '11:00', end: '13:00' },
   }
 };
 
@@ -114,8 +114,8 @@ const mapDoctorRow = (row: Record<string, unknown>): Doctor => ({
   bio: row.bio as string,
   phone: row.phone as string,
   email: row.email as string,
-  workingDays: (row.working_days as number[]) || [1,2,3,4,5],
-  workingHours: (row.working_hours as { start: string; end: string }) || { start: '08:30', end: '17:00' },
+  workingDays: (row.working_days as number[]) || [0,1,2,3,4,5,6],
+  workingHours: (row.working_hours as { start: string; end: string }) || { start: '10:30', end: '20:30' },
   slotDurationMinutes: row.slot_duration_minutes as number,
   isAvailableToday: row.is_available_today as boolean,
   onCallForEmergency: row.on_call_for_emergency as boolean,

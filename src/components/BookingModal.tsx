@@ -106,8 +106,34 @@ export const BookingModal: React.FC = () => {
   const currentService = services.find(s => s.id === selectedServiceId) || services[0];
   const currentDoctor = doctors.find(d => d.id === selectedDoctorId);
 
+  const formatTimeSlot = (timeStr?: string) => {
+    if (!timeStr) return '';
+    if (timeStr.toLowerCase().includes('am') || timeStr.toLowerCase().includes('pm')) return timeStr;
+    const parts = timeStr.split(':');
+    if (parts.length < 2) return timeStr;
+    const h = parseInt(parts[0], 10);
+    const m = parts[1];
+    if (isNaN(h)) return timeStr;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${m} ${ampm}`;
+  };
+
   const generateAvailableTimeSlots = () => {
-    const slots = ['09:00','09:45','10:30','11:15','13:00','13:45','14:30','15:15','16:00','16:45'];
+    // Determine day of week from selectedDate
+    const [y, m, d] = (selectedDate || '').split('-').map(Number);
+    const isSunday = y && m && d ? new Date(y, m - 1, d).getDay() === 0 : false;
+
+    // Sunday: 11:00 AM – 1:00 PM; Regular days (Mon–Sat): 10:30 AM – 8:30 PM
+    const slots = isSunday
+      ? ['11:00', '11:30', '12:00', '12:30']
+      : [
+          '10:30', '11:15', '12:00', '12:45',
+          '13:30', '14:15', '15:00', '15:45',
+          '16:30', '17:15', '18:00', '18:45',
+          '19:30', '20:00'
+        ];
+
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
@@ -371,7 +397,7 @@ export const BookingModal: React.FC = () => {
                       }`}
                     >
                       <Clock className="w-3.5 h-3.5" />
-                      <span>{time}</span>
+                      <span>{formatTimeSlot(time)}</span>
                       <span className="text-[10px] font-normal opacity-80">{isAvailable ? 'Open' : 'Booked'}</span>
                     </button>
                   ))}
@@ -396,7 +422,7 @@ export const BookingModal: React.FC = () => {
                   </div>
                   <div>
                     <span className="text-slate-500">Date & Time</span>
-                    <p className="font-semibold text-teal-800">{selectedDate} at {selectedTimeSlot}</p>
+                    <p className="font-semibold text-teal-800">{selectedDate} at {formatTimeSlot(selectedTimeSlot)}</p>
                   </div>
                   <div>
                     <span className="text-slate-500">Doctor</span>

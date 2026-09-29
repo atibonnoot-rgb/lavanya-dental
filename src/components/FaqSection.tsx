@@ -32,6 +32,30 @@ export const FAQ_DATA: FAQItem[] = [
     answer: 'No! At Lavanya Dental Clinic, we specialize in 100% painless laser-assisted root canal therapy. Using advanced computerized apex locators, micro-rotary instruments, and Biolase Diode lasers, the infection is thoroughly sterilized without trauma. Most patients report zero discomfort during the procedure and can comfortably resume their normal routine the next morning.'
   },
   {
+    id: 'faq-post-root-canal',
+    category: 'Treatments',
+    question: 'Post Root Canal Instructions',
+    answer: `1. Post the root canal, you may have discomfort/pain, which is normal and should subside in few days.
+
+Follow up your root canal with any medication as prescribed by your doctor, do not skip medication even when no pain as some medication is for healing /reducing inflamation.
+
+2. Practice good oral hygiene, continue regular brushing and flossing.
+
+3. Avoid hard food (any food with crackling noise like almonds, nuts etc) till it is capped.
+
+4. Have soft food to avoid any stress on the tooth.
+
+5. Your root canaled tooth, which will need to be covered by a cap eventually (usually 10-15 days after last sitting).
+
+A cap is a very integral part of the root canal as it protects the hollow tooth and gives the tooth strength to bear chewing forces.
+
+A root canal is INCOMPLETE without a cap which is important for its seal and strength.
+
+If not covered with a cap, any of the following complications can occur:
+a. Re-infection of the root canal tooth due to leakage of filling /tooth, ultimately whole root canal to be retreated.
+b. Fracture of the tooth structure to even softest of food as micro cracks develop over a period of time.`
+  },
+  {
     id: 'faq-3',
     category: 'Treatments',
     question: 'How much do dental implants cost in Hyderabad, and how long do they last?',
@@ -200,7 +224,7 @@ export const FaqSection: React.FC = () => {
                   </button>
 
                   {isOpen && (
-                    <div className="px-5 sm:px-6 pb-5 pt-1 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100 bg-slate-50/40">
+                    <div className="px-5 sm:px-6 pb-5 pt-3 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100 bg-slate-50/40 whitespace-pre-line">
                       <p>{faq.answer}</p>
                     </div>
                   )}

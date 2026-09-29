@@ -38,23 +38,17 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
-      {/* Top strip — Open Now, No Branches Notice & HIPAA badge */}
-      <div className="bg-slate-900 text-slate-300 py-1.5 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 text-[11px] sm:text-xs">
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-            <span className="flex items-center gap-1.5 text-teal-400 font-medium">
-              <span className="relative flex h-2 w-2 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
-              </span>
-              Open Now
+      {/* Top strip — Open Now & HIPAA badge */}
+      <div className="bg-slate-900 text-slate-300 py-1 px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
+          <span className="flex items-center gap-1.5 text-teal-400 font-medium text-[11px] sm:text-xs">
+            <span className="relative flex h-2 w-2 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
             </span>
-            <span className="text-slate-600 hidden sm:inline">•</span>
-            <span className="text-amber-300 font-semibold text-[10.5px] sm:text-[11px] flex items-center gap-1">
-              <span>📍 Note: We do not have any other branches (Only located at PG Road, Secunderabad)</span>
-            </span>
-          </div>
-          <span className="hidden md:inline-flex items-center gap-1 text-slate-400 text-[11px]">
+            Open Now
+          </span>
+          <span className="inline-flex items-center gap-1 text-slate-400 text-[11px] sm:text-xs">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
             HIPAA &amp; GDPR Certified
           </span>

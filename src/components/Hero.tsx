@@ -43,12 +43,16 @@ export const Hero: React.FC<{ onExploreServices: () => void }> = ({ onExploreSer
           {/* Left Column: Heading, Subtitle & Quick Booking Engine */}
           <div className="lg:col-span-7 space-y-6">
             
-            {/* Accreditation Chip */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-teal-200/80 shadow-xs text-xs font-semibold text-teal-800">
+            {/* Accreditation Chip & Sole Location Notice */}
+            <div className="inline-flex flex-wrap items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-teal-200/80 shadow-xs text-xs font-semibold text-teal-800">
               <span className="flex h-2 w-2 rounded-full bg-teal-500 animate-pulse"></span>
               <span>⭐ Top Rated Dental Clinic in Hyderabad & Secunderabad</span>
               <span className="text-slate-300">•</span>
               <span className="text-slate-600 font-normal">PG Road (500003)</span>
+              <span className="text-slate-300">•</span>
+              <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-900 border border-amber-300/80 px-2 py-0.5 rounded-full text-[11px] font-bold">
+                📍 Sole Location — We Have No Branches
+              </span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 font-display leading-[1.15]">

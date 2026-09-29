@@ -13,11 +13,9 @@ import { useClinic } from '../context/ClinicContext';
 
 export interface FAQItem {
   id: string;
-  category: 'General' | 'Treatments' | 'Post-Care Instructions' | 'Costs & Insurance' | 'Appointments';
+  category: 'General' | 'Treatments' | 'Costs & Insurance' | 'Appointments';
   question: string;
   answer: string;
-  badge?: string;
-  customContent?: React.ReactNode;
 }
 
 export const FAQ_DATA: FAQItem[] = [
@@ -32,135 +30,6 @@ export const FAQ_DATA: FAQItem[] = [
     category: 'Treatments',
     question: 'Are root canal treatments painful at Lavanya Dental Clinic?',
     answer: 'No! At Lavanya Dental Clinic, we specialize in 100% painless laser-assisted root canal therapy. Using advanced computerized apex locators, micro-rotary instruments, and Biolase Diode lasers, the infection is thoroughly sterilized without trauma. Most patients report zero discomfort during the procedure and can comfortably resume their normal routine the next morning.'
-  },
-  {
-    id: 'faq-rct-instructions',
-    category: 'Post-Care Instructions',
-    badge: 'Post-Op Protocol',
-    question: 'What are the post-treatment care instructions after a Root Canal (RCT)?',
-    answer: 'Post-Root Canal Instructions: 1. Post the root canal, you may have discomfort/pain, which is normal and should subside in a few days. Follow up with prescribed medications—do not skip medication even when there is no pain, as some medication is for healing and reducing inflammation. 2. Practice good oral hygiene, continue regular brushing and flossing. 3. Avoid hard food (any food with crackling noise like almonds, nuts etc) till it is capped. 4. Have soft food to avoid any stress on the tooth. 5. Your root canaled tooth will need to be covered by a cap eventually (usually 10-15 days after last sitting). A cap is an integral part of root canal as it protects the hollow tooth and gives strength to bear chewing forces. A root canal is INCOMPLETE without a cap. Complications without a cap: (a) Re-infection of the tooth due to leakage requiring retreatment, and (b) Fracture of tooth structure even to soft food as micro cracks develop.',
-    customContent: (
-      <div className="space-y-4 pt-2">
-        <div className="p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-200/80 text-teal-900 text-xs sm:text-sm font-medium flex flex-wrap items-center justify-between gap-3 shadow-2xs">
-          <div className="flex items-center gap-2.5">
-            <span className="p-1.5 rounded-lg bg-teal-600 text-white font-bold text-xs uppercase tracking-wider">Post-Op Guide</span>
-            <span className="font-extrabold tracking-wide text-slate-900 text-xs sm:text-sm uppercase">Official Post Root Canal Instructions</span>
-          </div>
-          <span className="text-[11px] bg-white text-teal-800 font-semibold px-2.5 py-1 rounded-full border border-teal-200 shadow-2xs">
-            Lavanya Dental Care Pavilion
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 gap-3">
-          {/* Step 1 */}
-          <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-2.5">
-            <div className="flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-teal-600 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                1
-              </span>
-              <div className="space-y-1">
-                <p className="font-bold text-slate-900 text-sm">Discomfort &amp; Mandatory Medication Protocol</p>
-                <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
-                  Post the root canal, you may have discomfort/pain, which is normal and should subside in a few days.
-                </p>
-              </div>
-            </div>
-            <div className="ml-9 p-3 rounded-xl bg-amber-50/90 border border-amber-200 text-amber-950 text-xs sm:text-[13px] leading-relaxed">
-              <span className="font-bold text-amber-900">⚠️ Medication Rule: </span>
-              Follow up your root canal with any medication as prescribed by your doctor, <strong>do not skip medication even when no pain</strong> as some medication is for healing / reducing inflammation.
-            </div>
-          </div>
-
-          {/* Step 2 */}
-          <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs flex items-start gap-3">
-            <span className="w-6 h-6 rounded-full bg-teal-600 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-              2
-            </span>
-            <div className="space-y-1">
-              <p className="font-bold text-slate-900 text-sm">Practice Good Oral Hygiene</p>
-              <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
-                Practice good oral hygiene, continue regular brushing and flossing.
-              </p>
-            </div>
-          </div>
-
-          {/* Step 3 */}
-          <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs flex items-start gap-3">
-            <span className="w-6 h-6 rounded-full bg-teal-600 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-              3
-            </span>
-            <div className="space-y-1">
-              <p className="font-bold text-slate-900 text-sm">Avoid Hard Foods Till Capped</p>
-              <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
-                Avoid hard food (any food with crackling noise like almonds, nuts etc) till it is capped.
-              </p>
-            </div>
-          </div>
-
-          {/* Step 4 */}
-          <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs flex items-start gap-3">
-            <span className="w-6 h-6 rounded-full bg-teal-600 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-              4
-            </span>
-            <div className="space-y-1">
-              <p className="font-bold text-slate-900 text-sm">Have Soft Food</p>
-              <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
-                Have soft food to avoid any stress on the tooth.
-              </p>
-            </div>
-          </div>
-
-          {/* Step 5 */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-rose-50/60 border-2 border-rose-200/90 shadow-xs space-y-3">
-            <div className="flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-rose-600 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                5
-              </span>
-              <div className="space-y-1">
-                <p className="font-bold text-rose-950 text-sm sm:text-base">
-                  Mandatory Dental Cap / Crown Placement (Usually 10–15 Days)
-                </p>
-                <p className="text-slate-700 text-xs sm:text-sm leading-relaxed">
-                  Your root canaled tooth will need to be covered by a cap eventually (usually <strong>10–15 days after last sitting</strong>).
-                </p>
-              </div>
-            </div>
-
-            <div className="ml-9 space-y-2.5 text-xs sm:text-sm">
-              <p className="text-slate-700 leading-relaxed">
-                A cap is a very integral part of the root canal as it protects the hollow tooth and gives the tooth strength to bear chewing forces.
-              </p>
-              <div className="p-3 rounded-xl bg-rose-100/90 border border-rose-300 font-extrabold text-rose-950 text-xs sm:text-[13px] flex items-center gap-2">
-                <span className="text-base">🚨</span>
-                <span>A root canal is INCOMPLETE without a cap which is important for its seal and strength.</span>
-              </div>
-              <div className="pt-1">
-                <p className="font-bold text-slate-900 mb-2">
-                  If not covered with a cap, any of the following complications can occur:
-                </p>
-                <div className="space-y-2">
-                  <div className="p-3 rounded-xl bg-white border border-rose-200 text-slate-800 flex items-start gap-2.5 text-xs sm:text-sm shadow-2xs">
-                    <span className="font-extrabold text-rose-600 shrink-0">a.</span>
-                    <span><strong>Re-infection of the root canal tooth</strong> due to leakage of filling / tooth, ultimately whole root canal to be retreated.</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-white border border-rose-200 text-slate-800 flex items-start gap-2.5 text-xs sm:text-sm shadow-2xs">
-                    <span className="font-extrabold text-rose-600 shrink-0">b.</span>
-                    <span><strong>Fracture of the tooth structure</strong> to even softest of food as micro cracks develop over a period of time.</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  },
-  {
-    id: 'faq-rct-cap',
-    category: 'Post-Care Instructions',
-    badge: 'Cap / Crown FAQ',
-    question: 'Why is a dental cap (crown) compulsory after a root canal, and what happens if I delay it?',
-    answer: 'A cap is an integral part of the root canal as it protects the hollow tooth and gives the tooth strength to bear chewing forces. A root canal is INCOMPLETE without a cap (usually 10-15 days after your last sitting). Without a cap, two severe complications can occur: 1. Re-infection of the root canal tooth due to micro-leakage of filling or tooth margin, requiring the entire root canal to be retreated. 2. Fracture of the tooth structure even from soft food as micro cracks develop over a period of time.'
   },
   {
     id: 'faq-3',
@@ -218,7 +87,7 @@ export const FaqSection: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [openFaqIds, setOpenFaqIds] = useState<Set<string>>(new Set(['faq-1', 'faq-2']));
 
-  const categories = ['ALL', 'Post-Care Instructions', 'Treatments', 'General', 'Costs & Insurance', 'Appointments'];
+  const categories = ['ALL', 'General', 'Treatments', 'Costs & Insurance', 'Appointments'];
 
   const toggleFaq = (id: string) => {
     setOpenFaqIds(prev => {
@@ -233,9 +102,7 @@ export const FaqSection: React.FC = () => {
   };
 
   const filteredFaqs = FAQ_DATA.filter(item => {
-    const matchesCategory = selectedCategory === 'ALL' || 
-                            item.category === selectedCategory ||
-                            (selectedCategory === 'Treatments' && item.category === 'Post-Care Instructions');
+    const matchesCategory = selectedCategory === 'ALL' || item.category === selectedCategory;
     const matchesSearch = item.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           item.answer.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
@@ -321,16 +188,9 @@ export const FaqSection: React.FC = () => {
                       <span className="w-6 h-6 rounded-full bg-teal-50 text-teal-700 font-bold text-xs flex items-center justify-center shrink-0">
                         ?
                       </span>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-teal-700 transition-colors">
-                          {faq.question}
-                        </h3>
-                        {faq.badge && (
-                          <span className="text-[10px] font-extrabold uppercase tracking-wider bg-teal-100/80 text-teal-800 px-2 py-0.5 rounded-full border border-teal-200 shrink-0">
-                            {faq.badge}
-                          </span>
-                        )}
-                      </div>
+                      <h3 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-teal-700 transition-colors">
+                        {faq.question}
+                      </h3>
                     </div>
                     <ChevronDown 
                       className={`w-5 h-5 text-slate-400 shrink-0 transition-transform duration-200 group-hover:text-teal-600 ${
@@ -340,8 +200,8 @@ export const FaqSection: React.FC = () => {
                   </button>
 
                   {isOpen && (
-                    <div className="px-5 sm:px-6 pb-5 pt-3 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100 bg-slate-50/40">
-                      {faq.customContent ? faq.customContent : <p>{faq.answer}</p>}
+                    <div className="px-5 sm:px-6 pb-5 pt-1 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100 bg-slate-50/40">
+                      <p>{faq.answer}</p>
                     </div>
                   )}
                 </div>

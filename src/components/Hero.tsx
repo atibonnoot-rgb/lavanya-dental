@@ -44,9 +44,11 @@ export const Hero: React.FC<{ onExploreServices: () => void }> = ({ onExploreSer
           <div className="lg:col-span-7 space-y-6">
             
             {/* Accreditation Chip */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-teal-200/80 shadow-xs text-xs font-semibold text-teal-800">
+            <div className="inline-flex flex-wrap items-center gap-2 px-3.5 py-1.5 rounded-2xl sm:rounded-full bg-white border border-teal-200/80 shadow-xs text-xs font-semibold text-teal-800">
               <span className="flex h-2 w-2 rounded-full bg-teal-500 animate-pulse"></span>
-              <span>⭐ Top Rated Dental Clinic in Hyderabad & Secunderabad</span>
+              <span>⭐ No Branches</span>
+              <span className="text-slate-300">•</span>
+              <span>Top Rated Dental Clinic in Hyderabad & Secunderabad</span>
               <span className="text-slate-300">•</span>
               <span className="text-slate-600 font-normal">PG Road (500003)</span>
             </div>

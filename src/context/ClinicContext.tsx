@@ -132,6 +132,11 @@ const mapClinicSettingsRow = (row: Record<string, unknown>): ClinicSettings => (
   hours: (row.hours as ClinicSettings['hours']) || DEFAULT_CLINIC_SETTINGS.hours,
 });
 
+const getSupabase = async () => {
+  const { supabase } = await import('../lib/supabase');
+  return supabase;
+};
+
 export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentRole, setCurrentRole] = useState<UserRole>(() => {
     if (typeof window !== 'undefined') {
@@ -225,6 +230,7 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try { localStorage.removeItem(LOCAL_STORAGE_KEY_SERVICES); } catch {}
 
     try {
+      const supabase = await getSupabase();
       // 1. Clinic settings
       const { data: settingsData } = await supabase
         .from('clinic_settings')
@@ -411,16 +417,18 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setAuditLogs(prev => [newLog, ...prev]);
 
     // Also persist to Supabase (fire and forget)
-    supabase.from('audit_logs').insert({
-      id: newLog.id,
-      timestamp: newLog.timestamp,
-      actor: newLog.actor,
-      role: newLog.role,
-      action: newLog.action,
-      details: newLog.details,
-      encryption_status: newLog.encryptionStatus,
-      ip_hash: newLog.ipHash,
-    }).then(() => {});
+    getSupabase().then(sb => {
+      sb.from('audit_logs').insert({
+        id: newLog.id,
+        timestamp: newLog.timestamp,
+        actor: newLog.actor,
+        role: newLog.role,
+        action: newLog.action,
+        details: newLog.details,
+        encryption_status: newLog.encryptionStatus,
+        ip_hash: newLog.ipHash,
+      }).then(() => {});
+    }).catch(() => {});
   };
 
   const getDoctorById = (id: string) => doctors.find(d => d.id === id);
@@ -431,6 +439,7 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const merged = { ...clinicSettings, ...settings };
     setClinicSettings(merged);
 
+    const supabase = await getSupabase();
     const { data: existing } = await supabase.from('clinic_settings').select('id').limit(1).single();
     if (existing) {
       await supabase.from('clinic_settings').update({
@@ -473,6 +482,7 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Persist to Supabase — realtime will fire INSERT on all other clients
     try {
+      const supabase = await getSupabase();
       await supabase.from('appointments').insert({
         id: newAppointment.id,
         confirmation_code: newAppointment.confirmationCode,
@@ -550,7 +560,7 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       a.id === appointmentId ? { ...a, status: 'Confirmed' } : a
     ));
 
-    supabase.from('appointments').update({ status: 'Confirmed' }).eq('id', appointmentId).then(() => {});
+    getSupabase().then(sb => sb.from('appointments').update({ status: 'Confirmed' }).eq('id', appointmentId)).catch(() => {});
 
     const doctor = getDoctorById(apt.doctorId);
     addAuditLog(
@@ -569,7 +579,7 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       a.id === appointmentId ? { ...a, status: 'Cancelled', doctorNotes: `Declined: ${reason}` } : a
     ));
 
-    supabase.from('appointments').update({ status: 'Cancelled', doctor_notes: `Declined: ${reason}` }).eq('id', appointmentId).then(() => {});
+    getSupabase().then(sb => sb.from('appointments').update({ status: 'Cancelled', doctor_notes: `Declined: ${reason}` }).eq('id', appointmentId)).catch(() => {});
 
     const doctor = getDoctorById(apt.doctorId);
     addAuditLog(
@@ -595,11 +605,11 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         : a
     ));
 
-    supabase.from('appointments').update({ 
+    getSupabase().then(sb => sb.from('appointments').update({ 
       status: 'Rescheduled', 
       rescheduled_to: { date: newDate, timeSlot: newTimeSlot },
       doctor_notes: note 
-    }).eq('id', appointmentId).then(() => {});
+    }).eq('id', appointmentId)).catch(() => {});
 
     const doctor = getDoctorById(apt.doctorId);
     addAuditLog(
@@ -617,10 +627,10 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         : a
     ));
 
-    supabase.from('appointments').update({ 
+    getSupabase().then(sb => sb.from('appointments').update({ 
       status: 'Completed', 
       doctor_notes: doctorNotes 
-    }).eq('id', appointmentId).then(() => {});
+    }).eq('id', appointmentId)).catch(() => {});
 
     addAuditLog(
       'Treating Clinician',
@@ -649,6 +659,7 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // 2. Delete from Supabase
     try {
+      const supabase = await getSupabase();
       const { error } = await supabase.from('appointments').delete().eq('id', appointmentId);
       if (error) {
         console.warn('Supabase delete warning (check RLS policies):', error.message);
@@ -673,7 +684,7 @@ export const ClinicProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     ));
     const doc = doctors.find(d => d.id === doctorId);
     if (doc) {
-      supabase.from('doctors').update({ is_available_today: !doc.isAvailableToday }).eq('id', doctorId).then(() => {});
+      getSupabase().then(sb => sb.from('doctors').update({ is_available_today: !doc.isAvailableToday }).eq('id', doctorId)).catch(() => {});
     }
   };
 

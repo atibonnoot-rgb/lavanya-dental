@@ -217,7 +217,7 @@ export const BookingModal: React.FC = () => {
       setIsSubmitting(false);
       setStep(4);
       try {
-        import('canvas-confetti').then(m => {
+        import('canvas-confetti').then((m: any) => {
           const fire = m.default || m;
           fire({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
         }).catch(() => {});

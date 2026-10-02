@@ -1,18 +1,19 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 
-function inlineCss() {
+function inlineCss(): Plugin {
   return {
     name: 'inline-css',
     enforce: 'post' as const,
-    generateBundle(_options: unknown, bundle: Record<string, { type: string; source: string | Uint8Array }>) {
+    generateBundle(_options: unknown, bundle: any) {
       let htmlKey = '';
       let cssKey = '';
       for (const [key, asset] of Object.entries(bundle)) {
-        if (key.endsWith('.html') && asset.type === 'asset') htmlKey = key;
-        if (key.endsWith('.css') && asset.type === 'asset') cssKey = key;
+        const a = asset as any;
+        if (key.endsWith('.html') && a?.type === 'asset') htmlKey = key;
+        if (key.endsWith('.css') && a?.type === 'asset') cssKey = key;
       }
       if (htmlKey && cssKey) {
         const htmlAsset = bundle[htmlKey];
@@ -35,6 +36,10 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(import.meta.dirname, '.'),
+        'react': 'preact/compat',
+        'react-dom/test-utils': 'preact/test-utils',
+        'react-dom': 'preact/compat',
+        'react/jsx-runtime': 'preact/jsx-runtime',
       },
     },
     esbuild: {
@@ -57,7 +62,7 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks(id) {
-            if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+            if (id.includes('node_modules/preact') || id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
               return 'vendor-react';
             }
             if (id.includes('node_modules/@supabase')) {

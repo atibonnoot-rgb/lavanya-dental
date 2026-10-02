@@ -135,7 +135,7 @@ export const ReviewsSection: React.FC = () => {
     setIsCopied(true);
 
     try {
-      import('canvas-confetti').then(m => {
+      import('canvas-confetti').then((m: any) => {
         const fire = m.default || m;
         fire({
           particleCount: 50,

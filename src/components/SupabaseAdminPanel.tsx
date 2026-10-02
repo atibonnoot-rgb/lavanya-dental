@@ -3,11 +3,12 @@ import {
   Calendar, Clock, Phone, Plus, Trash2, CheckCircle2,
   AlertCircle, Users, Search, Check, Send, X, Database,
   ArrowRight, ArrowLeft, Stethoscope, RefreshCw, MessageSquare, UserCheck,
-  Building2, LogOut, ExternalLink, ShieldCheck, Globe, Copy
+  Building2, LogOut, ExternalLink, ShieldCheck, Globe, Copy, Receipt
 } from 'lucide-react';
 import { useClinic } from '../context/ClinicContext';
 import { Appointment } from '../types';
 import { supabase } from '../lib/supabase';
+import { ClinicBillingLedger } from './ClinicBillingLedger';
 
 const WhatsAppIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
   <svg 
@@ -33,7 +34,7 @@ const cleanWhatsAppPhone = (rawPhone: string) => {
 };
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
-export type AdminTab = 'booked' | 'in_clinic' | 'database';
+export type AdminTab = 'booked' | 'in_clinic' | 'database' | 'billing';
 
 export interface TreatedPatientRecord {
   id: string;
@@ -67,11 +68,11 @@ export const SupabaseAdminPanel: React.FC<SupabaseAdminPanelProps> = ({ onLogout
     refreshData 
   } = useClinic();
 
-  // Active Tab: Booked | In-Clinic | Patient Database (persisted to prevent tab jumping)
+  // Active Tab: Booked | In-Clinic | Patient Database | Billing
   const [activeTab, setActiveTabState] = useState<AdminTab>(() => {
     try {
       const savedTab = localStorage.getItem('lavanya_admin_active_tab');
-      if (savedTab === 'booked' || savedTab === 'in_clinic' || savedTab === 'database') {
+      if (savedTab === 'booked' || savedTab === 'in_clinic' || savedTab === 'database' || savedTab === 'billing') {
         return savedTab as AdminTab;
       }
     } catch {}
@@ -83,6 +84,18 @@ export const SupabaseAdminPanel: React.FC<SupabaseAdminPanelProps> = ({ onLogout
     try {
       localStorage.setItem('lavanya_admin_active_tab', tab);
     } catch {}
+  };
+
+  // Pre-selected patient for billing when clicking 'Bill Patient'
+  const [billingTargetPatient, setBillingTargetPatient] = useState<{
+    name: string;
+    phone: string;
+    treatment?: string;
+  } | null>(null);
+
+  const handleOpenBillingForPatient = (name: string, phone: string, treatment?: string) => {
+    setBillingTargetPatient({ name, phone, treatment });
+    setActiveTab('billing');
   };
 
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -598,21 +611,21 @@ We look forward to seeing you today! 😊
           {/* ════════════════════════════════════════════════════════════════════
               3 CLEAN SIMPLE TABS
           ════════════════════════════════════════════════════════════════════ */}
-          {/* 3 TABS — perfectly responsive grid on mobile, flex on desktop */}
+          {/* 4 TABS — perfectly responsive grid on mobile, flex on desktop */}
           <div className="py-2.5 border-t border-stone-100">
-            <div className="grid grid-cols-3 sm:flex sm:items-center gap-1 sm:gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2">
 
               {/* Tab 1: Booked */}
               <button
                 onClick={() => setActiveTab('booked')}
-                className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'booked'
                     ? 'bg-[#064E3B] text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-stone-200/60'
                 }`}
               >
                 <Calendar className="w-3.5 h-3.5 shrink-0" />
-                <span className="hidden sm:inline">1. Booked Appointments</span>
+                <span className="hidden sm:inline">1. Booked</span>
                 <span className="sm:hidden">Booked</span>
                 <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
                   activeTab === 'booked' ? 'bg-emerald-950 text-emerald-200' : 'bg-stone-200 text-slate-700'
@@ -624,14 +637,14 @@ We look forward to seeing you today! 😊
               {/* Tab 2: In-Clinic */}
               <button
                 onClick={() => setActiveTab('in_clinic')}
-                className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'in_clinic'
                     ? 'bg-[#064E3B] text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-stone-200/60'
                 }`}
               >
                 <UserCheck className="w-3.5 h-3.5 shrink-0" />
-                <span className="hidden sm:inline">2. In-Clinic (Arrived &amp; In Treatment)</span>
+                <span className="hidden sm:inline">2. In-Clinic</span>
                 <span className="sm:hidden">In-Clinic</span>
                 <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
                   activeTab === 'in_clinic' ? 'bg-emerald-950 text-emerald-200' : 'bg-stone-200 text-slate-700'
@@ -643,19 +656,38 @@ We look forward to seeing you today! 😊
               {/* Tab 3: Patient Records Database */}
               <button
                 onClick={() => setActiveTab('database')}
-                className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'database'
                     ? 'bg-[#064E3B] text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-stone-200/60'
                 }`}
               >
                 <Database className="w-3.5 h-3.5 shrink-0" />
-                <span className="hidden sm:inline">3. Patient Database (Treated Records)</span>
+                <span className="hidden sm:inline">3. Database</span>
                 <span className="sm:hidden">Database</span>
                 <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
                   activeTab === 'database' ? 'bg-emerald-950 text-emerald-200' : 'bg-stone-200 text-slate-700'
                 }`}>
                   {patientDatabase.length}
+                </span>
+              </button>
+
+              {/* Tab 4: In-Clinic Billing & Ledger */}
+              <button
+                onClick={() => setActiveTab('billing')}
+                className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'billing'
+                    ? 'bg-[#064E3B] text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-stone-200/60'
+                }`}
+              >
+                <Receipt className="w-3.5 h-3.5 shrink-0 text-emerald-300" />
+                <span className="hidden sm:inline">4. Billing &amp; Ledger</span>
+                <span className="sm:hidden">Billing</span>
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                  activeTab === 'billing' ? 'bg-emerald-950 text-emerald-200' : 'bg-emerald-100 text-emerald-800'
+                }`}>
+                  PDF &amp; Excel
                 </span>
               </button>
 
@@ -1044,7 +1076,7 @@ We look forward to seeing you today! 😊
                         </p>
                       </div>
 
-                      {/* Action buttons: Treated (Moves to DB) + Delete */}
+                      {/* Action buttons: Treated (Moves to DB) + Bill + Delete */}
                       <div className="flex items-center gap-2 pt-2">
                         {/* THE "TREATED" BUTTON */}
                         <button
@@ -1055,7 +1087,21 @@ We look forward to seeing you today! 😊
                           className="flex-1 bg-[#064E3B] hover:bg-emerald-800 text-white py-3 rounded-2xl text-xs sm:text-sm font-bold transition-all shadow-md active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
                         >
                           <CheckCircle2 className="w-4 h-4 text-emerald-300" />
-                          <span>Treated (Finish &amp; Save to Database)</span>
+                          <span>Treated (Finish &amp; Save)</span>
+                        </button>
+
+                        {/* Bill Patient Button */}
+                        <button
+                          onClick={() => handleOpenBillingForPatient(
+                            apt.patientName, 
+                            apt.patientPhone, 
+                            svc?.name || apt.primaryComplaint
+                          )}
+                          className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 py-3 px-3.5 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                          title="Generate In-Clinic Bill for this patient"
+                        >
+                          <Receipt className="w-4 h-4 text-emerald-600" />
+                          <span>Bill</span>
                         </button>
 
                         {/* Delete button anytime */}
@@ -1187,6 +1233,16 @@ We look forward to seeing you today! 😊
                         <span>Follow Up</span>
                       </a>
 
+                      {/* Bill Patient Button */}
+                      <button
+                        onClick={() => handleOpenBillingForPatient(record.patientName, record.patientPhone, record.serviceName)}
+                        className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border border-emerald-200"
+                        title="Create In-Clinic Invoice / Bill for this patient"
+                      >
+                        <Receipt className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Bill</span>
+                      </button>
+
                       {/* Delete from Database anytime */}
                       <button
                         onClick={() => handleDeleteFromDatabase(record.id, record.patientName)}
@@ -1204,6 +1260,16 @@ We look forward to seeing you today! 😊
             )}
 
           </div>
+        )}
+
+        {/* ──────────────────────────────────────────────────────────────────────
+            TAB 4: IN-CLINIC BILLING, INVOICES & EXPENSES LEDGER
+        ────────────────────────────────────────────────────────────────────── */}
+        {activeTab === 'billing' && (
+          <ClinicBillingLedger
+            initialPatient={billingTargetPatient}
+            onClearInitialPatient={() => setBillingTargetPatient(null)}
+          />
         )}
 
       </main>

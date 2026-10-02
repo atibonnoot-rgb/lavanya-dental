@@ -31,9 +31,21 @@
     <meta name="twitter:title" content="Best Dental Clinic in Hyderabad &amp; Secunderabad | Best Dentist | Lavanya Dental" />
     <meta name="twitter:description" content="Top-rated dental clinic in Hyderabad &amp; Secunderabad (500003, Telangana). Painless laser root canals, dental implants, cosmetic smile makeovers, and instant appointment booking with Dr. Vijay Rajshekar." />
     <meta name="twitter:image" content="https://www.lavanyadental.in/clinic-hero.png" />
+    <!-- Preload LCP hero image -->
+    <link rel="preload" as="image" href="/clinic-hero.png" fetchpriority="high" />
+
+    <!-- Google Fonts: loaded non-blocking to prevent render-blocking -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
+    >
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    </noscript>
 
     <!-- Schema.org Primary MedicalBusiness / Dentist Local SEO Markup -->
     <script type="application/ld+json">

@@ -31,8 +31,8 @@ export const WhyChooseUsSection: React.FC = () => {
       color: 'text-teal-600 bg-teal-50 border-teal-200'
     },
     {
-      value: '15,000+',
-      label: 'Smiles Restored',
+      value: 'Thousands of',
+      label: 'Smiles Delivered',
       sub: 'Patients across Hyderabad & globally',
       icon: HeartHandshake,
       color: 'text-blue-600 bg-blue-50 border-blue-200'

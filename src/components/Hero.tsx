@@ -85,10 +85,11 @@ export const Hero: React.FC<{ onExploreServices: () => void }> = ({ onExploreSer
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Service Picker */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  <label htmlFor="hero-service-select" className="block text-xs font-semibold text-slate-700 mb-1.5">
                     Select Dental Service
                   </label>
                   <select
+                    id="hero-service-select"
                     value={selectedService}
                     onChange={(e) => setSelectedService(e.target.value)}
                     className="w-full bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-medium text-slate-900 focus:ring-2 focus:ring-teal-500 focus:bg-white outline-hidden transition-all"
@@ -103,10 +104,11 @@ export const Hero: React.FC<{ onExploreServices: () => void }> = ({ onExploreSer
 
                 {/* Doctor Picker */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  <label htmlFor="hero-doctor-select" className="block text-xs font-semibold text-slate-700 mb-1.5">
                     Select Specialist
                   </label>
                   <select
+                    id="hero-doctor-select"
                     value={selectedDoctor}
                     onChange={(e) => setSelectedDoctor(e.target.value)}
                     className="w-full bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-medium text-slate-900 focus:ring-2 focus:ring-teal-500 focus:bg-white outline-hidden transition-all"
@@ -164,6 +166,10 @@ export const Hero: React.FC<{ onExploreServices: () => void }> = ({ onExploreSer
               <img
                 src={localStorage.getItem('auradental_hero_image') || clinicSettings.logoUrl || '/clinic-hero.png'}
                 alt="Lavanya Dental Clinic interior with treating dentist and modern suite"
+                width={765}
+                height={960}
+                fetchPriority="high"
+                decoding="async"
                 className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 opacity-95"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent"></div>

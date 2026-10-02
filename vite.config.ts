@@ -16,6 +16,8 @@ export default defineConfig(({ mode }) => {
       drop: isProd ? ['console', 'debugger'] : [],
     },
     build: {
+      minify: 'esbuild',
+      cssMinify: true,
       chunkSizeWarningLimit: 600,
       rollupOptions: {
         output: {
@@ -29,6 +31,12 @@ export default defineConfig(({ mode }) => {
             if (id.includes('node_modules/lucide-react')) {
               return 'vendor-icons';
             }
+            if (id.includes('node_modules/canvas-confetti')) {
+              return 'vendor-confetti';
+            }
+            if (id.includes('node_modules/xlsx')) {
+              return 'vendor-xlsx';
+            }
           },
         },
       },
@@ -39,3 +47,4 @@ export default defineConfig(({ mode }) => {
     },
   };
 });
+

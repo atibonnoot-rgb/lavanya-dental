@@ -2,3 +2,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://www.lavanyadental.in/sitemap.xml
+Agentmap: https://www.lavanyadental.in/.well-known/ai-catalog.json

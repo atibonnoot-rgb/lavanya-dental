@@ -318,7 +318,7 @@ export const ReviewsSection: React.FC = () => {
                       </span>
                     )}
                   </div>
-                  <span className="text-xs text-slate-400 whitespace-nowrap">{rev.date}</span>
+                  <span className="text-xs text-slate-600 font-medium whitespace-nowrap">{rev.date}</span>
                 </div>
 
                 <div className="flex items-center gap-1 text-amber-400">

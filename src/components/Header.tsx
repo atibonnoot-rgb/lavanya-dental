@@ -49,7 +49,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
             </span>
             Open Now
           </span>
-          <span className="inline-flex items-center gap-1 text-slate-400 text-[11px] sm:text-xs">
+          <span className="inline-flex items-center gap-1 text-slate-300 text-[11px] sm:text-xs">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
             HIPAA &amp; GDPR Certified
           </span>

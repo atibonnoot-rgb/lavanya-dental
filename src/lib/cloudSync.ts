@@ -26,29 +26,14 @@ export async function saveCloudClinicState(_doctors: Doctor[], _services: Dental
 }
 
 /**
- * Broadcast clinic state to all connected devices via Supabase WebSockets using a single persistent channel
+ * Broadcast clinic state to all connected devices via native BroadcastChannel (0ms, same origin)
  */
 export function broadcastLiveSync(doctors: Doctor[], services: DentalService[]) {
   try {
-    if (!activeLiveChannel) {
-      activeLiveChannel = supabase.channel(SYNC_CHANNEL_NAME);
-      activeLiveChannel.subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          activeLiveChannel?.send({
-            type: 'broadcast',
-            event: 'CLINIC_SYNC_STATE',
-            payload: { doctors, services, timestamp: Date.now() },
-          });
-        }
-      });
-    } else {
-      activeLiveChannel.send({
-        type: 'broadcast',
-        event: 'CLINIC_SYNC_STATE',
-        payload: { doctors, services, timestamp: Date.now() },
-      });
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      const bc = new BroadcastChannel('auradental_clinic_sync');
+      bc.postMessage({ type: 'CLINIC_SYNC_STATE', payload: { doctors, services, timestamp: Date.now() } });
+      bc.close();
     }
-  } catch (err) {
-    console.warn('Live broadcast error:', err);
-  }
+  } catch {}
 }

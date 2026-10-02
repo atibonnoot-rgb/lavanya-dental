@@ -246,7 +246,7 @@ export const AreasServedSection: React.FC = () => {
 
           {/* Quick Selection Pills for Most Popular Neighborhoods */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">
+            <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider mr-1">
               Popular:
             </span>
             {['sindhi-colony', 'begumpet', 'banjara-hills', 'marredpally', 'bowenpally', 'madhapur', 'kphb-kukatpally'].map(id => {
@@ -258,7 +258,7 @@ export const AreasServedSection: React.FC = () => {
                   onClick={() => setSelectedId(id)}
                   className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
                     selectedId === id
-                      ? 'bg-teal-600 text-white shadow-xs'
+                      ? 'bg-teal-700 text-white shadow-xs'
                       : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                   }`}
                 >
@@ -334,7 +334,7 @@ export const AreasServedSection: React.FC = () => {
 
               <button
                 onClick={handleBookNow}
-                className="inline-flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-md shadow-teal-600/20 transition-all active:scale-95 cursor-pointer"
+                className="inline-flex items-center justify-center gap-2 bg-teal-700 hover:bg-teal-800 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-md shadow-teal-700/20 transition-all active:scale-95 cursor-pointer"
               >
                 <CalendarCheck className="w-4 h-4" />
                 <span>Book Appointment from {currentLocality.shortName}</span>
@@ -347,8 +347,8 @@ export const AreasServedSection: React.FC = () => {
         </div>
 
         {/* Bottom Assurance Note */}
-        <p className="text-center text-xs text-slate-500 mt-6 leading-relaxed max-w-2xl mx-auto">
-          Centrally located on PG Road, Secunderabad (beside Vysya Kalyana Mandapam, 500m from Paradise Metro). Walk-in emergencies and same-day appointments welcome daily. Call <a href="tel:+918555052843" className="font-bold text-teal-700 hover:underline">+91 8555052843</a>.
+        <p className="text-center text-xs text-slate-600 mt-6 leading-relaxed max-w-2xl mx-auto">
+          Centrally located on PG Road, Secunderabad (beside Vysya Kalyana Mandapam, 500m from Paradise Metro). Walk-in emergencies and same-day appointments welcome daily. Call <a href="tel:+918555052843" className="font-bold text-teal-800 hover:underline">+91 8555052843</a>.
         </p>
 
       </div>

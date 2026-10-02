@@ -123,7 +123,7 @@ export const BeforeAfterGallery: React.FC = () => {
                 />
               </div>
 
-              <p className="text-center text-xs text-slate-400 mt-3">
+              <p className="text-center text-xs text-slate-600 font-medium mt-3">
                 Drag slider left or right to compare smile transformation
               </p>
             </div>

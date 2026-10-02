@@ -122,8 +122,8 @@ export const DoctorsSection: React.FC = () => {
                           <span>Accepting Patients Today</span>
                         </p>
                       ) : (
-                        <p className="flex items-center gap-1.5 text-slate-400 font-medium">
-                          <Clock className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+                        <p className="flex items-center gap-1.5 text-slate-600 font-medium">
+                          <Clock className="w-3.5 h-3.5 shrink-0 text-slate-500" />
                           <span>Next Available Tomorrow</span>
                         </p>
                       )}

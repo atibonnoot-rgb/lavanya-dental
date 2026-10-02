@@ -39,7 +39,7 @@ export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onN
   };
 
   return (
-    <footer className="bg-slate-950 text-slate-400 text-xs border-t border-slate-800">
+    <footer className="bg-slate-950 text-slate-300 text-xs border-t border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-14 space-y-12">
         
         {/* Main Footer Columns */}
@@ -63,10 +63,10 @@ export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onN
                   DENTAL CLINIC
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 mt-2">Comprehensive Dental Surgery & Aesthetics</p>
+              <p className="text-[11px] text-slate-300 mt-2 font-medium">Comprehensive Dental Surgery & Aesthetics</p>
             </div>
 
-            <p className="text-slate-400 leading-relaxed">
+            <p className="text-slate-300 leading-relaxed">
               Dedicated to pain-free, biological dentistry supported by 3D computer navigation, digital smile simulations, and instant clinician mobile coordination.
             </p>
 
@@ -76,14 +76,14 @@ export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onN
                 HIPAA & GDPR Compliant
               </span>
               <span>•</span>
-              <span className="text-slate-400">ADA Accredited</span>
+              <span className="text-slate-300">ADA Accredited</span>
             </div>
           </div>
 
           {/* Col 2: Navigation Links (2 cols) */}
           <div className="lg:col-span-2 space-y-3">
             <h4 className="text-xs font-bold text-white uppercase tracking-wider">Quick Navigation</h4>
-            <ul className="space-y-2">
+            <ul className="space-y-2 text-slate-300">
               <li><button onClick={() => onNavigateTab('home')} className="hover:text-white transition-colors">Clinic Home</button></li>
               <li><button onClick={() => onNavigateTab('services')} className="hover:text-white transition-colors">Treatments</button></li>
               <li><button onClick={() => onNavigateTab('why-us')} className="hover:text-white transition-colors">Why Choose Us</button></li>
@@ -99,7 +99,7 @@ export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onN
           {/* Col 3: Hours & Emergency (3 cols) */}
           <div className="lg:col-span-3 space-y-3">
             <h4 className="text-xs font-bold text-white uppercase tracking-wider">Operating Hours</h4>
-            <ul className="space-y-1.5 text-slate-400">
+            <ul className="space-y-1.5 text-slate-300">
               {dayLabels.map(([key, label]) => {
                 const day = (hours && hours[key]) ? hours[key] : { open: true, start: key === 'sunday' ? '11:00' : '10:30', end: key === 'sunday' ? '13:00' : '20:30' };
                 return (
@@ -126,7 +126,7 @@ export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onN
           {/* Col 4: Location & Contact (3 cols) */}
           <div className="lg:col-span-3 space-y-3">
             <h4 className="text-xs font-bold text-white uppercase tracking-wider">Clinic Location</h4>
-            <div className="space-y-2 text-slate-400">
+            <div className="space-y-2 text-slate-300">
               <a 
                 href="https://maps.app.goo.gl/6xQioN2UgJ4wPccJ9" 
                 target="_blank" 
@@ -151,7 +151,7 @@ export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onN
         </div>
 
         {/* Bottom copyright & legal compliance statement */}
-        <div className="pt-8 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
+        <div className="pt-8 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-300">
           <p>© {new Date().getFullYear()} {clinicSettings.clinicName} — Clinic & Appointment Platform. All rights reserved.</p>
           <div className="flex items-center gap-4">
             <span>HIPAA Notice of Privacy Practices</span>
@@ -162,7 +162,7 @@ export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onN
             <span>•</span>
             <button
               onClick={() => setCurrentRole('admin')}
-              className="text-slate-700 hover:text-slate-500 transition-colors text-[10px] cursor-pointer"
+              className="text-slate-300 hover:text-white transition-colors text-[10px] cursor-pointer underline underline-offset-2"
               title="Staff Login"
             >
               Staff Login
@@ -172,12 +172,12 @@ export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onN
 
         {/* Developer Credit & Availability Badge */}
         <div className="pt-4 flex justify-center pb-2">
-          <div className="inline-flex flex-wrap items-center justify-center gap-2 sm:gap-3 px-3.5 py-1.5 rounded-full bg-slate-900/60 border border-slate-800/80 hover:border-slate-700/80 transition-all text-[11px] text-slate-400 shadow-sm backdrop-blur-xs">
+          <div className="inline-flex flex-wrap items-center justify-center gap-2 sm:gap-3 px-3.5 py-1.5 rounded-full bg-slate-900/60 border border-slate-800/80 hover:border-slate-700/80 transition-all text-[11px] text-slate-300 shadow-sm backdrop-blur-xs">
             <span className="flex items-center gap-1.5">
               <span>⚡</span>
               <span>Engineered by <span className="text-slate-200 font-medium">Aditya Chikatamalla</span></span>
             </span>
-            <span className="text-slate-700 hidden sm:inline">•</span>
+            <span className="text-slate-500 hidden sm:inline">•</span>
             <span className="inline-flex items-center gap-1.5">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>

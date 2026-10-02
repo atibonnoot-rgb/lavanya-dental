@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useClinic } from '../context/ClinicContext';
 import clinicLogo from '../assets/logo.png';
+import clinicLogoWebP from '../assets/logo.webp';
 
 export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onNavigateTab }) => {
   const { setShowEmergencyModal, setShowBookingModal, clinicSettings, setCurrentRole } = useClinic();
@@ -48,13 +49,16 @@ export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onN
           <div className="lg:col-span-4 space-y-4">
             <div className="flex flex-col items-start gap-1 cursor-pointer" onClick={() => onNavigateTab('home')}>
               <div className="bg-white px-5 py-3 rounded-2xl shadow-sm inline-flex flex-col items-center border border-slate-200/60 select-none">
-                <img 
-                  src={clinicLogo} 
-                  alt="Lavanya Dental Clinic" 
-                  width={128}
-                  height={64}
-                  className="h-14 sm:h-16 md:h-12 w-auto object-contain" 
-                />
+                <picture>
+                  <source srcSet={clinicLogoWebP} type="image/webp" />
+                  <img 
+                    src={clinicLogo} 
+                    alt="Lavanya Dental Clinic" 
+                    width={128}
+                    height={64}
+                    className="h-14 sm:h-16 md:h-12 w-auto object-contain" 
+                  />
+                </picture>
                 <span className="text-[10.5px] sm:text-[12px] font-black tracking-[0.25em] text-[#0f2d59] uppercase font-sans text-center mt-1.5 leading-tight">
                   DENTAL CLINIC
                 </span>

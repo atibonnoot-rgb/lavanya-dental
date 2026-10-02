@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useClinic } from '../context/ClinicContext';
 import clinicLogo from '../assets/logo.png';
+import clinicLogoWebP from '../assets/logo.webp';
 
 interface HeaderProps {
   onNavigateTab: (tabId: string) => void;
@@ -64,13 +65,16 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
             onClick={() => onNavigateTab('home')}
           >
             <div className="flex items-center justify-center">
-              <img
-                src={clinicLogo}
-                alt="Lavanya Dental Clinic"
-                width={128}
-                height={64}
-                className="h-14 sm:h-16 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
-              />
+              <picture>
+                <source srcSet={clinicLogoWebP} type="image/webp" />
+                <img
+                  src={clinicLogo}
+                  alt="Lavanya Dental Clinic"
+                  width={128}
+                  height={64}
+                  className="h-14 sm:h-16 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
+                />
+              </picture>
             </div>
             <span className="text-[10px] sm:text-[11.5px] font-black tracking-[0.25em] text-[#0f2d59] uppercase font-sans text-center leading-tight mt-0.5">
               DENTAL CLINIC

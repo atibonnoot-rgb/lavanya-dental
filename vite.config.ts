@@ -16,7 +16,17 @@ export default defineConfig(({ mode }) => {
       drop: isProd ? ['console', 'debugger'] : [],
     },
     build: {
-      minify: 'esbuild',
+      minify: 'terser',
+      terserOptions: {
+        compress: {
+          drop_console: isProd,
+          drop_debugger: isProd,
+          passes: 2,
+        },
+        format: {
+          comments: false,
+        },
+      },
       cssMinify: true,
       chunkSizeWarningLimit: 600,
       rollupOptions: {

@@ -70,8 +70,8 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
                 <img
                   src={clinicLogo}
                   alt="Lavanya Dental Clinic"
-                  width={128}
-                  height={64}
+                  width={244}
+                  height={98}
                   className="h-14 sm:h-16 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
                 />
               </picture>

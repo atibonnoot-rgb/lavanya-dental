@@ -54,8 +54,8 @@ export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onN
                   <img 
                     src={clinicLogo} 
                     alt="Lavanya Dental Clinic" 
-                    width={128}
-                    height={64}
+                    width={244}
+                    height={98}
                     className="h-14 sm:h-16 md:h-12 w-auto object-contain" 
                   />
                 </picture>

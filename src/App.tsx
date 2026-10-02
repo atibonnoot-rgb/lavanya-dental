@@ -51,8 +51,17 @@ const AppContent: React.FC = () => {
   // Admin auth is NEVER auto-granted from URL — must go through AdminLogin
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
 
-  // Check Supabase auth session on mount for persistent admin sessions
+  // Check Supabase auth session only when admin portal is accessed
   useEffect(() => {
+    const isAdminIntent = 
+      currentRole === 'admin' || 
+      (typeof window !== 'undefined' && (
+        window.location.hash.includes('admin') || 
+        window.location.pathname.includes('admin')
+      ));
+
+    if (!isAdminIntent) return;
+
     let sub: { unsubscribe: () => void } | null = null;
 
     const initAuth = async () => {
@@ -88,7 +97,7 @@ const AppContent: React.FC = () => {
     return () => {
       if (sub) sub.unsubscribe();
     };
-  }, []);
+  }, [currentRole]);
 
   // Listen for /admin in URL — but only to redirect to login, NOT auto-grant access
   useEffect(() => {

@@ -9,7 +9,6 @@ import {
   Sparkles,
   Download,
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
 import { useClinic } from '../context/ClinicContext';
 import { MedicalHistory, Appointment } from '../types';
 
@@ -217,7 +216,12 @@ export const BookingModal: React.FC = () => {
       setConfirmedApt(created);
       setIsSubmitting(false);
       setStep(4);
-      try { confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } }); } catch {}
+      try {
+        import('canvas-confetti').then(m => {
+          const fire = m.default || m;
+          fire({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+        }).catch(() => {});
+      } catch {}
     } catch (err) {
       console.error(err);
       setIsSubmitting(false);

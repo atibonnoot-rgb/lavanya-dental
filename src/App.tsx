@@ -2,14 +2,15 @@ import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { ClinicProvider, useClinic } from './context/ClinicContext';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
-import { ServicesSection } from './components/ServicesSection';
-import { DoctorsSection } from './components/DoctorsSection';
-import { BeforeAfterGallery } from './components/BeforeAfterGallery';
 import { WhyChooseUsSection } from './components/WhyChooseUsSection';
-import { AreasServedSection } from './components/AreasServedSection';
-import { FaqSection } from './components/FaqSection';
 import { Footer } from './components/Footer';
-import { supabase } from './lib/supabase';
+
+// Lazy-load below-the-fold public sections for optimal LCP & minimal initial JS bundle
+const ServicesSection = lazy(() => import('./components/ServicesSection').then(m => ({ default: m.ServicesSection })));
+const DoctorsSection = lazy(() => import('./components/DoctorsSection').then(m => ({ default: m.DoctorsSection })));
+const BeforeAfterGallery = lazy(() => import('./components/BeforeAfterGallery').then(m => ({ default: m.BeforeAfterGallery })));
+const AreasServedSection = lazy(() => import('./components/AreasServedSection').then(m => ({ default: m.AreasServedSection })));
+const FaqSection = lazy(() => import('./components/FaqSection').then(m => ({ default: m.FaqSection })));
 
 // Lazy-load heavy administrative, portal, and modal components for ultra-fast initial page load
 const PatientPortal = lazy(() => import('./components/PatientPortal').then(m => ({ default: m.PatientPortal })));
@@ -67,10 +68,19 @@ const AppContent: React.FC = () => {
     const initAuth = async () => {
       try {
         if (import.meta.env.VITE_SUPABASE_URL) {
+          const { supabase } = await import('./lib/supabase');
           const { data } = await supabase.auth.getSession();
           if (data?.session) {
             setIsAdminAuthenticated(true);
           }
+          const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (session) {
+              setIsAdminAuthenticated(true);
+            } else {
+              setIsAdminAuthenticated(false);
+            }
+          });
+          sub = listener.subscription;
         }
       } catch (err) {
         console.warn('Auth check skipped:', err);
@@ -78,21 +88,6 @@ const AppContent: React.FC = () => {
     };
 
     initAuth();
-
-    try {
-      if (import.meta.env.VITE_SUPABASE_URL) {
-        const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-          if (session) {
-            setIsAdminAuthenticated(true);
-          } else {
-            setIsAdminAuthenticated(false);
-          }
-        });
-        sub = data.subscription;
-      }
-    } catch (err) {
-      console.warn('Auth listener skipped:', err);
-    }
 
     return () => {
       if (sub) sub.unsubscribe();
@@ -159,7 +154,7 @@ const AppContent: React.FC = () => {
                 setIsAdminAuthenticated(false);
                 setCurrentRole('patient');
                 try { localStorage.removeItem('lavanya_current_role'); } catch {}
-                try { supabase.auth.signOut(); } catch {}
+                try { import('./lib/supabase').then(m => m.supabase.auth.signOut()).catch(() => {}); } catch {}
                 if (window.location.hash.includes('admin')) {
                   history.replaceState(null, '', window.location.pathname + window.location.search);
                 }
@@ -181,17 +176,21 @@ const AppContent: React.FC = () => {
               <>
                 <Hero onExploreServices={() => handleNavigateTab('services')} />
                 <WhyChooseUsSection />
-                <ServicesSection />
-                <DoctorsSection />
-                <BeforeAfterGallery />
-                <AreasServedSection />
-                <FaqSection />
+                <Suspense fallback={null}>
+                  <ServicesSection />
+                  <DoctorsSection />
+                  <BeforeAfterGallery />
+                  <AreasServedSection />
+                  <FaqSection />
+                </Suspense>
               </>
             )}
 
             {activeTab === 'services' && (
               <div className="pt-6">
-                <ServicesSection />
+                <Suspense fallback={<LoadingSpinner />}>
+                  <ServicesSection />
+                </Suspense>
               </div>
             )}
 
@@ -203,25 +202,33 @@ const AppContent: React.FC = () => {
 
             {activeTab === 'doctors' && (
               <div className="pt-6">
-                <DoctorsSection />
+                <Suspense fallback={<LoadingSpinner />}>
+                  <DoctorsSection />
+                </Suspense>
               </div>
             )}
 
             {activeTab === 'gallery' && (
               <div className="pt-6">
-                <BeforeAfterGallery />
+                <Suspense fallback={<LoadingSpinner />}>
+                  <BeforeAfterGallery />
+                </Suspense>
               </div>
             )}
 
             {activeTab === 'areas-served' && (
               <div className="pt-6">
-                <AreasServedSection />
+                <Suspense fallback={<LoadingSpinner />}>
+                  <AreasServedSection />
+                </Suspense>
               </div>
             )}
 
             {activeTab === 'faq' && (
               <div className="pt-6">
-                <FaqSection />
+                <Suspense fallback={<LoadingSpinner />}>
+                  <FaqSection />
+                </Suspense>
               </div>
             )}
 

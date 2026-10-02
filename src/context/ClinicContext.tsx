@@ -11,7 +11,6 @@ import {
 import { 
   INITIAL_AUDIT_LOGS,
 } from '../data/mockData';
-import { supabase } from '../lib/supabase';
 import { broadcastLiveSync } from '../lib/cloudSync';
 import { playNotificationSound } from '../lib/sound';
 

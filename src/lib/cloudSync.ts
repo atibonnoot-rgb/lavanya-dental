@@ -1,4 +1,3 @@
-import { supabase } from './supabase';
 import { Doctor, DentalService } from '../types';
 
 export const SYNC_CHANNEL_NAME = 'lavanyadental-cross-device-sync';
@@ -8,8 +7,6 @@ export interface CloudClinicPayload {
   services: DentalService[];
   timestamp: number;
 }
-
-let activeLiveChannel: ReturnType<typeof supabase.channel> | null = null;
 
 /**
  * Fetch latest global doctors & services state from cloud storage with strict fast timeout

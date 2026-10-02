@@ -10,7 +10,6 @@ import {
   Sparkles,
   Heart
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
 
 const GOOGLE_REVIEW_URL = 'https://maps.app.goo.gl/6xQioN2UgJ4wPccJ9';
 
@@ -136,11 +135,14 @@ export const ReviewsSection: React.FC = () => {
     setIsCopied(true);
 
     try {
-      confetti({
-        particleCount: 50,
-        spread: 60,
-        origin: { y: 0.7 }
-      });
+      import('canvas-confetti').then(m => {
+        const fire = m.default || m;
+        fire({
+          particleCount: 50,
+          spread: 60,
+          origin: { y: 0.7 }
+        });
+      }).catch(() => {});
     } catch {}
 
     // Open Google Review in new tab

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://openapis.org/registry/schemas/ai-catalog/1.0/schema.json",
+  "name": "Lavanya Dental Clinic",
+  "description": "Top-rated dental clinic in Hyderabad & Secunderabad, India. Specializing in painless laser root canals, dental implants, clear aligners, cosmetic smile makeovers, and emergency dental care. Led by Dr. Vijay Rajshekar (BDS, MDS, 25+ yrs exp). 4.9★ rated.",
+  "url": "https://www.lavanyadental.in/",
+  "logo": "https://www.lavanyadental.in/logo.png",
+  "contact": {
+    "phone": "+91-8555052843",
+    "email": "appointments@lavanyadental.in",
+    "whatsapp": "https://wa.me/918555052843"
+  },
+  "address": {
+    "street": "1-8-155/2/3, PG Road (Penderghast Road), Near Vysya Kalyana Mandapam",
+    "city": "Secunderabad",
+    "state": "Telangana",
+    "postalCode": "500003",
+    "country": "IN"
+  },
+  "services": [
+    "Painless Laser Root Canal Treatment",
+    "Dental Implants",
+    "Clear Aligners & Invisalign",
+    "Dental Braces",
+    "Cosmetic Veneers",
+    "Teeth Whitening",
+    "Dental Crowns & Bridges",
+    "Dental Cleaning",
+    "Emergency Dental Care",
+    "Dental Tourism & NRI Concierge"
+  ],
+  "openingHours": {
+    "mondayToSaturday": "10:30–20:30",
+    "sunday": "11:00–13:00"
+  },
+  "resources": [
+    {
+      "name": "AI & LLM Information",
+      "url": "https://www.lavanyadental.in/llms.txt",
+      "type": "text/markdown"
+    },
+    {
+      "name": "Sitemap",
+      "url": "https://www.lavanyadental.in/sitemap.xml",
+      "type": "application/xml"
+    }
+  ]
+}

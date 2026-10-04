@@ -3,12 +3,11 @@ import {
   Calendar, Clock, Phone, Plus, Trash2, CheckCircle2,
   AlertCircle, Users, Search, Check, Send, X, Database,
   ArrowRight, ArrowLeft, Stethoscope, RefreshCw, MessageSquare, UserCheck,
-  Building2, LogOut, ExternalLink, ShieldCheck, Globe, Copy, Receipt
+  Building2, LogOut, ExternalLink, ShieldCheck, Globe, Copy
 } from 'lucide-react';
 import { useClinic } from '../context/ClinicContext';
 import { Appointment } from '../types';
 import { supabase } from '../lib/supabase';
-import { ClinicBillingLedger } from './ClinicBillingLedger';
 
 const WhatsAppIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
   <svg 
@@ -34,7 +33,7 @@ const cleanWhatsAppPhone = (rawPhone: string) => {
 };
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
-export type AdminTab = 'booked' | 'in_clinic' | 'database' | 'billing';
+export type AdminTab = 'booked' | 'in_clinic' | 'database';
 
 export interface TreatedPatientRecord {
   id: string;
@@ -68,11 +67,11 @@ export const SupabaseAdminPanel: React.FC<SupabaseAdminPanelProps> = ({ onLogout
     refreshData 
   } = useClinic();
 
-  // Active Tab: Booked | In-Clinic | Patient Database | Billing
+  // Active Tab: Booked | In-Clinic | Patient Database
   const [activeTab, setActiveTabState] = useState<AdminTab>(() => {
     try {
       const savedTab = localStorage.getItem('lavanya_admin_active_tab');
-      if (savedTab === 'booked' || savedTab === 'in_clinic' || savedTab === 'database' || savedTab === 'billing') {
+      if (savedTab === 'booked' || savedTab === 'in_clinic' || savedTab === 'database') {
         return savedTab as AdminTab;
       }
     } catch {}
@@ -84,18 +83,6 @@ export const SupabaseAdminPanel: React.FC<SupabaseAdminPanelProps> = ({ onLogout
     try {
       localStorage.setItem('lavanya_admin_active_tab', tab);
     } catch {}
-  };
-
-  // Pre-selected patient for billing when clicking 'Bill Patient'
-  const [billingTargetPatient, setBillingTargetPatient] = useState<{
-    name: string;
-    phone: string;
-    treatment?: string;
-  } | null>(null);
-
-  const handleOpenBillingForPatient = (name: string, phone: string, treatment?: string) => {
-    setBillingTargetPatient({ name, phone, treatment });
-    setActiveTab('billing');
   };
 
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -611,9 +598,9 @@ We look forward to seeing you today! 😊
           {/* ════════════════════════════════════════════════════════════════════
               3 CLEAN SIMPLE TABS
           ════════════════════════════════════════════════════════════════════ */}
-          {/* 4 TABS — perfectly responsive grid on mobile, flex on desktop */}
+          {/* 3 CLEAN TABS — responsive grid */}
           <div className="py-2.5 border-t border-stone-100">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
 
               {/* Tab 1: Booked */}
               <button
@@ -669,25 +656,6 @@ We look forward to seeing you today! 😊
                   activeTab === 'database' ? 'bg-emerald-950 text-emerald-200' : 'bg-stone-200 text-slate-700'
                 }`}>
                   {patientDatabase.length}
-                </span>
-              </button>
-
-              {/* Tab 4: In-Clinic Billing & Ledger */}
-              <button
-                onClick={() => setActiveTab('billing')}
-                className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === 'billing'
-                    ? 'bg-[#064E3B] text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-stone-200/60'
-                }`}
-              >
-                <Receipt className="w-3.5 h-3.5 shrink-0 text-emerald-300" />
-                <span className="hidden sm:inline">4. Billing &amp; Ledger</span>
-                <span className="sm:hidden">Billing</span>
-                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                  activeTab === 'billing' ? 'bg-emerald-950 text-emerald-200' : 'bg-emerald-100 text-emerald-800'
-                }`}>
-                  PDF &amp; Excel
                 </span>
               </button>
 
@@ -1076,7 +1044,7 @@ We look forward to seeing you today! 😊
                         </p>
                       </div>
 
-                      {/* Action buttons: Treated (Moves to DB) + Bill + Delete */}
+                      {/* Action buttons: Treated (Moves to DB) + Delete */}
                       <div className="flex items-center gap-2 pt-2">
                         {/* THE "TREATED" BUTTON */}
                         <button
@@ -1088,20 +1056,6 @@ We look forward to seeing you today! 😊
                         >
                           <CheckCircle2 className="w-4 h-4 text-emerald-300" />
                           <span>Treated (Finish &amp; Save)</span>
-                        </button>
-
-                        {/* Bill Patient Button */}
-                        <button
-                          onClick={() => handleOpenBillingForPatient(
-                            apt.patientName, 
-                            apt.patientPhone, 
-                            svc?.name || apt.primaryComplaint
-                          )}
-                          className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 py-3 px-3.5 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                          title="Generate In-Clinic Bill for this patient"
-                        >
-                          <Receipt className="w-4 h-4 text-emerald-600" />
-                          <span>Bill</span>
                         </button>
 
                         {/* Delete button anytime */}
@@ -1233,16 +1187,6 @@ We look forward to seeing you today! 😊
                         <span>Follow Up</span>
                       </a>
 
-                      {/* Bill Patient Button */}
-                      <button
-                        onClick={() => handleOpenBillingForPatient(record.patientName, record.patientPhone, record.serviceName)}
-                        className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border border-emerald-200"
-                        title="Create In-Clinic Invoice / Bill for this patient"
-                      >
-                        <Receipt className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Bill</span>
-                      </button>
-
                       {/* Delete from Database anytime */}
                       <button
                         onClick={() => handleDeleteFromDatabase(record.id, record.patientName)}
@@ -1260,16 +1204,6 @@ We look forward to seeing you today! 😊
             )}
 
           </div>
-        )}
-
-        {/* ──────────────────────────────────────────────────────────────────────
-            TAB 4: IN-CLINIC BILLING, INVOICES & EXPENSES LEDGER
-        ────────────────────────────────────────────────────────────────────── */}
-        {activeTab === 'billing' && (
-          <ClinicBillingLedger
-            initialPatient={billingTargetPatient}
-            onClearInitialPatient={() => setBillingTargetPatient(null)}
-          />
         )}
 
       </main>

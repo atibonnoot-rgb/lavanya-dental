@@ -167,6 +167,18 @@ export const Footer: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onN
             >
               Staff Login
             </button>
+            {typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
+              <>
+                <span>•</span>
+                <a
+                  href="#billing"
+                  className="text-emerald-400 hover:text-emerald-300 transition-colors text-[10px] cursor-pointer font-bold inline-flex items-center gap-1"
+                  title="Open Localhost Bill Generator"
+                >
+                  🧾 Local Bill Generator
+                </a>
+              </>
+            )}
           </div>
         </div>
 

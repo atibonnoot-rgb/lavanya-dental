@@ -5,6 +5,8 @@ import { Hero } from './components/Hero';
 import { WhyChooseUsSection } from './components/WhyChooseUsSection';
 import { Footer } from './components/Footer';
 
+import { Receipt, ArrowLeft } from 'lucide-react';
+
 // Lazy-load below-the-fold public sections for optimal LCP & minimal initial JS bundle
 const ServicesSection = lazy(() => import('./components/ServicesSection').then(m => ({ default: m.ServicesSection })));
 const DoctorsSection = lazy(() => import('./components/DoctorsSection').then(m => ({ default: m.DoctorsSection })));
@@ -16,6 +18,7 @@ const FaqSection = lazy(() => import('./components/FaqSection').then(m => ({ def
 const PatientPortal = lazy(() => import('./components/PatientPortal').then(m => ({ default: m.PatientPortal })));
 const AdminLogin = lazy(() => import('./components/AdminLogin').then(m => ({ default: m.AdminLogin })));
 const SupabaseAdminPanel = lazy(() => import('./components/SupabaseAdminPanel').then(m => ({ default: m.SupabaseAdminPanel })));
+const ClinicBillingLedger = lazy(() => import('./components/ClinicBillingLedger').then(m => ({ default: m.ClinicBillingLedger })));
 const BookingModal = lazy(() => import('./components/BookingModal').then(m => ({ default: m.BookingModal })));
 const EmergencyModal = lazy(() => import('./components/EmergencyModal').then(m => ({ default: m.EmergencyModal })));
 const DoctorMobileCompanion = lazy(() => import('./components/DoctorMobileCompanion').then(m => ({ default: m.DoctorMobileCompanion })));
@@ -51,6 +54,14 @@ const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('home');
   // Admin auth is NEVER auto-granted from URL — must go through AdminLogin
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
+
+  // Standalone Localhost Billing Tool state (accessible via #billing or ?billing)
+  const [isLocalBilling, setIsLocalBilling] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.location.hash.includes('billing') ||
+           window.location.pathname.includes('billing') ||
+           window.location.search.includes('billing');
+  });
 
   // Check Supabase auth session only when admin portal is accessed
   useEffect(() => {
@@ -94,9 +105,16 @@ const AppContent: React.FC = () => {
     };
   }, [currentRole]);
 
-  // Listen for /admin in URL — but only to redirect to login, NOT auto-grant access
+  // Listen for /admin or /billing in URL
   useEffect(() => {
     const handleUrlChange = () => {
+      const isBillingRoute = 
+        window.location.hash.includes('billing') ||
+        window.location.pathname.includes('billing') ||
+        window.location.search.includes('billing');
+      
+      setIsLocalBilling(isBillingRoute);
+
       if (
         window.location.hash.includes('admin') ||
         window.location.pathname.includes('admin') ||
@@ -132,7 +150,52 @@ const AppContent: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans selection:bg-teal-100 selection:text-teal-900">
       
-      {/* ADMIN ROLE — Login gate then Admin Panel */}
+      {/* STANDALONE LOCALHOST BILLING TOOL — Preserved on localhost / standalone route #billing */}
+      {isLocalBilling ? (
+        <div className="min-h-screen bg-stone-100 flex flex-col font-sans">
+          <header className="bg-emerald-950 text-white border-b border-emerald-900 sticky top-0 z-40 px-4 py-3.5 shadow-md">
+            <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-white/10 p-2 rounded-xl border border-white/20">
+                  <Receipt className="w-5 h-5 text-emerald-300" />
+                </div>
+                <div>
+                  <h1 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                    Lavanya Dental Clinic
+                    <span className="text-[10px] sm:text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-800 text-emerald-200 border border-emerald-700">
+                      Localhost Bill Generator
+                    </span>
+                  </h1>
+                  <p className="text-[11px] text-emerald-300">
+                    Standalone In-Clinic Invoicing, Printable Tax Bills &amp; Expense Ledger (Saved on Localhost)
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  setIsLocalBilling(false);
+                  if (window.location.hash.includes('billing')) {
+                    history.replaceState(null, '', window.location.pathname + window.location.search.replace(/[?&]billing(=[^&]*)?/, ''));
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all cursor-pointer border border-white/20"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Back to Clinic Website</span>
+              </button>
+            </div>
+          </header>
+
+          <main className="flex-1 max-w-6xl mx-auto w-full p-4 sm:p-6">
+            <Suspense fallback={<LoadingSpinner />}>
+              <ClinicBillingLedger />
+            </Suspense>
+          </main>
+        </div>
+      ) : (
+        <>
+          {/* ADMIN ROLE — Login gate then Admin Panel */}
       {currentRole === 'admin' && (
         !isAdminAuthenticated ? (
           <Suspense fallback={<LoadingSpinner />}>
@@ -276,6 +339,8 @@ const AppContent: React.FC = () => {
               />
             </Suspense>
           )}
+        </>
+      )}
         </>
       )}
     </div>
